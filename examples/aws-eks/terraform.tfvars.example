@@ -1,0 +1,33 @@
+# Cluster Configuration
+cluster_name    = "sligo-production"
+cluster_version = "1.28"
+aws_region      = "us-east-1"
+
+# Application Configuration
+domain_name              = "app.example.com"
+client_repository_name   = "your-client-containers"
+app_version              = "1.0.0"
+sligo_service_account_key_path = "./sligo-service-account-key.json"
+
+# Database Configuration
+db_instance_class    = "db.t3.medium"
+db_allocated_storage = 100
+db_username          = "sligo"
+# db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
+
+# Redis Configuration
+redis_node_type = "cache.t3.micro"
+
+# S3 Storage Configuration (optional)
+# s3_bucket_name = "my-app-storage"  # Leave empty to auto-generate
+# s3_bucket_versioning = true
+# s3_bucket_encryption = true
+# use_existing_s3_bucket = false  # Set to true if bucket already exists in AWS
+
+# Secrets (use environment variables or secrets manager in production)
+# jwt_secret = "CHANGE_ME"
+# api_key = "CHANGE_ME"
+# nextauth_secret = "CHANGE_ME"
+# gateway_secret = "CHANGE_ME"
+# frontend_url = "https://app.example.com"
+# next_public_api_url = "https://api.example.com"

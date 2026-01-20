@@ -1,0 +1,39 @@
+name: Terraform Integration Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays
+    - cron: '0 0 * * 0'
+
+jobs:
+  test-helm-integration:
+    name: Test Helm Chart Integration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Test Helm Repository Access
+        run: |
+          helm repo add sligo https://sligo-ai.github.io/sligo-helm-charts
+          helm repo update
+          helm search repo sligo/sligo-cloud --versions
+
+      - name: Validate Helm Chart Reference
+        working-directory: examples/aws-eks
+        run: |
+          terraform init -backend=false
+          # This will fail if Helm chart reference is invalid
+          terraform validate

@@ -1,0 +1,33 @@
+# Cluster Configuration
+cluster_name    = "sligo-production"
+gcp_project_id  = "your-project-id"
+gcp_region      = "us-central1"
+gcp_zones       = ["us-central1-a", "us-central1-b"]
+cluster_version = "1.28"
+
+# Application Configuration
+domain_name              = "app.example.com"
+client_repository_name   = "your-client-containers"
+app_version              = "1.0.0"
+sligo_service_account_key_path = "./sligo-service-account-key.json"
+
+# Database Configuration
+db_tier = "db-f1-micro"
+db_username = "sligo"
+# db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
+
+# Redis Configuration
+redis_memory_size_gb = 1
+
+# GCS Storage Configuration (optional)
+# gcs_bucket_name = "my-app-storage"  # Leave empty to auto-generate
+# gcs_bucket_location = "US"
+# gcs_bucket_versioning = true
+
+# Secrets (use environment variables or secrets manager in production)
+# jwt_secret = "CHANGE_ME"
+# api_key = "CHANGE_ME"
+# nextauth_secret = "CHANGE_ME"
+# gateway_secret = "CHANGE_ME"
+# frontend_url = "https://app.example.com"
+# next_public_api_url = "https://api.example.com"

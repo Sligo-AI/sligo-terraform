@@ -1,0 +1,52 @@
+name: Terraform Validate
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'modules/**'
+      - 'examples/**'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'modules/**'
+      - 'examples/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        module:
+          - modules/aws/eks
+          - modules/gcp/gke
+          - examples/aws-eks
+          - examples/gcp-gke
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Format Check
+        working-directory: ${{ matrix.module }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        working-directory: ${{ matrix.module }}
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: ${{ matrix.module }}
+        run: terraform validate -no-color
