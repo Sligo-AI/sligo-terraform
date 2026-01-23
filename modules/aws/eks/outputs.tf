@@ -47,9 +47,9 @@ output "acm_certificate_validation_records" {
   description = "DNS validation records for ACM certificate. Add these CNAME records to GoDaddy to validate the certificate."
   value = var.acm_certificate_arn == "" && length(aws_acm_certificate.sligo) > 0 ? [
     for record in aws_acm_certificate.sligo[0].domain_validation_options : {
-      name   = replace(record.resource_record_name, ".${var.domain_name}.", "")  # Remove domain suffix for GoDaddy
-      type   = record.resource_record_type
-      value  = record.resource_record_value
+      name      = replace(record.resource_record_name, ".${var.domain_name}.", "") # Remove domain suffix for GoDaddy
+      type      = record.resource_record_type
+      value     = record.resource_record_value
       full_name = record.resource_record_name
     }
   ] : []

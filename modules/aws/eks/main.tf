@@ -151,7 +151,7 @@ module "eks" {
 
   # Enable access entries API (required for EKS clusters to allow nodes to join)
   # This ensures node groups can automatically join the cluster
-  authentication_mode = "API_AND_CONFIG_MAP"
+  authentication_mode                      = "API_AND_CONFIG_MAP"
   enable_cluster_creator_admin_permissions = true
 
   # EKS Managed Node Groups
@@ -162,31 +162,31 @@ module "eks" {
       desired_size = 2
 
       instance_types = ["t3.medium"]
-      
+
       # Migrate to Amazon Linux 2023 (AL2023) - required for K8s 1.30+
       # AL2 support ends Nov 26, 2025, and no AL2 AMIs for K8s 1.33+
       ami_type = "AL2023_x86_64_STANDARD"
-      
+
       # Use public subnets for node groups to ensure they can reach EKS API endpoint
       # This prevents timeout issues during node group creation
       # Alternatively, if using private subnets, ensure NAT Gateway is configured (see above)
       subnet_ids = length(var.subnet_ids) > 0 ? var.subnet_ids : aws_subnet.public[*].id
-      
+
       # Ensure node group version matches cluster version
       # This prevents AMI compatibility issues
       update_config = {
         max_unavailable_percentage = 33
       }
-      
+
       # Attach cluster's primary security group to node group
       # This ensures proper communication between nodes and cluster
       attach_cluster_primary_security_group = true
-      
+
       # Add Kubernetes labels and tags
       labels = {
         nodegroup = "main"
       }
-      
+
       tags = {
         Name = "${var.cluster_name}-main-node-group"
       }
@@ -636,7 +636,7 @@ resource "kubernetes_service_account" "alb_controller" {
     }
     labels = {
       "app.kubernetes.io/component" = "controller"
-      "app.kubernetes.io/name"       = "aws-load-balancer-controller"
+      "app.kubernetes.io/name"      = "aws-load-balancer-controller"
     }
   }
 }
@@ -753,39 +753,39 @@ resource "kubernetes_secret" "nextjs_secrets" {
   }
 
   data = {
-    NEXT_PUBLIC_API_URL        = var.next_public_api_url
-    NEXT_PUBLIC_URL            = var.frontend_url
-    FRONTEND_URL               = var.frontend_url
-    NEXTAUTH_SECRET            = var.nextauth_secret
-    PORT                        = "3000"
-    REDIS_URL                  = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    BACKEND_URL                = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL            = "http://mcp-gateway:3002"
-    DATABASE_URL               = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
+    NEXT_PUBLIC_API_URL                = var.next_public_api_url
+    NEXT_PUBLIC_URL                    = var.frontend_url
+    FRONTEND_URL                       = var.frontend_url
+    NEXTAUTH_SECRET                    = var.nextauth_secret
+    PORT                               = "3000"
+    REDIS_URL                          = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    BACKEND_URL                        = "http://sligo-backend:3001"
+    MCP_GATEWAY_URL                    = "http://mcp-gateway:3002"
+    DATABASE_URL                       = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
     FILE_MANAGER_GOOGLE_STORAGE_BUCKET = local.s3_bucket_id
-    FILE_MANAGER_REDIS_URL     = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    FILE_MANAGER_REDIS_URL             = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
     # These should be provided via terraform.tfvars - adding placeholders for now
-    WORKOS_API_KEY             = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID           = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD     = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY           = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX             = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GCP_SA_KEY                 = var.gcp_sa_key != "" ? var.gcp_sa_key : "placeholder"
-    GOOGLE_CLIENT_SECRET       = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    WORKOS_API_KEY                      = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID                    = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD              = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID        = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY       = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID      = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY                    = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                      = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GCP_SA_KEY                          = var.gcp_sa_key != "" ? var.gcp_sa_key : "placeholder"
+    GOOGLE_CLIENT_SECRET                = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
     GOOGLE_STORAGE_AGENT_AVATARS_BUCKET = var.google_storage_agent_avatars_bucket != "" ? var.google_storage_agent_avatars_bucket : "placeholder"
-    GOOGLE_STORAGE_BUCKET      = var.google_storage_bucket != "" ? var.google_storage_bucket : "placeholder"
-    GOOGLE_STORAGE_MCP_LOGOS_BUCKET = var.google_storage_mcp_logos_bucket != "" ? var.google_storage_mcp_logos_bucket : "placeholder"
-    GOOGLE_STORAGE_RAG_SA_KEY  = var.google_storage_rag_sa_key != "" ? var.google_storage_rag_sa_key : "placeholder"
-    ONEDRIVE_CLIENT_SECRET     = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY             = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY             = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    FILE_MANAGER_GOOGLE_PROJECTID = var.file_manager_google_projectid != "" ? var.file_manager_google_projectid : ""
-    NODE_ENV                   = "production"
+    GOOGLE_STORAGE_BUCKET               = var.google_storage_bucket != "" ? var.google_storage_bucket : "placeholder"
+    GOOGLE_STORAGE_MCP_LOGOS_BUCKET     = var.google_storage_mcp_logos_bucket != "" ? var.google_storage_mcp_logos_bucket : "placeholder"
+    GOOGLE_STORAGE_RAG_SA_KEY           = var.google_storage_rag_sa_key != "" ? var.google_storage_rag_sa_key : "placeholder"
+    ONEDRIVE_CLIENT_SECRET              = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                      = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                      = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    FILE_MANAGER_GOOGLE_PROJECTID       = var.file_manager_google_projectid != "" ? var.file_manager_google_projectid : ""
+    NODE_ENV                            = "production"
     # Temporarily skip env validation to allow pods to start
-    SKIP_ENV_VALIDATION        = "true"
+    SKIP_ENV_VALIDATION = "true"
   }
 }
 
@@ -796,25 +796,25 @@ resource "kubernetes_secret" "backend_secrets" {
   }
 
   data = {
-    JWT_SECRET                        = var.jwt_secret
-    API_KEY                           = var.api_key
-    PORT                              = "3001"
+    JWT_SECRET = var.jwt_secret
+    API_KEY    = var.api_key
+    PORT       = "3001"
     # Use Prisma Accelerate URL if provided, otherwise fall back to direct PostgreSQL connection
     # Prisma Accelerate URL format: prisma://accelerate.prisma-data.net/?api_key=... or prisma+postgres://...
-    DATABASE_URL                      = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
-    REDIS_URL                         = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    MCP_GATEWAY_URL                   = "http://mcp-gateway:3002"
-    SQL_CONNECTION_STRING_DECRYPTION_IV = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
+    DATABASE_URL                         = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
+    REDIS_URL                            = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    MCP_GATEWAY_URL                      = "http://mcp-gateway:3002"
+    SQL_CONNECTION_STRING_DECRYPTION_IV  = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
-    ENCRYPTION_KEY                    = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    GOOGLE_PROJECTID                  = var.google_project_id != "" ? var.google_project_id : "placeholder"
-    GOOGLE_API_KEY                    = var.google_api_key != "" ? var.google_api_key : "placeholder"
-    OPENAI_API_KEY                    = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    FILE_MANAGER_REDIS_URL            = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    FILE_MANAGER_GOOGLE_STORAGE_BUCKET = local.s3_bucket_id
-    NODE_ENV                          = "production"
+    ENCRYPTION_KEY                       = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    GOOGLE_PROJECTID                     = var.google_project_id != "" ? var.google_project_id : "placeholder"
+    GOOGLE_API_KEY                       = var.google_api_key != "" ? var.google_api_key : "placeholder"
+    OPENAI_API_KEY                       = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    FILE_MANAGER_REDIS_URL               = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    FILE_MANAGER_GOOGLE_STORAGE_BUCKET   = local.s3_bucket_id
+    NODE_ENV                             = "production"
     # Temporarily skip env validation to allow pods to start
-    SKIP_ENV_VALIDATION               = "true"
+    SKIP_ENV_VALIDATION = "true"
   }
 }
 
@@ -825,19 +825,19 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
   }
 
   data = {
-    SECRET                        = var.gateway_secret
-    PORT                          = "3002"
+    SECRET                             = var.gateway_secret
+    PORT                               = "3002"
     FILE_MANAGER_GOOGLE_STORAGE_BUCKET = local.s3_bucket_id
-    FILE_MANAGER_REDIS_URL        = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    REDIS_URL_STRUCTURED_OUTPUTS  = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    FILE_MANAGER_REDIS_URL             = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    REDIS_URL_STRUCTURED_OUTPUTS       = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
     # Required for utility server
-    FRONTEND_URL                  = var.frontend_url
-    OPENAI_API_KEY                = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PINECONE_API_KEY              = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    FRONTEND_URL     = var.frontend_url
+    OPENAI_API_KEY   = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PINECONE_API_KEY = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX   = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
     # Optional for other servers
-    PERPLEXITY_API_KEY            = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY                = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    PERPLEXITY_API_KEY = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY     = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
   }
 }
 
@@ -1008,23 +1008,23 @@ resource "helm_release" "sligo_cloud" {
       }
 
       ingress = {
-        enabled    = true
-        className  = "alb"
+        enabled   = true
+        className = "alb"
         annotations = merge({
-          "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
-          "alb.ingress.kubernetes.io/target-type" = "ip"
-          "alb.ingress.kubernetes.io/listen-ports" = local.certificate_arn != "" ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
-          "alb.ingress.kubernetes.io/healthcheck-path" = "/api/health"
+          "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
+          "alb.ingress.kubernetes.io/target-type"          = "ip"
+          "alb.ingress.kubernetes.io/listen-ports"         = local.certificate_arn != "" ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
+          "alb.ingress.kubernetes.io/healthcheck-path"     = "/api/health"
           "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
-          "alb.ingress.kubernetes.io/healthcheck-port" = "traffic-port"
-          "alb.ingress.kubernetes.io/success-codes" = "200"
-        }, local.certificate_arn != "" ? {
+          "alb.ingress.kubernetes.io/healthcheck-port"     = "traffic-port"
+          "alb.ingress.kubernetes.io/success-codes"        = "200"
+          }, local.certificate_arn != "" ? {
           "alb.ingress.kubernetes.io/certificate-arn" = local.certificate_arn
-          "alb.ingress.kubernetes.io/ssl-redirect"     = "443"
+          "alb.ingress.kubernetes.io/ssl-redirect"    = "443"
         } : {})
         hosts = [
           {
-            host  = var.domain_name
+            host = var.domain_name
             paths = [
               {
                 path     = "/"
@@ -1140,7 +1140,7 @@ data "aws_security_group" "alb" {
     name   = "tag:ingress.k8s.aws/resource"
     values = ["ManagedLBSecurityGroup"]
   }
-  
+
   depends_on = [helm_release.sligo_cloud]
 }
 
@@ -1176,7 +1176,7 @@ resource "aws_security_group_rule" "alb_to_app" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach app pods on port 3000"
-  
+
   depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
@@ -1188,7 +1188,7 @@ resource "aws_security_group_rule" "alb_to_backend" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach backend pods on port 3001"
-  
+
   depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
@@ -1200,7 +1200,7 @@ resource "aws_security_group_rule" "alb_to_mcp_gateway" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach mcp-gateway pods on port 3002"
-  
+
   depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
@@ -1216,9 +1216,9 @@ resource "kubernetes_annotations" "backend_service_healthcheck" {
   annotations = {
     "alb.ingress.kubernetes.io/healthcheck-path" = "/health"
   }
-  
+
   depends_on = [helm_release.sligo_cloud]
-  
+
   # Force replacement if service is recreated
   force = true
 }
@@ -1233,9 +1233,9 @@ resource "kubernetes_annotations" "mcp_gateway_service_healthcheck" {
   annotations = {
     "alb.ingress.kubernetes.io/healthcheck-path" = "/health"
   }
-  
+
   depends_on = [helm_release.sligo_cloud]
-  
+
   # Force replacement if service is recreated
   force = true
 }
