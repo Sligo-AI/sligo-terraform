@@ -17,3 +17,13 @@ output "ingress_hostname" {
   description = "Load balancer hostname"
   value       = module.sligo_aws.ingress_hostname
 }
+
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN"
+  value       = module.sligo_aws.acm_certificate_arn
+}
+
+output "acm_certificate_validation_records" {
+  description = "DNS validation records for ACM certificate"
+  value       = module.sligo_aws.acm_certificate_validation_records
+}

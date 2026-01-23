@@ -22,6 +22,12 @@ variable "domain_name" {
   type        = string
 }
 
+variable "acm_certificate_arn" {
+  description = "ARN of the ACM certificate for HTTPS (optional, leave empty to use HTTP only)"
+  type        = string
+  default     = ""
+}
+
 variable "client_repository_name" {
   description = "Client-specific GAR repository name (provided by Sligo)"
   type        = string
@@ -62,6 +68,13 @@ variable "db_username" {
 variable "db_password" {
   description = "Database password"
   type        = string
+  sensitive   = true
+}
+
+variable "prisma_accelerate_url" {
+  description = "Prisma Accelerate connection URL (format: prisma://accelerate.prisma-data.net/?api_key=...) or prisma+postgres://..."
+  type        = string
+  default     = ""
   sensitive   = true
 }
 
@@ -130,6 +143,166 @@ variable "frontend_url" {
 variable "next_public_api_url" {
   description = "Public API URL"
   type        = string
+}
+
+# Additional secrets (optional - provide via terraform.tfvars if needed)
+variable "workos_api_key" {
+  description = "WorkOS API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "workos_client_id" {
+  description = "WorkOS Client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "workos_cookie_password" {
+  description = "WorkOS Cookie Password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "next_public_google_client_id" {
+  description = "Google OAuth Client ID (public)"
+  type        = string
+  default     = ""
+}
+
+variable "next_public_google_client_key" {
+  description = "Google OAuth Client Key (public)"
+  type        = string
+  default     = ""
+}
+
+variable "next_public_onedrive_client_id" {
+  description = "OneDrive OAuth Client ID (public)"
+  type        = string
+  default     = ""
+}
+
+variable "pinecone_api_key" {
+  description = "Pinecone API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "pinecone_index" {
+  description = "Pinecone index name"
+  type        = string
+  default     = ""
+}
+
+variable "sql_connection_string_decryption_iv" {
+  description = "SQL connection string decryption IV"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "sql_connection_string_decryption_key" {
+  description = "SQL connection string decryption key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "encryption_key" {
+  description = "Encryption key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_project_id" {
+  description = "Google Cloud Project ID"
+  type        = string
+  default     = ""
+}
+
+variable "google_api_key" {
+  description = "Google API Key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "openai_api_key" {
+  description = "OpenAI API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "perplexity_api_key" {
+  description = "Perplexity API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "tavily_api_key" {
+  description = "Tavily API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "gcp_sa_key" {
+  description = "GCP Service Account Key (JSON)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth Client Secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "google_storage_agent_avatars_bucket" {
+  description = "Google Storage bucket for agent avatars"
+  type        = string
+  default     = ""
+}
+
+variable "google_storage_bucket" {
+  description = "Google Storage bucket"
+  type        = string
+  default     = ""
+}
+
+variable "google_storage_mcp_logos_bucket" {
+  description = "Google Storage bucket for MCP logos"
+  type        = string
+  default     = ""
+}
+
+variable "google_storage_rag_sa_key" {
+  description = "Google Storage RAG Service Account Key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "onedrive_client_secret" {
+  description = "OneDrive OAuth Client Secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "file_manager_google_projectid" {
+  description = "File Manager Google Project ID"
+  type        = string
+  default     = ""
 }
 
 # Networking (Optional - can use existing VPC)

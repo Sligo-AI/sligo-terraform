@@ -20,14 +20,21 @@ This repository provides production-ready Terraform configurations that provisio
 
 ## 📋 Prerequisites
 
-- **Terraform** >= 1.0
+Before you begin, ensure you have:
+
+- **Terraform** >= 1.0 installed
 - **Helm** >= 3.10 (for Terraform Helm provider)
-- **kubectl** configured with cluster access
-- Cloud provider credentials configured:
+- **kubectl** installed (will be configured after cluster creation)
+- **Cloud provider credentials** configured:
   - AWS: `aws configure` or environment variables
   - GCP: `gcloud auth application-default login`
-- **Sligo service account key** (contact support@sligo.ai)
-- Domain name for application access
+- **Sligo Service Account Key** (JSON file) - Contact support@sligo.ai
+  - This authenticates your cluster to pull container images from Sligo's Google Artifact Registry (GAR)
+  - Place this file in your project directory (it's automatically ignored by git)
+- **Container Repository Name** - Provided by Sligo support
+  - Your unique repository name in Sligo's Google Artifact Registry
+  - Example: `your-company-containers` or `client-abc-containers`
+- **Domain name** for your application (e.g., `app.example.com`)
 
 ## 🏗️ Architecture
 
@@ -53,7 +60,14 @@ This repository uses Terraform to:
 
 ## 🚀 Quick Start
 
-### AWS EKS Deployment
+### Step 1: Get Your Sligo Credentials
+
+Before starting, contact **support@sligo.ai** to receive:
+
+1. **Service Account Key (JSON file)** - For authenticating to Sligo's Google Artifact Registry
+2. **Container Repository Name** - Your unique repository name (e.g., `your-company-containers`)
+
+### Step 2: AWS EKS Deployment
 
 ```bash
 # Clone the repository
@@ -63,9 +77,17 @@ cd sligo-terraform
 # Navigate to AWS example
 cd examples/aws-eks
 
+# Place your Sligo service account key in this directory
+# Name it: sligo-service-account-key.json
+# (This file is automatically ignored by git for security)
+
 # Copy and configure variables
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
+
+# Edit terraform.tfvars with your values:
+# - Set client_repository_name (from Sligo)
+# - Set sligo_service_account_key_path = "./sligo-service-account-key.json"
+# - Configure domain_name, cluster_name, and all required secrets
 
 # Initialize Terraform
 terraform init
@@ -76,6 +98,8 @@ terraform plan
 # Deploy everything
 terraform apply
 ```
+
+**See the [detailed step-by-step guide](examples/aws-eks/README.md) for complete instructions.**
 
 ### GCP GKE Deployment
 
@@ -138,32 +162,48 @@ module "sligo_aws" {
 
   # Cluster configuration
   cluster_name    = "sligo-production"
-  cluster_version = "1.28"
+  cluster_version = "1.29"
   aws_region      = "us-east-1"
 
   # Application configuration
   domain_name              = "app.example.com"
   client_repository_name   = "your-client-containers"
   app_version              = "1.0.0"
-  
-  # Service account key (provided by Sligo)
   sligo_service_account_key_path = "./sligo-service-account-key.json"
 
   # Database configuration
-  db_instance_class = "db.t3.medium"
+  db_instance_class    = "db.t3.medium"
   db_allocated_storage = 100
+  db_password          = var.db_password
 
-  # Redis configuration
-  redis_node_type = "cache.t3.micro"
+  # Optional: Prisma Accelerate (or use direct PostgreSQL)
+  prisma_accelerate_url = var.prisma_accelerate_url
 
-  # Secrets (use Terraform variables or secrets manager)
-  db_password      = var.db_password
+  # Optional: ACM Certificate (or auto-create)
+  acm_certificate_arn = var.acm_certificate_arn
+
+  # Secrets
   jwt_secret       = var.jwt_secret
   api_key          = var.api_key
   nextauth_secret  = var.nextauth_secret
   gateway_secret   = var.gateway_secret
+  frontend_url     = "https://app.example.com"
+  next_public_api_url = "https://api.example.com"
+  encryption_key   = var.encryption_key  # 64 hex characters
+
+  # Optional: WorkOS, Google Cloud, Pinecone, etc.
+  workos_api_key  = var.workos_api_key
+  # ... other optional variables
 }
 ```
+
+**Key Features:**
+- ✅ Automatic AWS Load Balancer Controller installation
+- ✅ Automatic ACM certificate creation with DNS validation
+- ✅ Security group rules automatically configured
+- ✅ Simplified ingress routing (all traffic to Next.js app)
+- ✅ Service-specific health check paths
+- ✅ Support for Prisma Accelerate or direct PostgreSQL
 
 ### GCP GKE Module
 
@@ -206,9 +246,38 @@ This Terraform repository **uses** the [Sligo Cloud Helm Chart](https://github.c
 
 **How it works:**
 1. Terraform provisions infrastructure (cluster, database, cache)
-2. Terraform creates Kubernetes secrets
+2. Terraform creates Kubernetes secrets and image pull secrets for Google Artifact Registry
 3. Terraform uses the Helm provider to deploy the chart from the public Helm repository
-4. The Helm chart deploys the Sligo Cloud application
+4. The Helm chart deploys the Sligo Cloud application using containers from Sligo's Google Artifact Registry
+
+## 📦 Container Registry Access
+
+Sligo Cloud containers are stored in **Google Artifact Registry (GAR)**. Here's how access works:
+
+1. **Sligo provides you with:**
+   - A JSON service account key file (for authentication)
+   - Your container repository name (e.g., `your-client-containers`)
+
+2. **You place the key file** in your project directory:
+   - Example: `examples/aws-eks/sligo-service-account-key.json`
+   - The file is automatically ignored by git (see `.gitignore`) for security
+
+3. **Terraform automatically:**
+   - Reads the key file from the path you specify in `sligo_service_account_key_path`
+   - Creates a Kubernetes image pull secret named `gar-pull-secret`
+   - Configures all pods to use this secret to pull images from GAR
+
+4. **Container images are pulled from:**
+   ```
+   us-central1-docker.pkg.dev/<your-repository-name>/nextjs:<version>
+   us-central1-docker.pkg.dev/<your-repository-name>/backend:<version>
+   us-central1-docker.pkg.dev/<your-repository-name>/mcp-gateway:<version>
+   ```
+
+**Important:**
+- The service account key file must be present when running `terraform apply`
+- The repository name (`client_repository_name`) must match exactly what Sligo provided
+- Contact support@sligo.ai if you need a new service account key
 
 **Helm Chart Repository:**
 ```hcl
@@ -227,8 +296,8 @@ resource "helm_release" "sligo_cloud" {
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `domain_name` | Domain name for the application | Yes |
-| `client_repository_name` | Your GAR repository name (from Sligo) | Yes |
-| `sligo_service_account_key_path` | Path to Sligo service account key JSON | Yes |
+| `client_repository_name` | Your GAR repository name (provided by Sligo support) | Yes |
+| `sligo_service_account_key_path` | Path to Sligo service account key JSON file (place in project directory) | Yes |
 | `app_version` | Sligo Cloud application version | Yes |
 | `db_password` | Database password | Yes |
 | `jwt_secret` | JWT secret for backend | Yes |
@@ -242,8 +311,16 @@ resource "helm_release" "sligo_cloud" {
 |----------|-------------|---------|
 | `aws_region` | AWS region | `us-east-1` |
 | `cluster_name` | EKS cluster name | Required |
+| `cluster_version` | Kubernetes version | `1.28` |
 | `db_instance_class` | RDS instance class | `db.t3.medium` |
+| `db_allocated_storage` | RDS storage in GB | `100` |
 | `redis_node_type` | ElastiCache node type | `cache.t3.micro` |
+| `acm_certificate_arn` | Existing ACM certificate ARN | `""` (auto-create) |
+| `prisma_accelerate_url` | Prisma Accelerate URL | `""` (use direct PostgreSQL) |
+| `encryption_key` | 64-character hex encryption key | Required |
+| `s3_bucket_name` | S3 bucket name | `""` (auto-generate) |
+| `vpc_id` | Existing VPC ID | `""` (create new) |
+| `subnet_ids` | Existing subnet IDs | `[]` (create new) |
 
 ### GCP-Specific Variables
 
@@ -254,6 +331,63 @@ resource "helm_release" "sligo_cloud" {
 | `gcp_zones` | GCP zones | `["us-central1-a"]` |
 | `db_tier` | Cloud SQL tier | `db-f1-micro` |
 | `redis_memory_size_gb` | Memorystore memory size | `1` |
+
+## 🏢 Managing Multiple Environments (Dev, Staging, Prod)
+
+If you need multiple instances of Sligo Cloud (dev, staging, production), we recommend using **separate directories** for each environment.
+
+### Recommended Structure
+
+```
+examples/
+├── aws-eks/              # Example/template
+├── aws-eks-dev/          # Development environment
+│   ├── main.tf
+│   ├── terraform.tfvars
+│   └── sligo-service-account-key.json
+├── aws-eks-staging/      # Staging environment
+│   ├── main.tf
+│   ├── terraform.tfvars
+│   └── sligo-service-account-key.json
+└── aws-eks-prod/         # Production environment
+    ├── main.tf
+    ├── terraform.tfvars
+    └── sligo-service-account-key.json
+```
+
+### Setup Steps
+
+1. **Copy the example for each environment:**
+   ```bash
+   cp -r examples/aws-eks examples/aws-eks-dev
+   cp -r examples/aws-eks examples/aws-eks-staging
+   cp -r examples/aws-eks examples/aws-eks-prod
+   ```
+
+2. **Configure each environment's `terraform.tfvars`** with environment-specific values:
+   - Different `cluster_name` (e.g., `sligo-dev`, `sligo-staging`, `sligo-prod`)
+   - Different `domain_name` (e.g., `dev-app.example.com`, `staging-app.example.com`, `app.example.com`)
+   - Different resource sizes (smaller for dev, larger for prod)
+   - **Different secrets** for each environment (never reuse prod secrets)
+
+3. **Add service account key to each directory:**
+   - You can use the **same** service account key for all environments
+   - All environments pull from the same container repository
+
+4. **Deploy each environment independently:**
+   ```bash
+   cd examples/aws-eks-dev && terraform init && terraform apply
+   cd ../aws-eks-staging && terraform init && terraform apply
+   cd ../aws-eks-prod && terraform init && terraform apply
+   ```
+
+**Benefits:**
+- ✅ Clear separation of environments
+- ✅ Independent Terraform state files
+- ✅ No risk of deploying to the wrong environment
+- ✅ Easy to manage different configurations
+
+**See the [detailed guide](examples/aws-eks/README.md#managing-multiple-environments-dev-staging-prod) for more information.**
 
 ## 🔐 Secrets Management
 
@@ -312,8 +446,18 @@ output "application_url" {
 }
 
 output "ingress_hostname" {
-  description = "Load balancer hostname"
+  description = "Load balancer hostname (for DNS configuration)"
   value       = module.sligo_aws.ingress_hostname
+}
+
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN (if auto-created)"
+  value       = module.sligo_aws.acm_certificate_arn
+}
+
+output "acm_certificate_validation_records" {
+  description = "DNS validation records for ACM certificate"
+  value       = module.sligo_aws.acm_certificate_validation_records
 }
 ```
 

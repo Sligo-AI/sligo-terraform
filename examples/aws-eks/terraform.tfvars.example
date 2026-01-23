@@ -1,12 +1,15 @@
 # Cluster Configuration
 cluster_name    = "sligo-production"
-cluster_version = "1.28"
+cluster_version = "1.29"
 aws_region      = "us-east-1"
 
 # Application Configuration
-domain_name              = "app.example.com"
-client_repository_name   = "your-client-containers"
-app_version              = "1.0.0"
+domain_name                    = "app.example.com"
+client_repository_name         = "your-client-containers"  # Provided by Sligo support
+app_version                    = "1.0.0"
+# IMPORTANT: Place your Sligo service account key JSON file in this directory
+# Contact support@sligo.ai to receive your service account key
+# This file is automatically ignored by git for security
 sligo_service_account_key_path = "./sligo-service-account-key.json"
 
 # Database Configuration
@@ -14,6 +17,10 @@ db_instance_class    = "db.t3.medium"
 db_allocated_storage = 100
 db_username          = "sligo"
 # db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
+
+# Optional: Prisma Accelerate
+# If not provided, uses direct PostgreSQL connection
+# prisma_accelerate_url = "prisma://accelerate.prisma-data.net/?api_key=..."
 
 # Redis Configuration
 redis_node_type = "cache.t3.micro"
@@ -24,10 +31,59 @@ redis_node_type = "cache.t3.micro"
 # s3_bucket_encryption = true
 # use_existing_s3_bucket = false  # Set to true if bucket already exists in AWS
 
-# Secrets (use environment variables or secrets manager in production)
-# jwt_secret = "CHANGE_ME"
-# api_key = "CHANGE_ME"
-# nextauth_secret = "CHANGE_ME"
-# gateway_secret = "CHANGE_ME"
-# frontend_url = "https://app.example.com"
-# next_public_api_url = "https://api.example.com"
+# Optional: ACM Certificate
+# If not provided, a certificate will be automatically created
+# acm_certificate_arn = "arn:aws:acm:us-east-1:123456789:certificate/..."
+
+# Required Secrets
+jwt_secret          = "CHANGE_ME"
+api_key             = "CHANGE_ME"
+nextauth_secret     = "CHANGE_ME"
+gateway_secret      = "CHANGE_ME"
+frontend_url        = "https://app.example.com"
+next_public_api_url = "https://api.example.com"
+
+# Encryption key - must be 64 hex characters (32 bytes) for AES-256
+# Generate with: openssl rand -hex 32
+encryption_key = "CHANGE_ME"
+
+# WorkOS Authentication (optional but recommended)
+# workos_api_key = "sk_live_..."
+# workos_client_id = "client_..."
+# workos_cookie_password = "your-secure-random-password"
+
+# Google Cloud Configuration (optional)
+# next_public_google_client_id = "your-google-client-id"
+# next_public_google_client_key = "your-google-client-key"
+# google_client_secret = "your-google-client-secret"
+# google_project_id = "your-gcp-project-id"
+# google_api_key = "your-google-api-key"
+# google_storage_bucket = "your-google-storage-bucket"
+# google_storage_agent_avatars_bucket = "your-agent-avatars-bucket"
+# google_storage_mcp_logos_bucket = "your-mcp-logos-bucket"
+# google_storage_rag_sa_key = "your-rag-sa-key-json"
+# file_manager_google_projectid = "your-file-manager-project-id"
+
+# OneDrive Configuration (optional)
+# next_public_onedrive_client_id = "your-onedrive-client-id"
+# onedrive_client_secret = "your-onedrive-client-secret"
+
+# Pinecone Configuration (optional)
+# pinecone_api_key = "your-pinecone-api-key"
+# pinecone_index = "your-pinecone-index"
+
+# AI Services (optional)
+# openai_api_key = "sk-..."
+# perplexity_api_key = "your-perplexity-key"
+# tavily_api_key = "your-tavily-key"
+
+# GCP Service Account (optional)
+# gcp_sa_key = "{\"type\":\"service_account\",...}"  # JSON string
+
+# SQL Connection Encryption (optional, if using encrypted connection strings)
+# sql_connection_string_decryption_iv = "your-iv"
+# sql_connection_string_decryption_key = "your-key"
+
+# Networking (Optional - can use existing VPC)
+# vpc_id = "vpc-..."
+# subnet_ids = ["subnet-...", "subnet-..."]
