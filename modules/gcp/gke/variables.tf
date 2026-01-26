@@ -39,9 +39,9 @@ variable "client_repository_name" {
 }
 
 variable "app_version" {
-  description = "Sligo Cloud application version"
+  description = "Sligo Cloud application version tag (e.g., 'v1.0.0', 'v1.2.3'). This should match a version tag pushed to the container registry. Use 'latest' for development only."
   type        = string
-  default     = "1.0.0"
+  default     = "latest"
 }
 
 variable "sligo_service_account_key_path" {

@@ -1040,7 +1040,7 @@ resource "helm_release" "sligo_cloud" {
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-frontend"
-          tag        = "latest"
+          tag        = var.app_version
         }
         secretName = kubernetes_secret.nextjs_secrets.metadata[0].name
         resources = {
@@ -1059,7 +1059,7 @@ resource "helm_release" "sligo_cloud" {
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-backend"
-          tag        = "latest"
+          tag        = var.app_version
         }
         secretName = kubernetes_secret.backend_secrets.metadata[0].name
         resources = {
@@ -1078,7 +1078,7 @@ resource "helm_release" "sligo_cloud" {
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-mcp-gateway"
-          tag        = "latest"
+          tag        = var.app_version
         }
         secretName = kubernetes_secret.mcp_gateway_secrets.metadata[0].name
         resources = {

@@ -9,6 +9,7 @@ This repository provides production-ready Terraform configurations that provisio
 - **Infrastructure as Code (IAC)** for Sligo Cloud deployments
 - **Reusable Terraform modules** for AWS EKS and GCP GKE
 - **Complete examples** with best practices
+- **Environment automation** - Use `make create-environment` to quickly create new environments
 - **Automated provisioning** of:
   - Kubernetes clusters (EKS/GKE)
   - Managed databases (RDS/Cloud SQL)
@@ -67,28 +68,51 @@ Before starting, contact **support@sligo.ai** to receive:
 1. **Service Account Key (JSON file)** - For authenticating to Sligo's Google Artifact Registry
 2. **Container Repository Name** - Your unique repository name (e.g., `your-company-containers`)
 
-### Step 2: AWS EKS Deployment
+### Step 2: Create Your Environment
+
+**Recommended:** Use the automated environment creation tool:
 
 ```bash
 # Clone the repository
 git clone https://github.com/Sligo-AI/sligo-terraform.git
 cd sligo-terraform
 
-# Navigate to AWS example
-cd examples/aws-eks
+# Create a new environment (interactive prompts)
+make create-environment
+```
+
+The script will prompt you for:
+- Infrastructure type (`aws-eks` or `gcp-gke`)
+- Environment name (e.g., `dev`, `staging`, `prod`)
+- Region (e.g., `us-east-1` for AWS, `us-central1` for GCP)
+- Cluster name (defaults to `sligo-{env-name}`)
+- Domain name (defaults to `{env-name}.example.com`)
+
+This creates a new directory in `environments/` with all necessary files pre-configured.
+
+**Alternative:** If you prefer to use the examples directly for learning or testing, see the [Manual Setup](#manual-setup-using-examples) section below.
+
+### Step 3: Configure Your Environment
+
+```bash
+# Navigate to your environment directory
+cd environments/aws-eks-{your-env-name}  # or gcp-gke-{your-env-name}
 
 # Place your Sligo service account key in this directory
 # Name it: sligo-service-account-key.json
 # (This file is automatically ignored by git for security)
 
-# Copy and configure variables
-cp terraform.tfvars.example terraform.tfvars
-
 # Edit terraform.tfvars with your values:
 # - Set client_repository_name (from Sligo)
 # - Set sligo_service_account_key_path = "./sligo-service-account-key.json"
-# - Configure domain_name, cluster_name, and all required secrets
+# - Set app_version = "v1.0.0" (or latest version tag - contact Sligo for available versions)
+# - Configure all required secrets (jwt_secret, api_key, etc.)
+# - Generate encryption_key: openssl rand -hex 32
+```
 
+### Step 4: Deploy
+
+```bash
 # Initialize Terraform
 terraform init
 
@@ -101,25 +125,31 @@ terraform apply
 
 **See the [detailed step-by-step guide](examples/aws-eks/README.md) for complete instructions.**
 
-### GCP GKE Deployment
+> **💡 Tip:** Need multiple environments (dev, staging, prod)? See the [Managing Multiple Environments](#-managing-multiple-environments-dev-staging-prod) section for best practices.
 
+---
+
+### Manual Setup Using Examples
+
+If you want to use the examples directly (for learning, testing, or one-off deployments):
+
+**AWS EKS:**
 ```bash
-# Navigate to GCP example
-cd examples/gcp-gke
-
-# Copy and configure variables
+cd examples/aws-eks
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars with your values
-
-# Initialize Terraform
-terraform init
-
-# Review the plan
-terraform plan
-
-# Deploy everything
-terraform apply
+terraform init && terraform plan && terraform apply
 ```
+
+**GCP GKE:**
+```bash
+cd examples/gcp-gke
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+terraform init && terraform plan && terraform apply
+```
+
+> **Note:** For production deployments or multiple environments, we recommend using `make create-environment` to create environments in the `environments/` directory. This keeps your deployments organized and separate from the example templates.
 
 ## 📁 Repository Structure
 
@@ -168,7 +198,7 @@ module "sligo_aws" {
   # Application configuration
   domain_name              = "app.example.com"
   client_repository_name   = "your-client-containers"
-  app_version              = "1.0.0"
+  app_version              = "v1.0.0"  # Pin to specific version tag (e.g., v1.0.0, v1.2.3)
   sligo_service_account_key_path = "./sligo-service-account-key.json"
 
   # Database configuration
@@ -220,7 +250,7 @@ module "sligo_gcp" {
   # Application configuration
   domain_name              = "app.example.com"
   client_repository_name   = "your-client-containers"
-  app_version              = "1.0.0"
+  app_version              = "v1.0.0"  # Pin to specific version tag (e.g., v1.0.0, v1.2.3)
   
   # Service account key (provided by Sligo)
   sligo_service_account_key_path = "./sligo-service-account-key.json"
@@ -269,10 +299,12 @@ Sligo Cloud containers are stored in **Google Artifact Registry (GAR)**. Here's 
 
 4. **Container images are pulled from:**
    ```
-   us-central1-docker.pkg.dev/<your-repository-name>/nextjs:<version>
-   us-central1-docker.pkg.dev/<your-repository-name>/backend:<version>
-   us-central1-docker.pkg.dev/<your-repository-name>/mcp-gateway:<version>
+   us-central1-docker.pkg.dev/sligo-ai-platform/<your-repository-name>/sligo-frontend:<app_version>
+   us-central1-docker.pkg.dev/sligo-ai-platform/<your-repository-name>/sligo-backend:<app_version>
+   us-central1-docker.pkg.dev/sligo-ai-platform/<your-repository-name>/sligo-mcp-gateway:<app_version>
    ```
+   
+   Where `<app_version>` is the value you set in `app_version` (e.g., `v1.0.0`, `v1.2.3`).
 
 **Important:**
 - The service account key file must be present when running `terraform apply`
@@ -298,7 +330,7 @@ resource "helm_release" "sligo_cloud" {
 | `domain_name` | Domain name for the application | Yes |
 | `client_repository_name` | Your GAR repository name (provided by Sligo support) | Yes |
 | `sligo_service_account_key_path` | Path to Sligo service account key JSON file (place in project directory) | Yes |
-| `app_version` | Sligo Cloud application version | Yes |
+| `app_version` | Sligo Cloud application version tag (e.g., `v1.0.0`, `v1.2.3`). Should match a version tag in the container registry. Use `latest` for development only. | Yes |
 | `db_password` | Database password | Yes |
 | `jwt_secret` | JWT secret for backend | Yes |
 | `api_key` | API key | Yes |
@@ -336,12 +368,42 @@ resource "helm_release" "sligo_cloud" {
 
 If you need multiple instances of Sligo Cloud (dev, staging, production), we recommend using **separate directories** for each environment.
 
+### Quick Start: Automated Environment Creation
+
+The easiest way to create a new environment is using the automated script:
+
+```bash
+make create-environment
+```
+
+This interactive script will:
+- Prompt you for environment name, infrastructure type (aws-eks/gcp-gke), and region
+- Create a new environment directory in `environments/`
+- Copy all necessary files from the example template
+- Pre-fill `terraform.tfvars` with your inputs
+- Generate a helpful README with next steps
+
+**Example:**
+```bash
+$ make create-environment
+? Infrastructure type (aws-eks/gcp-gke): aws-eks
+? Environment name: dev
+? AWS region [us-east-1]: us-west-2
+? Cluster name [sligo-dev]: 
+? Domain name [dev.example.com]: dev-app.example.com
+
+✓ Environment created successfully!
+```
+
 ### Recommended Structure
 
 ```
 examples/
 ├── aws-eks/              # Example/template
-├── aws-eks-dev/          # Development environment
+└── gcp-gke/             # Example/template
+
+environments/
+├── aws-eks-dev/          # Development environment (created via make create-environment)
 │   ├── main.tf
 │   ├── terraform.tfvars
 │   └── sligo-service-account-key.json
@@ -355,13 +417,15 @@ examples/
     └── sligo-service-account-key.json
 ```
 
-### Setup Steps
+### Manual Setup Steps
+
+If you prefer to create environments manually:
 
 1. **Copy the example for each environment:**
    ```bash
-   cp -r examples/aws-eks examples/aws-eks-dev
-   cp -r examples/aws-eks examples/aws-eks-staging
-   cp -r examples/aws-eks examples/aws-eks-prod
+   cp -r examples/aws-eks environments/aws-eks-dev
+   cp -r examples/aws-eks environments/aws-eks-staging
+   cp -r examples/aws-eks environments/aws-eks-prod
    ```
 
 2. **Configure each environment's `terraform.tfvars`** with environment-specific values:
@@ -376,7 +440,7 @@ examples/
 
 4. **Deploy each environment independently:**
    ```bash
-   cd examples/aws-eks-dev && terraform init && terraform apply
+   cd environments/aws-eks-dev && terraform init && terraform apply
    cd ../aws-eks-staging && terraform init && terraform apply
    cd ../aws-eks-prod && terraform init && terraform apply
    ```
@@ -480,12 +544,23 @@ terraform apply # Apply upgrade
 
 ### Upgrade Application Version
 
-```hcl
-module "sligo_aws" {
-  app_version = "1.1.0"  # Update version
-  # ... rest of configuration
-}
-```
+To upgrade to a new version:
+
+1. **Check available versions** in Google Artifact Registry or contact Sligo support
+2. **Update `app_version`** in your `terraform.tfvars`:
+   ```hcl
+   app_version = "v1.2.3"  # Update to new version tag
+   ```
+3. **Apply the changes**:
+   ```bash
+   terraform plan  # Review changes
+   terraform apply # Apply upgrade
+   ```
+
+**Important:**
+- Always use version tags (e.g., `v1.0.0`, `v1.2.3`) for production deployments
+- Avoid using `latest` in production as it can cause unexpected updates
+- Test upgrades in a non-production environment first
 
 ## 🧪 Testing
 
@@ -532,6 +607,46 @@ The repository includes GitHub Actions workflows that:
 | Terraform Module Version | Helm Chart Version | Kubernetes Version |
 |-------------------------|-------------------|-------------------|
 | 1.0.0 | 1.0.0 | 1.24+ |
+
+## 📌 Versioning and Image Tags
+
+Sligo Cloud uses semantic versioning for container images. When you set `app_version` in your Terraform configuration, it determines which container image versions are deployed.
+
+### Available Versions
+
+Container images are tagged with version tags (e.g., `v1.0.0`, `v1.2.3`) when Sligo releases new versions. You can:
+
+1. **Check available versions** in your Google Artifact Registry:
+   ```bash
+   gcloud artifacts docker images list \
+     us-central1-docker.pkg.dev/sligo-ai-platform/<your-repository-name>/sligo-backend \
+     --format="table(tags)"
+   ```
+
+2. **Contact Sligo support** (support@sligo.ai) to get a list of available versions
+
+### Using Version Tags
+
+**Production deployments** should always pin to a specific version:
+```hcl
+app_version = "v1.0.0"  # Pin to specific version
+```
+
+**Development/testing** can use `latest` (not recommended for production):
+```hcl
+app_version = "latest"  # Development only
+```
+
+### Upgrading Versions
+
+When upgrading to a new version:
+
+1. Update `app_version` in `terraform.tfvars`
+2. Run `terraform plan` to review changes
+3. Run `terraform apply` to deploy the new version
+4. Monitor the deployment for any issues
+
+**Best Practice:** Test upgrades in a non-production environment first.
 
 ## 🛠️ Contributing
 

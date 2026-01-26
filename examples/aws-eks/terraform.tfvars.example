@@ -6,7 +6,7 @@ aws_region      = "us-east-1"
 # Application Configuration
 domain_name                    = "app.example.com"
 client_repository_name         = "your-client-containers"  # Provided by Sligo support
-app_version                    = "1.0.0"
+app_version                    = "v1.0.0"  # Pin to specific version tag (e.g., v1.0.0, v1.2.3). Use 'latest' for development only.
 # IMPORTANT: Place your Sligo service account key JSON file in this directory
 # Contact support@sligo.ai to receive your service account key
 # This file is automatically ignored by git for security

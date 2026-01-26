@@ -8,7 +8,7 @@ cluster_version = "1.28"
 # Application Configuration
 domain_name              = "app.example.com"
 client_repository_name   = "your-client-containers"
-app_version              = "1.0.0"
+app_version              = "v1.0.0"  # Pin to specific version tag (e.g., v1.0.0, v1.2.3). Use 'latest' for development only.
 sligo_service_account_key_path = "./sligo-service-account-key.json"
 
 # Database Configuration
