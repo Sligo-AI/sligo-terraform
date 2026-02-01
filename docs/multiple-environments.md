@@ -56,4 +56,4 @@ You can use the **same** Sligo service account key for all environments — they
 
 ---
 
-[← Back to overview](index.html)
+[← Back to overview](./)

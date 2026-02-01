@@ -10,9 +10,9 @@ Deploy Sligo Cloud Platform on your preferred cloud with production-ready Terraf
 
 | Cloud | Guide |
 |-------|-------|
-| **AWS** | [Deploy on AWS EKS →](aws.html) |
-| **Google Cloud** | [Deploy on GCP GKE →](gcp.html) |
-| **Microsoft Azure** | [Deploy on Azure AKS →](azure.html) |
+| **AWS** | [Deploy on AWS EKS →](aws/) |
+| **Google Cloud** | [Deploy on GCP GKE →](gcp/) |
+| **Microsoft Azure** | [Deploy on Azure AKS →](azure/) |
 
 ---
 
@@ -31,7 +31,7 @@ Deploy Sligo Cloud Platform on your preferred cloud with production-ready Terraf
 
 - **Terraform** >= 1.0
 - **kubectl** and **Helm** >= 3.10
-- **Sligo credentials** (service account key + repository name) — [Get started →](getting-started.html)
+- **Sligo credentials** (service account key + repository name) — [Get started →](getting-started/)
 - **Domain name** for your application
 - **Cloud credentials** configured (AWS CLI, gcloud, or az)
 
@@ -39,11 +39,11 @@ Deploy Sligo Cloud Platform on your preferred cloud with production-ready Terraf
 
 ## Quick Links
 
-- [Sligo credentials & setup](getting-started.html)
-- [Secrets management](secrets.html)
-- [Multiple environments (dev/staging/prod)](multiple-environments.html)
-- [Upgrading](upgrading.html)
-- [Troubleshooting](troubleshooting.html)
+- [Sligo credentials & setup](getting-started/)
+- [Secrets management](secrets/)
+- [Multiple environments (dev/staging/prod)](multiple-environments/)
+- [Upgrading](upgrading/)
+- [Troubleshooting](troubleshooting/)
 
 ---
 

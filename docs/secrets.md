@@ -93,4 +93,4 @@ variable "db_password" {
 
 ---
 
-[← Back to overview](index.html)
+[← Back to overview](./)

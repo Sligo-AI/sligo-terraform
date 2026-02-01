@@ -12,7 +12,7 @@ terraform init && terraform apply
 
 ## Full Guide
 
-See the [Deploy on AWS EKS](https://sligo-ai.github.io/sligo-terraform/docs/aws.html) guide for step-by-step instructions.
+See the [Deploy on AWS EKS](https://sligo-ai.github.io/sligo-terraform/aws/) guide for step-by-step instructions.
 
 ## Recommended
 

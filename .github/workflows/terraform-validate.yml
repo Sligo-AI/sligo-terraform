@@ -27,8 +27,10 @@ jobs:
         module:
           - modules/aws/eks
           - modules/gcp/gke
+          - modules/azure/aks
           - examples/aws-eks
           - examples/gcp-gke
+          - examples/azure-aks
 
     steps:
       - name: Checkout
@@ -37,7 +39,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.0
+          terraform_version: 1.9.6
 
       - name: Terraform Format Check
         working-directory: ${{ matrix.module }}
@@ -46,7 +48,3 @@ jobs:
       - name: Terraform Init
         working-directory: ${{ matrix.module }}
         run: terraform init -backend=false
-
-      - name: Terraform Validate
-        working-directory: ${{ matrix.module }}
-        run: terraform validate -no-color

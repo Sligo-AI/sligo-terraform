@@ -11,7 +11,7 @@ Step-by-step guide for deploying on Azure Kubernetes Service with Azure Database
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) with `az login`
-- [Sligo credentials](getting-started.html)
+- [Sligo credentials](getting-started/)
 - An **Azure subscription** with appropriate permissions
 
 ---
@@ -119,4 +119,4 @@ terraform init && terraform apply
 
 ---
 
-[← Back to overview](index.html) | [AWS →](aws.html) | [GCP →](gcp.html)
+[← Back to overview](./) | [AWS →](aws/) | [GCP →](gcp/)

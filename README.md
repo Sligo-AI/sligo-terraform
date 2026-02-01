@@ -6,9 +6,9 @@ Deploy Sligo Cloud Platform on AWS, Google Cloud, or Azure with production-ready
 
 | Cloud | Guide |
 |-------|-------|
-| **AWS EKS** | [Deploy on AWS →](https://sligo-ai.github.io/sligo-terraform/docs/aws.html) |
-| **Google Cloud GKE** | [Deploy on GCP →](https://sligo-ai.github.io/sligo-terraform/docs/gcp.html) |
-| **Microsoft Azure AKS** | [Deploy on Azure →](https://sligo-ai.github.io/sligo-terraform/docs/azure.html) |
+| **AWS EKS** | [Deploy on AWS →](https://sligo-ai.github.io/sligo-terraform/aws/) |
+| **Google Cloud GKE** | [Deploy on GCP →](https://sligo-ai.github.io/sligo-terraform/gcp/) |
+| **Microsoft Azure AKS** | [Deploy on Azure →](https://sligo-ai.github.io/sligo-terraform/azure/) |
 
 ---
 
@@ -55,11 +55,11 @@ Then configure your environment and run `terraform init && terraform apply`.
 
 | Topic | Link |
 |-------|------|
-| Getting started (Sligo credentials) | [docs/getting-started](https://sligo-ai.github.io/sligo-terraform/docs/getting-started.html) |
-| Secrets management | [docs/secrets](https://sligo-ai.github.io/sligo-terraform/docs/secrets.html) |
-| Multiple environments | [docs/multiple-environments](https://sligo-ai.github.io/sligo-terraform/docs/multiple-environments.html) |
-| Upgrading | [docs/upgrading](https://sligo-ai.github.io/sligo-terraform/docs/upgrading.html) |
-| Troubleshooting | [docs/troubleshooting](https://sligo-ai.github.io/sligo-terraform/docs/troubleshooting.html) |
+| Getting started (Sligo credentials) | [getting-started](https://sligo-ai.github.io/sligo-terraform/getting-started/) |
+| Secrets management | [secrets](https://sligo-ai.github.io/sligo-terraform/secrets/) |
+| Multiple environments | [multiple-environments](https://sligo-ai.github.io/sligo-terraform/multiple-environments/) |
+| Upgrading | [upgrading](https://sligo-ai.github.io/sligo-terraform/upgrading/) |
+| Troubleshooting | [troubleshooting](https://sligo-ai.github.io/sligo-terraform/troubleshooting/) |
 
 ---
 

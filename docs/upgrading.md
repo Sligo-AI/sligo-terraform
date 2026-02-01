@@ -38,4 +38,4 @@ Test upgrades in a non-production environment first.
 
 ---
 
-[← Back to overview](index.html)
+[← Back to overview](./)

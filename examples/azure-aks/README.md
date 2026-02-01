@@ -12,7 +12,7 @@ terraform init && terraform apply
 
 ## Full Guide
 
-See the [Deploy on Azure AKS](https://sligo-ai.github.io/sligo-terraform/docs/azure.html) guide for step-by-step instructions.
+See the [Deploy on Azure AKS](https://sligo-ai.github.io/sligo-terraform/azure/) guide for step-by-step instructions.
 
 ## Recommended
 

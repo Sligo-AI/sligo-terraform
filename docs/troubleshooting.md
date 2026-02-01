@@ -41,4 +41,4 @@ title: Troubleshooting
 
 ---
 
-[← Back to overview](index.html)
+[← Back to overview](./)

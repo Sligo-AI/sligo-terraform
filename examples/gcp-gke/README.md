@@ -12,7 +12,7 @@ terraform init && terraform apply
 
 ## Full Guide
 
-See the [Deploy on GCP GKE](https://sligo-ai.github.io/sligo-terraform/docs/gcp.html) guide for step-by-step instructions.
+See the [Deploy on GCP GKE](https://sligo-ai.github.io/sligo-terraform/gcp/) guide for step-by-step instructions.
 
 ## Recommended
 
