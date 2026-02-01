@@ -1,6 +1,6 @@
 # Cluster Configuration
 cluster_name    = "sligo-production"
-cluster_version = "1.29"
+cluster_version = "1.34"
 aws_region      = "us-east-1"
 
 # Application Configuration
@@ -12,15 +12,12 @@ app_version                    = "v1.0.0"  # Pin to specific version tag (e.g., 
 # This file is automatically ignored by git for security
 sligo_service_account_key_path = "./sligo-service-account-key.json"
 
-# Database Configuration
-db_instance_class    = "db.t3.medium"
-db_allocated_storage = 100
+# Database Configuration (Aurora Serverless v2)
 db_username          = "sligo"
 # db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
-
-# Optional: Prisma Accelerate
-# If not provided, uses direct PostgreSQL connection
-# prisma_accelerate_url = "prisma://accelerate.prisma-data.net/?api_key=..."
+aurora_min_capacity  = 0.5   # Minimum ACU (0.5 = 1 GB RAM, 2 vCPU)
+aurora_max_capacity  = 16    # Maximum ACU (16 = 32 GB RAM, 64 vCPU)
+aurora_instance_class = "db.r6g.large"  # Instance class for cluster instance
 
 # Redis Configuration
 redis_node_type = "cache.t3.micro"
@@ -52,17 +49,16 @@ encryption_key = "CHANGE_ME"
 # workos_client_id = "client_..."
 # workos_cookie_password = "your-secure-random-password"
 
-# Google Cloud Configuration (optional)
+# Google Cloud Configuration (required for some features)
+# google_project_id = "your-gcp-project-id"  # Required by Helm chart
+# gcp_sa_key = "{\"type\":\"service_account\",...}"  # Required by Helm chart (JSON string)
+# rag_sa_key = "{\"type\":\"service_account\",...}"  # Required by Helm chart (JSON string)
+# google_vertex_ai_web_credentials = "{\"type\":\"service_account\",...}"  # Required by Helm chart (JSON string)
+
+# Google OAuth Configuration (optional)
 # next_public_google_client_id = "your-google-client-id"
 # next_public_google_client_key = "your-google-client-key"
 # google_client_secret = "your-google-client-secret"
-# google_project_id = "your-gcp-project-id"
-# google_api_key = "your-google-api-key"
-# google_storage_bucket = "your-google-storage-bucket"
-# google_storage_agent_avatars_bucket = "your-agent-avatars-bucket"
-# google_storage_mcp_logos_bucket = "your-mcp-logos-bucket"
-# google_storage_rag_sa_key = "your-rag-sa-key-json"
-# file_manager_google_projectid = "your-file-manager-project-id"
 
 # OneDrive Configuration (optional)
 # next_public_onedrive_client_id = "your-onedrive-client-id"
@@ -83,6 +79,16 @@ encryption_key = "CHANGE_ME"
 # SQL Connection Encryption (optional, if using encrypted connection strings)
 # sql_connection_string_decryption_iv = "your-iv"
 # sql_connection_string_decryption_key = "your-key"
+
+# SPENDHQ Configuration (optional, for mcp-gateway)
+# spendhq_base_url = "https://your-spendhq-url.com"
+# spendhq_client_id = "your_spendhq_client_id"
+# spendhq_client_secret = "your_spendhq_client_secret"
+# spendhq_token_url = "https://your-spendhq-token-url.com"
+# spendhq_ss_host = "your_singlestore_host"
+# spendhq_ss_username = "your_singlestore_username"
+# spendhq_ss_password = "your_singlestore_password"
+# spendhq_ss_port = "3306"
 
 # Networking (Optional - can use existing VPC)
 # vpc_id = "vpc-..."

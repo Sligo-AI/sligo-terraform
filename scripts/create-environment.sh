@@ -64,8 +64,8 @@ prompt_input() {
 # Validation functions
 validate_infrastructure_type() {
     local infra="$1"
-    if [[ "$infra" != "aws-eks" && "$infra" != "gcp-gke" ]]; then
-        print_error "Invalid infrastructure type. Must be 'aws-eks' or 'gcp-gke'"
+    if [[ "$infra" != "aws-eks" && "$infra" != "gcp-gke" && "$infra" != "azure-aks" ]]; then
+        print_error "Invalid infrastructure type. Must be 'aws-eks', 'gcp-gke', or 'azure-aks'"
         return 1
     fi
     return 0
@@ -109,6 +109,16 @@ validate_gcp_region() {
     return 0
 }
 
+validate_azure_location() {
+    local location="$1"
+    # Basic Azure location format validation (eastus, westus2, etc.)
+    if [[ ! "$location" =~ ^[a-z]+[0-9]*$ ]]; then
+        print_error "Invalid Azure location format. Expected format: eastus, westus2, etc."
+        return 1
+    fi
+    return 0
+}
+
 # Function to get default cluster name
 get_default_cluster_name() {
     local env_name="$1"
@@ -127,6 +137,17 @@ get_default_gcp_zones() {
     echo "[\"${region}-a\", \"${region}-b\"]"
 }
 
+# Function to generate secure random secret
+generate_secret() {
+    local length="${1:-32}"
+    openssl rand -hex "$length" 2>/dev/null || openssl rand -base64 "$length" 2>/dev/null | tr -d '\n' | head -c "$length"
+}
+
+# Function to generate encryption key (64 hex characters)
+generate_encryption_key() {
+    openssl rand -hex 32 2>/dev/null
+}
+
 # Main script
 main() {
     echo ""
@@ -142,8 +163,16 @@ main() {
     # Create environments directory if it doesn't exist
     mkdir -p "$ENVIRONMENTS_DIR"
     
-    # Prompt for infrastructure type
-    prompt_input "Infrastructure type (aws-eks/gcp-gke)" "infrastructure_type" "" "validate_infrastructure_type"
+    # Prompt for infrastructure type (or use first argument if provided)
+    if [ -n "${1:-}" ]; then
+        if validate_infrastructure_type "$1"; then
+            infrastructure_type="$1"
+        else
+            exit 1
+        fi
+    else
+        prompt_input "Infrastructure type (aws-eks/gcp-gke/azure-aks)" "infrastructure_type" "" "validate_infrastructure_type"
+    fi
     
     # Check if example template exists
     local example_dir="$EXAMPLES_DIR/$infrastructure_type"
@@ -158,8 +187,10 @@ main() {
     # Set up region validation based on infrastructure type
     if [ "$infrastructure_type" = "aws-eks" ]; then
         prompt_input "AWS region (e.g., us-east-1, us-west-2, eu-west-1, eu-central-1)" "region" "us-east-1" "validate_aws_region"
-    else
+    elif [ "$infrastructure_type" = "gcp-gke" ]; then
         prompt_input "GCP region (e.g., us-central1, us-east1, europe-west1, europe-west4)" "region" "us-central1" "validate_gcp_region"
+    else
+        prompt_input "Azure location (e.g., eastus, westus2, westeurope)" "region" "eastus" "validate_azure_location"
     fi
     
     # Prompt for optional fields with defaults
@@ -168,6 +199,28 @@ main() {
     
     local default_domain=$(get_default_domain_name "$environment_name")
     prompt_input "Domain name" "domain_name" "$default_domain"
+    
+    # Prompt for client repository name (required)
+    prompt_input "Client repository name (from Sligo support)" "client_repository_name" ""
+    
+    # Prompt for app version
+    prompt_input "App version (e.g., v1.0.0, latest)" "app_version" "v1.0.0"
+    
+    # Generate frontend URL from domain
+    local frontend_url="https://${domain_name}"
+    local next_public_api_url="https://api.${domain_name}"
+    
+    # Generate all secrets automatically
+    print_info "Generating secure secrets..."
+    local db_password=$(generate_secret 32)
+    local encryption_key=$(generate_encryption_key)
+    local jwt_secret=$(generate_secret 64)
+    local api_key=$(generate_secret 64)
+    local nextauth_secret=$(generate_secret 64)
+    local gateway_secret=$(generate_secret 64)
+    local workos_cookie_password=$(generate_secret 32)
+    
+    print_success "Secrets generated successfully"
     
     # Create environment directory
     local env_dir="$ENVIRONMENTS_DIR/${infrastructure_type}-${environment_name}"
@@ -196,28 +249,58 @@ main() {
         cp "$example_dir/terraform.tfvars.example" "$tfvars_file"
         
         # Update values based on infrastructure type
-        # Detect sed syntax for macOS vs Linux
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            local sed_inplace="sed -i ''"
-        else
-            local sed_inplace="sed -i"
-        fi
+        # Use a safer approach for sed that works on both macOS and Linux
+        # Create a temporary file to avoid issues with sed -i on macOS
+        local temp_file="${tfvars_file}.tmp"
         
         if [ "$infrastructure_type" = "aws-eks" ]; then
             # Update AWS-specific values
-            $sed_inplace "s/cluster_name.*=.*\".*\"/cluster_name    = \"$cluster_name\"/" "$tfvars_file"
-            $sed_inplace "s/aws_region.*=.*\".*\"/aws_region      = \"$region\"/" "$tfvars_file"
-            $sed_inplace "s/domain_name.*=.*\".*\"/domain_name                    = \"$domain_name\"/" "$tfvars_file"
-        else
+            # Use sed with output to temp file, then move back (works reliably on macOS and Linux)
+            sed "s/^[[:space:]]*#*[[:space:]]*cluster_name.*=.*\".*\"/cluster_name    = \"$cluster_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/^[[:space:]]*#*[[:space:]]*aws_region.*=.*\".*\"/aws_region      = \"$region\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/^[[:space:]]*#*[[:space:]]*domain_name.*=.*\".*\"/domain_name                    = \"$domain_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/^[[:space:]]*#*[[:space:]]*client_repository_name.*=.*\".*\"/client_repository_name         = \"$client_repository_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/^[[:space:]]*#*[[:space:]]*app_version.*=.*\".*\"/app_version                    = \"$app_version\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*frontend_url.*=.*\".*\"|frontend_url        = \"$frontend_url\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*next_public_api_url.*=.*\".*\"|next_public_api_url = \"$next_public_api_url\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            
+            # Replace secrets with generated values (handle both commented and uncommented, and CHANGE_ME)
+            sed "s|^[[:space:]]*#*[[:space:]]*db_password.*=.*\".*\"|db_password          = \"$db_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*encryption_key.*=.*\".*\"|encryption_key = \"$encryption_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*jwt_secret.*=.*\".*\"|jwt_secret          = \"$jwt_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*api_key.*=.*\".*\"|api_key             = \"$api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*nextauth_secret.*=.*\".*\"|nextauth_secret     = \"$nextauth_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*gateway_secret.*=.*\".*\"|gateway_secret      = \"$gateway_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*workos_cookie_password.*=.*\".*\"|workos_cookie_password = \"$workos_cookie_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+        elif [ "$infrastructure_type" = "gcp-gke" ]; then
             # Update GCP-specific values
-            $sed_inplace "s/cluster_name.*=.*\".*\"/cluster_name    = \"$cluster_name\"/" "$tfvars_file"
-            $sed_inplace "s/gcp_region.*=.*\".*\"/gcp_region      = \"$region\"/" "$tfvars_file"
-            $sed_inplace "s/domain_name.*=.*\".*\"/domain_name              = \"$domain_name\"/" "$tfvars_file"
+            sed "s/cluster_name.*=.*\".*\"/cluster_name    = \"$cluster_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/gcp_region.*=.*\".*\"/gcp_region      = \"$region\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/domain_name.*=.*\".*\"/domain_name              = \"$domain_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             
             # Update GCP zones based on region
             local default_zones=$(get_default_gcp_zones "$region")
-            $sed_inplace "s/gcp_zones.*=.*\[.*\]/gcp_zones       = $default_zones/" "$tfvars_file"
+            sed "s/gcp_zones.*=.*\[.*\]/gcp_zones       = $default_zones/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+        else
+            # Update Azure-specific values
+            sed "s/cluster_name.*=.*\".*\"/cluster_name    = \"$cluster_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/location.*=.*\".*\"/location        = \"$region\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/domain_name.*=.*\".*\"/domain_name              = \"$domain_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/client_repository_name.*=.*\".*\"/client_repository_name   = \"$client_repository_name\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s/app_version.*=.*\".*\"/app_version              = \"$app_version\"/" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|frontend_url.*=.*\".*\"|frontend_url        = \"$frontend_url\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|next_public_api_url.*=.*\".*\"|next_public_api_url = \"$next_public_api_url\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|db_password.*=.*\".*\"|db_password          = \"$db_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|encryption_key.*=.*\".*\"|encryption_key      = \"$encryption_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|jwt_secret.*=.*\".*\"|jwt_secret          = \"$jwt_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|api_key.*=.*\".*\"|api_key             = \"$api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|nextauth_secret.*=.*\".*\"|nextauth_secret     = \"$nextauth_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|gateway_secret.*=.*\".*\"|gateway_secret      = \"$gateway_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|workos_cookie_password.*=.*\".*\"|workos_cookie_password = \"$workos_cookie_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
         fi
+        
+        # Clean up temp file if it still exists
+        [ -f "$temp_file" ] && rm -f "$temp_file"
     else
         print_warning "terraform.tfvars.example not found in example template"
     fi
@@ -243,19 +326,40 @@ This environment was created using the \`make create-environment\` command.
    cp /path/to/sligo-service-account-key.json ${env_dir}/
    \`\`\`
 
-2. Update \`terraform.tfvars\` with your secrets and configuration:
-   - Set \`client_repository_name\` (provided by Sligo support)
-   - Set \`sligo_service_account_key_path\` to \`"./sligo-service-account-key.json"\`
-   - Update all secrets (jwt_secret, api_key, nextauth_secret, gateway_secret, etc.)
-   - Generate encryption_key: \`openssl rand -hex 32\`
+2. Copy your Sligo service account key to this directory:
+   \`\`\`bash
+   cp /path/to/sligo-service-account-key.json ${env_dir}/
+   \`\`\`
 
-3. Initialize Terraform:
+   **Note:** All secrets have been auto-generated and are already set in \`terraform.tfvars\`:
+   - ✅ db_password (auto-generated)
+   - ✅ encryption_key (auto-generated, 64 hex characters)
+   - ✅ jwt_secret (auto-generated)
+   - ✅ api_key (auto-generated)
+   - ✅ nextauth_secret (auto-generated)
+   - ✅ gateway_secret (auto-generated)
+   - ✅ workos_cookie_password (auto-generated)
+   
+   **Optional:** Update \`terraform.tfvars\` with additional configuration:
+   - Google Cloud Storage buckets (agent_avatars, logos, rag) - if using Google Storage
+   - WorkOS, Pinecone, OpenAI API keys - if needed
+   - SPENDHQ configuration - if needed
+
+   **Note:** All 4 S3 buckets are auto-created by Terraform:
+   - File Manager bucket
+   - Agent Avatars bucket
+   - MCP Logos bucket
+   - RAG Storage bucket
+   
+   (Optional) If you want to use existing S3 buckets, set \`use_existing_s3_bucket = true\` and specify bucket names in \`terraform.tfvars\`.
+
+4. Initialize Terraform:
    \`\`\`bash
    cd ${env_dir}
    terraform init
    \`\`\`
 
-4. Review and apply:
+5. Review and apply:
    \`\`\`bash
    terraform plan
    terraform apply
@@ -275,8 +379,18 @@ EOF
     echo ""
     print_info "Next steps:"
     echo "  1. Copy your Sligo service account key to: $env_dir/"
-    echo "  2. Edit $env_dir/terraform.tfvars with your configuration"
-    echo "  3. Run: cd $env_dir && terraform init"
+    echo "     cp /path/to/sligo-service-account-key.json $env_dir/"
+    echo ""
+    echo "  2. All 4 S3 buckets will be auto-created by Terraform (file-manager, agent-avatars, logos, rag)"
+    echo ""
+    echo "  3. Initialize and deploy:"
+    echo "     cd $env_dir"
+    echo "     terraform init"
+    echo "     terraform plan"
+    echo "     terraform apply"
+    echo ""
+    print_warning "All secrets have been auto-generated and saved to terraform.tfvars"
+    print_warning "Keep this file secure - it contains sensitive information!"
     echo ""
 }
 

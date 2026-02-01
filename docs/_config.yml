@@ -1,0 +1,6 @@
+title: Sligo Cloud Terraform
+description: Deploy Sligo Cloud on AWS, GCP, or Azure
+
+# GitHub Pages uses Jekyll - this enables clean URLs
+markdown: kramdown
+permalink: pretty

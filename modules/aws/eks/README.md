@@ -5,7 +5,7 @@ This Terraform module provisions a complete AWS infrastructure and deploys Sligo
 ## Features
 
 - **EKS Cluster** - Managed Kubernetes cluster
-- **RDS PostgreSQL** - Managed database with automatic backups
+- **Aurora Serverless v2 PostgreSQL** - Auto-scaling managed database with automatic backups
 - **ElastiCache Redis** - Managed Redis cache
 - **S3 Storage** - Object storage buckets
 - **ACM Certificate** - Automatic SSL/TLS certificate creation
@@ -32,14 +32,12 @@ module "sligo_aws" {
   app_version              = "1.0.0"
   sligo_service_account_key_path = "./sligo-service-account-key.json"
 
-  # Database configuration
-  db_instance_class    = "db.t3.medium"
-  db_allocated_storage = 100
+  # Database configuration (Aurora Serverless v2)
+  aurora_min_capacity  = 0.5   # Minimum ACU (0.5 = 1 GB RAM, 2 vCPU)
+  aurora_max_capacity  = 16    # Maximum ACU (16 = 32 GB RAM, 64 vCPU)
+  aurora_instance_class = "db.r6g.large"  # Instance class for cluster instance
   db_username          = "sligo"
   db_password          = var.db_password
-
-  # Optional: Prisma Accelerate
-  prisma_accelerate_url = var.prisma_accelerate_url  # or leave empty for direct PostgreSQL
 
   # Optional: ACM Certificate
   acm_certificate_arn = var.acm_certificate_arn  # or leave empty for auto-creation
@@ -84,7 +82,7 @@ module "sligo_aws" {
 ### Infrastructure Components
 
 1. **EKS Cluster** - Managed Kubernetes cluster
-2. **RDS PostgreSQL** - Managed database instance
+2. **Aurora Serverless v2 PostgreSQL** - Auto-scaling managed database instance
 3. **ElastiCache Redis** - Managed Redis cluster
 4. **S3 Bucket** - Object storage for file management
 5. **VPC & Networking** - VPC, subnets, security groups (optional, can use existing)
@@ -136,13 +134,13 @@ Internet → ALB (HTTPS) → Ingress → Next.js App (Port 3000)
 | `cluster_version` | Kubernetes version | `string` | `"1.28"` |
 | `aws_region` | AWS region | `string` | `"us-east-1"` |
 | `acm_certificate_arn` | Existing ACM certificate ARN | `string` | `""` |
-| `prisma_accelerate_url` | Prisma Accelerate URL | `string` | `""` |
 | `encryption_key` | 64-character hex encryption key | `string` | `""` |
 | `workos_api_key` | WorkOS API key | `string` | `""` |
 | `workos_client_id` | WorkOS Client ID | `string` | `""` |
 | `workos_cookie_password` | WorkOS cookie password | `string` | `""` |
-| `db_instance_class` | RDS instance class | `string` | `"db.t3.medium"` |
-| `db_allocated_storage` | RDS storage in GB | `number` | `100` |
+| `aurora_min_capacity` | Aurora Serverless v2 minimum ACU | `number` | `0.5` |
+| `aurora_max_capacity` | Aurora Serverless v2 maximum ACU | `number` | `16` |
+| `aurora_instance_class` | Aurora Serverless v2 instance class | `string` | `"db.r6g.large"` |
 | `redis_node_type` | ElastiCache node type | `string` | `"cache.t3.micro"` |
 | `s3_bucket_name` | S3 bucket name | `string` | `""` |
 | `vpc_id` | Existing VPC ID | `string` | `""` |
@@ -155,7 +153,7 @@ See [variables.tf](./variables.tf) for complete list of all variables.
 | Name | Description |
 |------|-------------|
 | `cluster_endpoint` | Kubernetes cluster API endpoint |
-| `database_endpoint` | RDS PostgreSQL endpoint |
+| `database_endpoint` | Aurora Serverless v2 PostgreSQL cluster endpoint |
 | `application_url` | Application URL (https://domain_name) |
 | `ingress_hostname` | ALB hostname for DNS configuration |
 | `acm_certificate_arn` | ACM certificate ARN (if auto-created) |
@@ -201,8 +199,6 @@ Automatically creates security group rules:
 
 - **Helm Chart**: Uses `sligo-cloud` Helm chart
 - **AWS Load Balancer Controller**: Installed via Helm
-- **Prisma Accelerate**: Optional, can use direct PostgreSQL connection
-
 ## Examples
 
 See [examples/aws-eks](../../examples/aws-eks) for complete working examples.

@@ -1,12 +1,16 @@
-module "sligo_gcp" {
-  source = "../../modules/gcp/gke"
+module "sligo_azure" {
+  source = "../../modules/azure/aks"
 
   # Cluster configuration
-  cluster_name    = var.cluster_name
-  gcp_project_id  = var.gcp_project_id
-  gcp_region      = var.gcp_region
-  gcp_zones       = var.gcp_zones
-  cluster_version = var.cluster_version
+  cluster_name        = var.cluster_name
+  cluster_version     = var.cluster_version
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  # Node pool configuration
+  node_pool_min_count = var.node_pool_min_count
+  node_pool_max_count = var.node_pool_max_count
+  node_pool_vm_size   = var.node_pool_vm_size
 
   # Application configuration
   domain_name                    = var.domain_name
@@ -15,15 +19,18 @@ module "sligo_gcp" {
   sligo_service_account_key_path = var.sligo_service_account_key_path
 
   # Database configuration
-  db_tier     = var.db_tier
-  db_username = var.db_username
-  db_password = var.db_password
+  db_username         = var.db_username
+  db_password         = var.db_password
+  postgres_sku_name   = var.postgres_sku_name
+  postgres_storage_mb = var.postgres_storage_mb
 
   # Redis configuration
-  redis_memory_size_gb = var.redis_memory_size_gb
+  redis_sku_name = var.redis_sku_name
+  redis_family   = var.redis_family
+  redis_capacity = var.redis_capacity
 
-  # GCS Storage configuration
-  use_existing_gcs_bucket = var.use_existing_gcs_bucket
+  # Storage configuration
+  use_existing_storage_account = var.use_existing_storage_account
 
   # Secrets
   jwt_secret             = var.jwt_secret
@@ -55,7 +62,7 @@ module "sligo_gcp" {
   pinecone_api_key = var.pinecone_api_key
   pinecone_index   = var.pinecone_index
 
-  # SPENDHQ Configuration (for mcp-gateway)
+  # SPENDHQ Configuration
   spendhq_base_url      = var.spendhq_base_url
   spendhq_client_id     = var.spendhq_client_id
   spendhq_client_secret = var.spendhq_client_secret

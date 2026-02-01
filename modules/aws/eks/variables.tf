@@ -7,13 +7,38 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version for EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.34"
 }
 
 variable "aws_region" {
   description = "AWS region"
   type        = string
   default     = "us-east-1"
+}
+
+# Node Group Configuration
+variable "node_group_min_size" {
+  description = "Minimum number of nodes in the EKS node group"
+  type        = number
+  default     = 2
+}
+
+variable "node_group_max_size" {
+  description = "Maximum number of nodes in the EKS node group"
+  type        = number
+  default     = 4
+}
+
+variable "node_group_desired_size" {
+  description = "Desired number of nodes in the EKS node group. Should be >= 3 for zero-downtime rolling updates with current resource requests."
+  type        = number
+  default     = 3
+}
+
+variable "node_group_instance_types" {
+  description = "EC2 instance types for the EKS node group"
+  type        = list(string)
+  default     = ["t3.medium"]
 }
 
 # Application Configuration
@@ -45,19 +70,7 @@ variable "sligo_service_account_key_path" {
   sensitive   = true
 }
 
-# Database Configuration
-variable "db_instance_class" {
-  description = "RDS instance class"
-  type        = string
-  default     = "db.t3.medium"
-}
-
-variable "db_allocated_storage" {
-  description = "RDS allocated storage in GB"
-  type        = number
-  default     = 100
-}
-
+# Database Configuration (Aurora Serverless v2)
 variable "db_username" {
   description = "Database username"
   type        = string
@@ -71,11 +84,22 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "prisma_accelerate_url" {
-  description = "Prisma Accelerate connection URL (format: prisma://accelerate.prisma-data.net/?api_key=...) or prisma+postgres://..."
+variable "aurora_min_capacity" {
+  description = "Aurora Serverless v2 minimum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
+  type        = number
+  default     = 0.5
+}
+
+variable "aurora_max_capacity" {
+  description = "Aurora Serverless v2 maximum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
+  type        = number
+  default     = 16
+}
+
+variable "aurora_instance_class" {
+  description = "Aurora Serverless v2 cluster instance class (e.g., db.r6g.large, db.r6g.xlarge). Scaling is controlled by aurora_min_capacity/aurora_max_capacity."
   type        = string
-  default     = ""
-  sensitive   = true
+  default     = "db.r6g.large"
 }
 
 # Redis Configuration
@@ -87,25 +111,43 @@ variable "redis_node_type" {
 
 # S3 Storage Configuration
 variable "s3_bucket_name" {
-  description = "S3 bucket name for application storage (optional, will create if not provided)"
+  description = "S3 bucket name for file manager storage (optional, will create if not provided)"
+  type        = string
+  default     = ""
+}
+
+variable "s3_bucket_agent_avatars_name" {
+  description = "S3 bucket name for agent avatars (optional, will create if not provided)"
+  type        = string
+  default     = ""
+}
+
+variable "s3_bucket_logos_name" {
+  description = "S3 bucket name for MCP logos (optional, will create if not provided)"
+  type        = string
+  default     = ""
+}
+
+variable "s3_bucket_rag_name" {
+  description = "S3 bucket name for RAG storage (optional, will create if not provided)"
   type        = string
   default     = ""
 }
 
 variable "s3_bucket_versioning" {
-  description = "Enable versioning on S3 bucket"
+  description = "Enable versioning on S3 buckets"
   type        = bool
   default     = true
 }
 
 variable "s3_bucket_encryption" {
-  description = "Enable encryption on S3 bucket"
+  description = "Enable encryption on S3 buckets"
   type        = bool
   default     = true
 }
 
 variable "use_existing_s3_bucket" {
-  description = "If true, use an existing S3 bucket instead of creating a new one. Requires s3_bucket_name to be set."
+  description = "If true, use existing S3 buckets instead of creating new ones. Requires s3_bucket_*_name to be set."
   type        = bool
   default     = false
 }
@@ -225,13 +267,6 @@ variable "google_project_id" {
   default     = ""
 }
 
-variable "google_api_key" {
-  description = "Google API Key"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 variable "openai_api_key" {
   description = "OpenAI API key"
   type        = string
@@ -267,26 +302,47 @@ variable "google_client_secret" {
   sensitive   = true
 }
 
-variable "google_storage_agent_avatars_bucket" {
-  description = "Google Storage bucket for agent avatars"
+variable "rag_sa_key" {
+  description = "RAG Service Account Key (JSON string)"
   type        = string
   default     = ""
+  sensitive   = true
 }
 
-variable "google_storage_bucket" {
-  description = "Google Storage bucket"
+variable "anthropic_api_key" {
+  description = "Anthropic API key"
   type        = string
   default     = ""
+  sensitive   = true
 }
 
-variable "google_storage_mcp_logos_bucket" {
-  description = "Google Storage bucket for MCP logos"
+variable "google_vertex_ai_web_credentials" {
+  description = "Google Vertex AI Web Credentials (JSON string)"
   type        = string
   default     = ""
+  sensitive   = true
 }
 
-variable "google_storage_rag_sa_key" {
-  description = "Google Storage RAG Service Account Key"
+variable "verbose_logging" {
+  description = "Enable verbose logging for backend"
+  type        = bool
+  default     = true
+}
+
+variable "backend_request_timeout_ms" {
+  description = "Backend request timeout in milliseconds"
+  type        = number
+  default     = 300000
+}
+
+variable "openai_base_url" {
+  description = "OpenAI API base URL"
+  type        = string
+  default     = "https://api.openai.com/v1"
+}
+
+variable "langsmith_api_key" {
+  description = "LangSmith API key"
   type        = string
   default     = ""
   sensitive   = true
@@ -299,10 +355,58 @@ variable "onedrive_client_secret" {
   sensitive   = true
 }
 
-variable "file_manager_google_projectid" {
-  description = "File Manager Google Project ID"
+
+# SPENDHQ Configuration (for mcp-gateway)
+variable "spendhq_base_url" {
+  description = "SPENDHQ base URL"
   type        = string
   default     = ""
+}
+
+variable "spendhq_client_id" {
+  description = "SPENDHQ client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_client_secret" {
+  description = "SPENDHQ client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_token_url" {
+  description = "SPENDHQ token URL"
+  type        = string
+  default     = ""
+}
+
+variable "spendhq_ss_host" {
+  description = "SPENDHQ SingleStore host"
+  type        = string
+  default     = ""
+}
+
+variable "spendhq_ss_username" {
+  description = "SPENDHQ SingleStore username"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_ss_password" {
+  description = "SPENDHQ SingleStore password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_ss_port" {
+  description = "SPENDHQ SingleStore port"
+  type        = string
+  default     = "3306"
 }
 
 # Networking (Optional - can use existing VPC)
@@ -316,4 +420,19 @@ variable "subnet_ids" {
   description = "Subnet IDs (optional, will create if not provided)"
   type        = list(string)
   default     = []
+}
+
+# AWS S3 credentials (optional – omit when using IRSA / pod IAM roles)
+variable "aws_access_key_id" {
+  description = "AWS access key for S3 (optional; use IRSA when empty)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS secret key for S3 (optional; use IRSA when empty)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

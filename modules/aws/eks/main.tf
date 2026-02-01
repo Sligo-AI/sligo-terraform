@@ -157,11 +157,11 @@ module "eks" {
   # EKS Managed Node Groups
   eks_managed_node_groups = {
     main = {
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
+      min_size     = var.node_group_min_size
+      max_size     = var.node_group_max_size
+      desired_size = var.node_group_desired_size
 
-      instance_types = ["t3.medium"]
+      instance_types = var.node_group_instance_types
 
       # Migrate to Amazon Linux 2023 (AL2023) - required for K8s 1.30+
       # AL2 support ends Nov 26, 2025, and no AL2 AMIs for K8s 1.33+
@@ -232,23 +232,38 @@ resource "aws_security_group" "rds" {
   }
 }
 
-resource "aws_db_instance" "postgres" {
-  identifier             = "${var.cluster_name}-postgres"
-  engine                 = "postgres"
+# Aurora Serverless v2 Cluster
+resource "aws_rds_cluster" "postgres" {
+  cluster_identifier     = "${var.cluster_name}-postgres"
+  engine                 = "aurora-postgresql"
   engine_version         = "15.15"
-  instance_class         = var.db_instance_class
-  allocated_storage      = var.db_allocated_storage
-  storage_encrypted      = true
-  db_name                = "sligo"
-  username               = var.db_username
-  password               = var.db_password
+  database_name          = "sligo"
+  master_username        = var.db_username
+  master_password        = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = true
-  publicly_accessible    = false
+  storage_encrypted      = true
+  serverlessv2_scaling_configuration {
+    min_capacity = var.aurora_min_capacity
+    max_capacity = var.aurora_max_capacity
+  }
 
   tags = {
     Name = "${var.cluster_name}-postgres"
+  }
+}
+
+# Aurora Serverless v2 Cluster Instance
+resource "aws_rds_cluster_instance" "postgres" {
+  identifier         = "${var.cluster_name}-postgres-instance-1"
+  cluster_identifier = aws_rds_cluster.postgres.id
+  instance_class     = var.aurora_instance_class
+  engine             = aws_rds_cluster.postgres.engine
+  engine_version     = aws_rds_cluster.postgres.engine_version
+
+  tags = {
+    Name = "${var.cluster_name}-postgres-instance-1"
   }
 }
 
@@ -256,6 +271,11 @@ resource "aws_db_instance" "postgres" {
 resource "aws_elasticache_subnet_group" "redis" {
   name       = "${var.cluster_name}-redis-subnet-group"
   subnet_ids = length(var.subnet_ids) > 0 ? var.subnet_ids : aws_subnet.private[*].id
+
+  lifecycle {
+    # Avoid changing subnet_ids while replication group is using them (SubnetInUse)
+    ignore_changes = [subnet_ids]
+  }
 }
 
 resource "aws_security_group" "redis" {
@@ -347,6 +367,7 @@ data "aws_iam_policy_document" "alb_controller" {
       "ec2:DescribeVpcPeeringConnections",
       "ec2:DescribeSubnets",
       "ec2:DescribeSecurityGroups",
+      "ec2:GetSecurityGroupsForVpc",
       "ec2:DescribeInstances",
       "ec2:DescribeNetworkInterfaces",
       "ec2:DescribeTags",
@@ -752,41 +773,38 @@ resource "kubernetes_secret" "nextjs_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
 
-  data = {
-    NEXT_PUBLIC_API_URL                = var.next_public_api_url
-    NEXT_PUBLIC_URL                    = var.frontend_url
-    FRONTEND_URL                       = var.frontend_url
-    NEXTAUTH_SECRET                    = var.nextauth_secret
-    PORT                               = "3000"
-    REDIS_URL                          = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    BACKEND_URL                        = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL                    = "http://mcp-gateway:3002"
-    DATABASE_URL                       = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
-    FILE_MANAGER_GOOGLE_STORAGE_BUCKET = local.s3_bucket_id
-    FILE_MANAGER_REDIS_URL             = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    # These should be provided via terraform.tfvars - adding placeholders for now
-    WORKOS_API_KEY                      = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID                    = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD              = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID        = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY       = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID      = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY                    = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                      = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GCP_SA_KEY                          = var.gcp_sa_key != "" ? var.gcp_sa_key : "placeholder"
-    GOOGLE_CLIENT_SECRET                = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    GOOGLE_STORAGE_AGENT_AVATARS_BUCKET = var.google_storage_agent_avatars_bucket != "" ? var.google_storage_agent_avatars_bucket : "placeholder"
-    GOOGLE_STORAGE_BUCKET               = var.google_storage_bucket != "" ? var.google_storage_bucket : "placeholder"
-    GOOGLE_STORAGE_MCP_LOGOS_BUCKET     = var.google_storage_mcp_logos_bucket != "" ? var.google_storage_mcp_logos_bucket : "placeholder"
-    GOOGLE_STORAGE_RAG_SA_KEY           = var.google_storage_rag_sa_key != "" ? var.google_storage_rag_sa_key : "placeholder"
-    ONEDRIVE_CLIENT_SECRET              = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                      = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                      = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    FILE_MANAGER_GOOGLE_PROJECTID       = var.file_manager_google_projectid != "" ? var.file_manager_google_projectid : ""
-    NODE_ENV                            = "production"
-    # Temporarily skip env validation to allow pods to start
-    SKIP_ENV_VALIDATION = "true"
-  }
+  data = merge({
+    NEXT_PUBLIC_API_URL            = var.next_public_api_url
+    NEXT_PUBLIC_URL                = var.frontend_url
+    FRONTEND_URL                   = var.frontend_url
+    NEXTAUTH_SECRET                = var.nextauth_secret
+    PORT                           = "3000"
+    REDIS_URL                      = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    BACKEND_URL                    = "http://sligo-backend:3001"
+    MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
+    DATABASE_URL                   = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
+    WORKOS_API_KEY                 = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID               = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD         = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID   = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY  = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY               = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                 = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS      = local.s3_bucket_agent_avatars_id
+    BUCKET_NAME_FILE_MANAGER       = local.s3_bucket_file_manager_id
+    BUCKET_NAME_LOGOS              = local.s3_bucket_logos_id
+    BUCKET_NAME_RAG                = local.s3_bucket_rag_id
+    NODE_ENV                       = "production"
+    SKIP_ENV_VALIDATION            = "true"
+    # AWS S3 for EKS (we know these; optional keys omitted when using IRSA)
+    AWS_REGION   = var.aws_region
+    AWS_ENDPOINT = "https://s3.amazonaws.com"
+  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.google_project_id != "" ? { GOOGLE_PROJECTID = var.google_project_id } : {}, var.aws_access_key_id != "" && var.aws_secret_access_key != "" ? { AWS_ACCESS_KEY_ID = var.aws_access_key_id, AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key } : {})
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -795,27 +813,29 @@ resource "kubernetes_secret" "backend_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
 
-  data = {
-    JWT_SECRET = var.jwt_secret
-    API_KEY    = var.api_key
-    PORT       = "3001"
-    # Use Prisma Accelerate URL if provided, otherwise fall back to direct PostgreSQL connection
-    # Prisma Accelerate URL format: prisma://accelerate.prisma-data.net/?api_key=... or prisma+postgres://...
-    DATABASE_URL                         = var.prisma_accelerate_url != "" ? var.prisma_accelerate_url : "postgresql://${urlencode(aws_db_instance.postgres.username)}:${urlencode(aws_db_instance.postgres.password)}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
+  data = merge({
+    JWT_SECRET                           = var.jwt_secret
+    API_KEY                              = var.api_key
+    PORT                                 = "3001"
+    DATABASE_URL                         = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
     REDIS_URL                            = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
     MCP_GATEWAY_URL                      = "http://mcp-gateway:3002"
     SQL_CONNECTION_STRING_DECRYPTION_IV  = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
     ENCRYPTION_KEY                       = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    GOOGLE_PROJECTID                     = var.google_project_id != "" ? var.google_project_id : "placeholder"
-    GOOGLE_API_KEY                       = var.google_api_key != "" ? var.google_api_key : "placeholder"
     OPENAI_API_KEY                       = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    FILE_MANAGER_REDIS_URL               = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    FILE_MANAGER_GOOGLE_STORAGE_BUCKET   = local.s3_bucket_id
+    OPENAI_BASE_URL                      = var.openai_base_url
+    ANTHROPIC_API_KEY                    = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    VERBOSE_LOGGING                      = tostring(var.verbose_logging)
+    BACKEND_REQUEST_TIMEOUT_MS           = tostring(var.backend_request_timeout_ms)
+    LANGSMITH_API_KEY                    = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    BUCKET_NAME_FILE_MANAGER             = local.s3_bucket_file_manager_id
     NODE_ENV                             = "production"
-    # Temporarily skip env validation to allow pods to start
-    SKIP_ENV_VALIDATION = "true"
-  }
+    SKIP_ENV_VALIDATION                  = "true"
+    AWS_REGION                           = var.aws_region
+    AWS_ENDPOINT                         = "https://s3.amazonaws.com"
+    GOOGLE_PROJECTID                     = var.google_project_id != "" ? var.google_project_id : ""
+  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.aws_access_key_id != "" && var.aws_secret_access_key != "" ? { AWS_ACCESS_KEY_ID = var.aws_access_key_id, AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key } : {})
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -824,21 +844,30 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
 
-  data = {
-    SECRET                             = var.gateway_secret
-    PORT                               = "3002"
-    FILE_MANAGER_GOOGLE_STORAGE_BUCKET = local.s3_bucket_id
-    FILE_MANAGER_REDIS_URL             = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    REDIS_URL_STRUCTURED_OUTPUTS       = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    # Required for utility server
-    FRONTEND_URL     = var.frontend_url
-    OPENAI_API_KEY   = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PINECONE_API_KEY = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX   = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    # Optional for other servers
-    PERPLEXITY_API_KEY = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY     = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
-  }
+  data = merge({
+    SECRET                       = var.gateway_secret
+    PORT                         = "3002"
+    FRONTEND_URL                 = var.frontend_url
+    BUCKET_NAME_FILE_MANAGER     = local.s3_bucket_file_manager_id
+    REDIS_URL                    = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    REDIS_URL_STRUCTURED_OUTPUTS = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    PINECONE_API_KEY             = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX               = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    OPENAI_API_KEY               = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PERPLEXITY_API_KEY           = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY               = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    SPENDHQ_BASE_URL             = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
+    SPENDHQ_CLIENT_ID            = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
+    SPENDHQ_CLIENT_SECRET        = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
+    SPENDHQ_TOKEN_URL            = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
+    SPENDHQ_SS_HOST              = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
+    SPENDHQ_SS_USERNAME          = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
+    SPENDHQ_SS_PASSWORD          = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
+    SPENDHQ_SS_PORT              = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
+    ANTHROPIC_API_KEY            = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    AWS_REGION                   = var.aws_region
+    AWS_ENDPOINT                 = "https://s3.amazonaws.com"
+  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_project_id != "" ? { GOOGLE_PROJECTID = var.google_project_id } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.aws_access_key_id != "" && var.aws_secret_access_key != "" ? { AWS_ACCESS_KEY_ID = var.aws_access_key_id, AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key } : {})
 }
 
 # Database Secret
@@ -849,11 +878,11 @@ resource "kubernetes_secret" "database_secret" {
   }
 
   data = {
-    host     = aws_db_instance.postgres.address
-    port     = tostring(aws_db_instance.postgres.port)
-    database = aws_db_instance.postgres.db_name
-    username = aws_db_instance.postgres.username
-    password = aws_db_instance.postgres.password
+    host     = aws_rds_cluster.postgres.endpoint
+    port     = tostring(aws_rds_cluster.postgres.port)
+    database = aws_rds_cluster.postgres.database_name
+    username = aws_rds_cluster.postgres.master_username
+    password = aws_rds_cluster.postgres.master_password
   }
 }
 
@@ -870,46 +899,130 @@ resource "kubernetes_secret" "redis_secret" {
   }
 }
 
-# S3 Bucket for Application Storage
+# S3 Buckets for Application Storage (4 buckets total)
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
 
-# Data source to check if bucket exists (optional, for existing buckets)
-data "aws_s3_bucket" "existing" {
+# Data sources to check if buckets exist (optional, for existing buckets)
+data "aws_s3_bucket" "existing_file_manager" {
   count  = var.s3_bucket_name != "" && var.use_existing_s3_bucket ? 1 : 0
   bucket = var.s3_bucket_name
 }
 
-resource "aws_s3_bucket" "app_storage" {
+data "aws_s3_bucket" "existing_agent_avatars" {
+  count  = var.s3_bucket_agent_avatars_name != "" && var.use_existing_s3_bucket ? 1 : 0
+  bucket = var.s3_bucket_agent_avatars_name
+}
+
+data "aws_s3_bucket" "existing_logos" {
+  count  = var.s3_bucket_logos_name != "" && var.use_existing_s3_bucket ? 1 : 0
+  bucket = var.s3_bucket_logos_name
+}
+
+data "aws_s3_bucket" "existing_rag" {
+  count  = var.s3_bucket_rag_name != "" && var.use_existing_s3_bucket ? 1 : 0
+  bucket = var.s3_bucket_rag_name
+}
+
+# S3 Bucket 1: File Manager
+resource "aws_s3_bucket" "file_manager" {
   count  = var.use_existing_s3_bucket ? 0 : 1
-  bucket = var.s3_bucket_name != "" ? var.s3_bucket_name : "${var.cluster_name}-storage-${random_id.bucket_suffix.hex}"
+  bucket = var.s3_bucket_name != "" ? var.s3_bucket_name : "${var.cluster_name}-file-manager-${random_id.bucket_suffix.hex}"
 
   tags = {
-    Name        = "${var.cluster_name}-storage"
+    Name        = "${var.cluster_name}-file-manager"
     Environment = "production"
+    Purpose     = "file-manager"
   }
 }
 
-# Local to get the bucket ID and ARN (either existing or newly created)
-locals {
-  s3_bucket_id  = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing[0].id : aws_s3_bucket.app_storage[0].id
-  s3_bucket_arn = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing[0].arn : aws_s3_bucket.app_storage[0].arn
+# S3 Bucket 2: Agent Avatars
+resource "aws_s3_bucket" "agent_avatars" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = var.s3_bucket_agent_avatars_name != "" ? var.s3_bucket_agent_avatars_name : "${var.cluster_name}-agent-avatars-${random_id.bucket_suffix.hex}"
+
+  tags = {
+    Name        = "${var.cluster_name}-agent-avatars"
+    Environment = "production"
+    Purpose     = "agent-avatars"
+  }
 }
 
-resource "aws_s3_bucket_versioning" "app_storage" {
-  count  = var.s3_bucket_versioning && !var.use_existing_s3_bucket ? 1 : 0
-  bucket = local.s3_bucket_id
+# S3 Bucket 3: MCP Logos
+resource "aws_s3_bucket" "logos" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = var.s3_bucket_logos_name != "" ? var.s3_bucket_logos_name : "${var.cluster_name}-logos-${random_id.bucket_suffix.hex}"
 
+  tags = {
+    Name        = "${var.cluster_name}-logos"
+    Environment = "production"
+    Purpose     = "mcp-logos"
+  }
+}
+
+# S3 Bucket 4: RAG Storage
+resource "aws_s3_bucket" "rag" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = var.s3_bucket_rag_name != "" ? var.s3_bucket_rag_name : "${var.cluster_name}-rag-${random_id.bucket_suffix.hex}"
+
+  tags = {
+    Name        = "${var.cluster_name}-rag"
+    Environment = "production"
+    Purpose     = "rag-storage"
+  }
+}
+
+# Local values to get bucket IDs and ARNs (either existing or newly created)
+locals {
+  s3_bucket_file_manager_id  = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing_file_manager[0].id : aws_s3_bucket.file_manager[0].id
+  s3_bucket_file_manager_arn = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing_file_manager[0].arn : aws_s3_bucket.file_manager[0].arn
+  s3_bucket_agent_avatars_id = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing_agent_avatars[0].id : aws_s3_bucket.agent_avatars[0].id
+  s3_bucket_logos_id         = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing_logos[0].id : aws_s3_bucket.logos[0].id
+  s3_bucket_rag_id           = var.use_existing_s3_bucket ? data.aws_s3_bucket.existing_rag[0].id : aws_s3_bucket.rag[0].id
+
+  # Keep backward compatibility
+  s3_bucket_id  = local.s3_bucket_file_manager_id
+  s3_bucket_arn = local.s3_bucket_file_manager_arn
+}
+
+# Enable versioning on all S3 buckets
+resource "aws_s3_bucket_versioning" "file_manager" {
+  count  = var.s3_bucket_versioning && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_file_manager_id
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "app_storage" {
-  count  = var.s3_bucket_encryption && !var.use_existing_s3_bucket ? 1 : 0
-  bucket = local.s3_bucket_id
+resource "aws_s3_bucket_versioning" "agent_avatars" {
+  count  = var.s3_bucket_versioning && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_agent_avatars_id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
 
+resource "aws_s3_bucket_versioning" "logos" {
+  count  = var.s3_bucket_versioning && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_logos_id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "rag" {
+  count  = var.s3_bucket_versioning && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_rag_id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Enable encryption on all S3 buckets
+resource "aws_s3_bucket_server_side_encryption_configuration" "file_manager" {
+  count  = var.s3_bucket_encryption && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_file_manager_id
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
@@ -917,10 +1030,67 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "app_storage" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "app_storage" {
-  count  = var.use_existing_s3_bucket ? 0 : 1
-  bucket = local.s3_bucket_id
+resource "aws_s3_bucket_server_side_encryption_configuration" "agent_avatars" {
+  count  = var.s3_bucket_encryption && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_agent_avatars_id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "logos" {
+  count  = var.s3_bucket_encryption && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_logos_id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "rag" {
+  count  = var.s3_bucket_encryption && !var.use_existing_s3_bucket ? 1 : 0
+  bucket = local.s3_bucket_rag_id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Block public access on all S3 buckets
+resource "aws_s3_bucket_public_access_block" "file_manager" {
+  count                   = var.use_existing_s3_bucket ? 0 : 1
+  bucket                  = local.s3_bucket_file_manager_id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "agent_avatars" {
+  count                   = var.use_existing_s3_bucket ? 0 : 1
+  bucket                  = local.s3_bucket_agent_avatars_id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "logos" {
+  count                   = var.use_existing_s3_bucket ? 0 : 1
+  bucket                  = local.s3_bucket_logos_id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "rag" {
+  count                   = var.use_existing_s3_bucket ? 0 : 1
+  bucket                  = local.s3_bucket_rag_id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -967,8 +1137,14 @@ resource "aws_iam_role_policy" "s3_access" {
           "s3:ListBucket"
         ]
         Resource = [
-          local.s3_bucket_arn,
-          "${local.s3_bucket_arn}/*"
+          local.s3_bucket_file_manager_arn,
+          "${local.s3_bucket_file_manager_arn}/*",
+          "arn:aws:s3:::${local.s3_bucket_agent_avatars_id}",
+          "arn:aws:s3:::${local.s3_bucket_agent_avatars_id}/*",
+          "arn:aws:s3:::${local.s3_bucket_logos_id}",
+          "arn:aws:s3:::${local.s3_bucket_logos_id}/*",
+          "arn:aws:s3:::${local.s3_bucket_rag_id}",
+          "arn:aws:s3:::${local.s3_bucket_rag_id}/*"
         ]
       }
     ]
@@ -983,10 +1159,12 @@ resource "kubernetes_secret" "s3_secret" {
   }
 
   data = {
-    bucket_name = local.s3_bucket_id
-    bucket_arn  = local.s3_bucket_arn
-    region      = var.aws_region
-    role_arn    = aws_iam_role.s3_access.arn
+    bucket_name_file_manager  = local.s3_bucket_file_manager_id
+    bucket_name_agent_avatars = local.s3_bucket_agent_avatars_id
+    bucket_name_logos         = local.s3_bucket_logos_id
+    bucket_name_rag           = local.s3_bucket_rag_id
+    region                    = var.aws_region
+    role_arn                  = aws_iam_role.s3_access.arn
   }
 }
 
@@ -1021,6 +1199,8 @@ resource "helm_release" "sligo_cloud" {
           }, local.certificate_arn != "" ? {
           "alb.ingress.kubernetes.io/certificate-arn" = local.certificate_arn
           "alb.ingress.kubernetes.io/ssl-redirect"    = "443"
+          } : {}, length(var.subnet_ids) > 0 ? {
+          "alb.ingress.kubernetes.io/subnets" = join(",", var.subnet_ids)
         } : {})
         hosts = [
           {
@@ -1041,6 +1221,7 @@ resource "helm_release" "sligo_cloud" {
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-frontend"
           tag        = var.app_version
+          pullPolicy = "Always"
         }
         secretName = kubernetes_secret.nextjs_secrets.metadata[0].name
         resources = {
@@ -1060,6 +1241,7 @@ resource "helm_release" "sligo_cloud" {
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-backend"
           tag        = var.app_version
+          pullPolicy = "Always"
         }
         secretName = kubernetes_secret.backend_secrets.metadata[0].name
         resources = {
@@ -1079,6 +1261,7 @@ resource "helm_release" "sligo_cloud" {
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-mcp-gateway"
           tag        = var.app_version
+          pullPolicy = "Always"
         }
         secretName = kubernetes_secret.mcp_gateway_secrets.metadata[0].name
         resources = {
@@ -1093,13 +1276,24 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
+      # Pre-install/pre-upgrade Job: Prisma migrate + sync AI models + sync MCP servers (same as build-and-publish)
+      releaseSetup = {
+        enabled = true
+        image = {
+          repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-release-setup"
+          tag        = var.app_version
+          pullPolicy = "Always"
+        }
+        secretName = kubernetes_secret.backend_secrets.metadata[0].name
+      }
+
       database = {
         enabled = true
         type    = "external"
         external = {
-          host       = aws_db_instance.postgres.address
-          port       = aws_db_instance.postgres.port
-          database   = aws_db_instance.postgres.db_name
+          host       = aws_rds_cluster.postgres.endpoint
+          port       = aws_rds_cluster.postgres.port
+          database   = aws_rds_cluster.postgres.database_name
           secretName = kubernetes_secret.database_secret.metadata[0].name
         }
       }
@@ -1128,47 +1322,40 @@ resource "helm_release" "sligo_cloud" {
   ]
 }
 
-# Data source to find ALB security group (created by AWS Load Balancer Controller)
-# The ALB security group is tagged by the controller
-data "aws_security_group" "alb" {
-  count = 1
+# Wait for AWS LB Controller to create ALB and backend SG after Ingress
+resource "time_sleep" "wait_for_alb_sg" {
+  create_duration = "90s"
+  depends_on      = [helm_release.sligo_cloud]
+}
+
+# Look up ALB backend security group (created by AWS Load Balancer Controller).
+# Use aws_security_groups (plural) so we get an empty list instead of error when not found.
+# Controller tags shared backend SG with elbv2.k8s.aws/resource = "backend-sg".
+data "aws_security_groups" "alb" {
   filter {
     name   = "tag:elbv2.k8s.aws/cluster"
     values = [var.cluster_name]
   }
   filter {
-    name   = "tag:ingress.k8s.aws/resource"
-    values = ["ManagedLBSecurityGroup"]
-  }
-
-  depends_on = [helm_release.sligo_cloud]
-}
-
-# Data source to find node security group
-data "aws_security_group" "node" {
-  filter {
-    name   = "tag:kubernetes.io/cluster/${var.cluster_name}"
-    values = ["owned"]
-  }
-  filter {
-    name   = "tag:Name"
-    values = ["${var.cluster_name}-node*"]
+    name   = "tag:elbv2.k8s.aws/resource"
+    values = ["backend-sg"]
   }
   filter {
     name   = "vpc-id"
     values = [var.vpc_id != "" ? var.vpc_id : aws_vpc.main[0].id]
   }
+  depends_on = [time_sleep.wait_for_alb_sg]
 }
 
-# Get node security group from EKS module or data source
 locals {
-  node_security_group_id = try(module.eks.node_security_group_id, data.aws_security_group.node.id)
-  alb_security_group_id  = data.aws_security_group.alb[0].id
+  node_security_group_id = module.eks.node_security_group_id
+  alb_security_group_id  = length(data.aws_security_groups.alb.ids) > 0 ? data.aws_security_groups.alb.ids[0] : null
 }
 
-# Security group rules to allow ALB to reach pods
-# These should be managed by TargetGroupBinding, but we add them as backup
+# Security group rules to allow ALB to reach pods (backup; controller also manages these).
+# Only create when backend SG exists; otherwise rely on controller.
 resource "aws_security_group_rule" "alb_to_app" {
+  count                    = local.alb_security_group_id != null ? 1 : 0
   type                     = "ingress"
   from_port                = 3000
   to_port                  = 3000
@@ -1176,11 +1363,10 @@ resource "aws_security_group_rule" "alb_to_app" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach app pods on port 3000"
-
-  depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
 resource "aws_security_group_rule" "alb_to_backend" {
+  count                    = local.alb_security_group_id != null ? 1 : 0
   type                     = "ingress"
   from_port                = 3001
   to_port                  = 3001
@@ -1188,11 +1374,10 @@ resource "aws_security_group_rule" "alb_to_backend" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach backend pods on port 3001"
-
-  depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
 resource "aws_security_group_rule" "alb_to_mcp_gateway" {
+  count                    = local.alb_security_group_id != null ? 1 : 0
   type                     = "ingress"
   from_port                = 3002
   to_port                  = 3002
@@ -1200,8 +1385,6 @@ resource "aws_security_group_rule" "alb_to_mcp_gateway" {
   source_security_group_id = local.alb_security_group_id
   security_group_id        = local.node_security_group_id
   description              = "Allow ALB to reach mcp-gateway pods on port 3002"
-
-  depends_on = [helm_release.sligo_cloud, data.aws_security_group.alb]
 }
 
 # Add health check path annotations to services via Kubernetes resources

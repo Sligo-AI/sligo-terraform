@@ -9,8 +9,8 @@ output "cluster_name" {
 }
 
 output "database_endpoint" {
-  description = "RDS database endpoint"
-  value       = try(aws_db_instance.postgres.endpoint, "")
+  description = "Aurora Serverless v2 cluster endpoint"
+  value       = try("${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}", "")
 }
 
 output "redis_endpoint" {
@@ -19,7 +19,7 @@ output "redis_endpoint" {
 }
 
 output "ingress_hostname" {
-  description = "ALB hostname from ingress (will be available after Helm release)"
+  description = "ALB hostname for DNS CNAME. Use: kubectl get ingress -n sligo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'"
   value       = try(helm_release.sligo_cloud.metadata[0].name, "")
 }
 
@@ -29,13 +29,33 @@ output "namespace" {
 }
 
 output "s3_bucket_name" {
-  description = "S3 bucket name for application storage"
-  value       = local.s3_bucket_id
+  description = "S3 bucket name for file manager storage (backward compatibility)"
+  value       = local.s3_bucket_file_manager_id
 }
 
 output "s3_bucket_arn" {
-  description = "S3 bucket ARN"
-  value       = local.s3_bucket_arn
+  description = "S3 bucket ARN for file manager (backward compatibility)"
+  value       = local.s3_bucket_file_manager_arn
+}
+
+output "s3_bucket_file_manager_name" {
+  description = "S3 bucket name for file manager storage"
+  value       = local.s3_bucket_file_manager_id
+}
+
+output "s3_bucket_agent_avatars_name" {
+  description = "S3 bucket name for agent avatars"
+  value       = local.s3_bucket_agent_avatars_id
+}
+
+output "s3_bucket_logos_name" {
+  description = "S3 bucket name for MCP logos"
+  value       = local.s3_bucket_logos_id
+}
+
+output "s3_bucket_rag_name" {
+  description = "S3 bucket name for RAG storage"
+  value       = local.s3_bucket_rag_id
 }
 
 output "acm_certificate_arn" {

@@ -7,7 +7,7 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version for EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.34"
 }
 
 variable "aws_region" {
@@ -45,19 +45,7 @@ variable "sligo_service_account_key_path" {
   sensitive   = true
 }
 
-# Database Configuration
-variable "db_instance_class" {
-  description = "RDS instance class"
-  type        = string
-  default     = "db.t3.medium"
-}
-
-variable "db_allocated_storage" {
-  description = "RDS allocated storage in GB"
-  type        = number
-  default     = 100
-}
-
+# Database Configuration (Aurora Serverless v2)
 variable "db_username" {
   description = "Database username"
   type        = string
@@ -65,16 +53,27 @@ variable "db_username" {
   sensitive   = true
 }
 
+variable "aurora_min_capacity" {
+  description = "Aurora Serverless v2 minimum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
+  type        = number
+  default     = 0.5
+}
+
+variable "aurora_max_capacity" {
+  description = "Aurora Serverless v2 maximum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
+  type        = number
+  default     = 16
+}
+
+variable "aurora_instance_class" {
+  description = "Aurora Serverless v2 cluster instance class (e.g., db.r6g.large, db.r6g.xlarge). Scaling is controlled by aurora_min_capacity/aurora_max_capacity."
+  type        = string
+  default     = "db.r6g.large"
+}
+
 variable "db_password" {
   description = "Database password"
   type        = string
-  sensitive   = true
-}
-
-variable "prisma_accelerate_url" {
-  description = "Prisma Accelerate connection URL (format: prisma://accelerate.prisma-data.net/?api_key=...) or prisma+postgres://..."
-  type        = string
-  default     = ""
   sensitive   = true
 }
 
@@ -173,42 +172,50 @@ variable "google_project_id" {
   default     = ""
 }
 
-variable "google_api_key" {
-  description = "Google API Key"
+variable "rag_sa_key" {
+  description = "RAG Service Account Key (JSON string)"
   type        = string
   default     = ""
   sensitive   = true
 }
 
-variable "google_storage_bucket" {
-  description = "Google Storage bucket name"
-  type        = string
-  default     = ""
-}
-
-variable "google_storage_agent_avatars_bucket" {
-  description = "Google Storage bucket for agent avatars"
-  type        = string
-  default     = ""
-}
-
-variable "google_storage_mcp_logos_bucket" {
-  description = "Google Storage bucket for MCP logos"
-  type        = string
-  default     = ""
-}
-
-variable "google_storage_rag_sa_key" {
-  description = "Google Storage RAG Service Account Key"
+variable "anthropic_api_key" {
+  description = "Anthropic API key"
   type        = string
   default     = ""
   sensitive   = true
 }
 
-variable "file_manager_google_projectid" {
-  description = "File Manager Google Project ID"
+variable "google_vertex_ai_web_credentials" {
+  description = "Google Vertex AI Web Credentials (JSON string)"
   type        = string
   default     = ""
+  sensitive   = true
+}
+
+variable "verbose_logging" {
+  description = "Enable verbose logging for backend"
+  type        = bool
+  default     = true
+}
+
+variable "backend_request_timeout_ms" {
+  description = "Backend request timeout in milliseconds"
+  type        = number
+  default     = 300000
+}
+
+variable "openai_base_url" {
+  description = "OpenAI API base URL"
+  type        = string
+  default     = "https://api.openai.com/v1"
+}
+
+variable "langsmith_api_key" {
+  description = "LangSmith API key"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 # Pinecone Configuration
@@ -248,4 +255,57 @@ variable "use_existing_s3_bucket" {
   description = "If true, use an existing S3 bucket instead of creating a new one. Requires s3_bucket_name to be set."
   type        = bool
   default     = false
+}
+
+# SPENDHQ Configuration (for mcp-gateway)
+variable "spendhq_base_url" {
+  description = "SPENDHQ base URL"
+  type        = string
+  default     = ""
+}
+
+variable "spendhq_client_id" {
+  description = "SPENDHQ client ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_client_secret" {
+  description = "SPENDHQ client secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_token_url" {
+  description = "SPENDHQ token URL"
+  type        = string
+  default     = ""
+}
+
+variable "spendhq_ss_host" {
+  description = "SPENDHQ SingleStore host"
+  type        = string
+  default     = ""
+}
+
+variable "spendhq_ss_username" {
+  description = "SPENDHQ SingleStore username"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_ss_password" {
+  description = "SPENDHQ SingleStore password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "spendhq_ss_port" {
+  description = "SPENDHQ SingleStore port"
+  type        = string
+  default     = "3306"
 }

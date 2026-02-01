@@ -13,12 +13,12 @@ module "sligo_aws" {
   sligo_service_account_key_path = var.sligo_service_account_key_path
   acm_certificate_arn            = var.acm_certificate_arn
 
-  # Database configuration
-  db_instance_class     = var.db_instance_class
-  db_allocated_storage  = var.db_allocated_storage
+  # Database configuration (Aurora Serverless v2)
   db_username           = var.db_username
   db_password           = var.db_password
-  prisma_accelerate_url = var.prisma_accelerate_url
+  aurora_min_capacity   = var.aurora_min_capacity
+  aurora_max_capacity   = var.aurora_max_capacity
+  aurora_instance_class = var.aurora_instance_class
 
   # Redis configuration
   redis_node_type = var.redis_node_type
@@ -42,18 +42,30 @@ module "sligo_aws" {
   encryption_key         = var.encryption_key
 
   # Google Cloud Configuration
-  next_public_google_client_id        = var.next_public_google_client_id
-  next_public_google_client_key       = var.next_public_google_client_key
-  google_client_secret                = var.google_client_secret
-  google_project_id                   = var.google_project_id
-  google_api_key                      = var.google_api_key
-  google_storage_bucket               = var.google_storage_bucket
-  google_storage_agent_avatars_bucket = var.google_storage_agent_avatars_bucket
-  google_storage_mcp_logos_bucket     = var.google_storage_mcp_logos_bucket
-  google_storage_rag_sa_key           = var.google_storage_rag_sa_key
-  file_manager_google_projectid       = var.file_manager_google_projectid
+  next_public_google_client_id     = var.next_public_google_client_id
+  next_public_google_client_key    = var.next_public_google_client_key
+  google_client_secret             = var.google_client_secret
+  google_project_id                = var.google_project_id
+  gcp_sa_key                       = var.gcp_sa_key
+  rag_sa_key                       = var.rag_sa_key
+  google_vertex_ai_web_credentials = var.google_vertex_ai_web_credentials
+  anthropic_api_key                = var.anthropic_api_key
+  verbose_logging                  = var.verbose_logging
+  backend_request_timeout_ms       = var.backend_request_timeout_ms
+  openai_base_url                  = var.openai_base_url
+  langsmith_api_key                = var.langsmith_api_key
 
   # Pinecone Configuration
   pinecone_api_key = var.pinecone_api_key
   pinecone_index   = var.pinecone_index
+
+  # SPENDHQ Configuration (for mcp-gateway)
+  spendhq_base_url      = var.spendhq_base_url
+  spendhq_client_id     = var.spendhq_client_id
+  spendhq_client_secret = var.spendhq_client_secret
+  spendhq_token_url     = var.spendhq_token_url
+  spendhq_ss_host       = var.spendhq_ss_host
+  spendhq_ss_username   = var.spendhq_ss_username
+  spendhq_ss_password   = var.spendhq_ss_password
+  spendhq_ss_port       = var.spendhq_ss_port
 }

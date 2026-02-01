@@ -1,0 +1,31 @@
+# Cluster Configuration
+cluster_name    = "sligo-production"
+cluster_version = "1.28"
+location        = "eastus"
+# resource_group_name = ""  # Leave empty to auto-create
+
+# Application Configuration
+domain_name              = "app.example.com"
+client_repository_name   = "your-client-containers"
+app_version              = "v1.0.0"
+sligo_service_account_key_path = "./sligo-service-account-key.json"
+
+# Database Configuration
+db_username        = "sligo"
+# db_password = "CHANGE_ME"
+postgres_sku_name  = "B_Standard_B1ms"
+postgres_storage_mb = 32768
+
+# Redis Configuration
+redis_sku_name  = "Standard"
+redis_family    = "C"
+redis_capacity  = 1
+
+# Required Secrets
+jwt_secret          = "CHANGE_ME"
+api_key             = "CHANGE_ME"
+nextauth_secret     = "CHANGE_ME"
+gateway_secret      = "CHANGE_ME"
+frontend_url        = "https://app.example.com"
+next_public_api_url = "https://api.example.com"
+encryption_key      = "CHANGE_ME"

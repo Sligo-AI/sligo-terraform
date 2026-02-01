@@ -1,58 +1,19 @@
 # GCP GKE Example
 
-Complete example for deploying Sligo Cloud on GCP GKE.
+Deploy Sligo Cloud on GCP GKE with Cloud SQL, Memorystore Redis, and Cloud Storage.
 
-## Prerequisites
+## Quick Start
 
-- GCP project with billing enabled
-- gcloud CLI configured (`gcloud auth application-default login`)
-- Terraform >= 1.0
-- kubectl installed
-- **Sligo Service Account Key** (JSON file) - Contact support@sligo.ai
-  - Place this file in the `examples/gcp-gke/` directory
-  - Name it: `sligo-service-account-key.json`
-  - This file is automatically ignored by git for security
-- **Container Repository Name** - Provided by Sligo support
-  - Your unique repository name in Sligo's Google Artifact Registry
+```bash
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values (gcp_project_id, secrets, etc.)
+terraform init && terraform apply
+```
 
-## Step-by-Step Usage
+## Full Guide
 
-1. **Get your Sligo credentials:**
-   - Contact support@sligo.ai for your service account key and repository name
+See the [Deploy on GCP GKE](https://sligo-ai.github.io/sligo-terraform/docs/gcp.html) guide for step-by-step instructions.
 
-2. **Place your service account key:**
-   ```bash
-   # Place sligo-service-account-key.json in this directory
-   ls -la sligo-service-account-key.json
-   ```
+## Recommended
 
-3. **Copy and configure variables:**
-   ```bash
-   cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your values
-   # Set client_repository_name (from Sligo)
-   # Set sligo_service_account_key_path = "./sligo-service-account-key.json"
-   ```
-
-4. **Initialize Terraform:**
-   ```bash
-   terraform init
-   ```
-
-5. **Review the plan:**
-   ```bash
-   terraform plan
-   ```
-
-6. **Apply:**
-   ```bash
-   terraform apply
-   ```
-
-## Container Registry Access
-
-Sligo Cloud containers are stored in **Google Artifact Registry (GAR)**. The service account key you place in this directory allows your Kubernetes cluster to pull container images from Sligo's registry. Terraform automatically creates the necessary image pull secrets.
-
-## Configuration
-
-See `terraform.tfvars.example` for all available options.
+For production or multiple environments, use `make create-environment-gcp` to create a dedicated environment in `environments/`.
