@@ -41,4 +41,4 @@ title: Troubleshooting
 
 ---
 
-[← Back to overview](./)
+[← Back to overview](../)

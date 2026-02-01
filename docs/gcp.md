@@ -11,7 +11,7 @@ Step-by-step guide for deploying on Google Kubernetes Engine with Cloud SQL, Mem
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [gcloud CLI](https://cloud.google.com/sdk/gcloud) with `gcloud auth application-default login`
-- [Sligo credentials](getting-started/)
+- [Sligo credentials](../getting-started/)
 - A **GCP project** with billing enabled
 
 ---
@@ -119,4 +119,4 @@ terraform init && terraform apply
 
 ---
 
-[← Back to overview](./) | [AWS →](aws/) | [Azure →](azure/)
+[← Back to overview](../) | [AWS →](../aws/) | [Azure →](../azure/)

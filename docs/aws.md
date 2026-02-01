@@ -11,7 +11,7 @@ Step-by-step guide for deploying on Amazon EKS with Aurora PostgreSQL, ElastiCac
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [AWS CLI](https://aws.amazon.com/cli/) configured: `aws configure` or environment variables
-- [Sligo credentials](getting-started/)
+- [Sligo credentials](../getting-started/)
 
 ---
 
@@ -121,4 +121,4 @@ terraform init && terraform apply
 
 ---
 
-[← Back to overview](./) | [GCP →](gcp/) | [Azure →](azure/)
+[← Back to overview](../) | [GCP →](../gcp/) | [Azure →](../azure/)

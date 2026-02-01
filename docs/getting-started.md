@@ -51,4 +51,4 @@ Terraform creates a Kubernetes image pull secret automatically — you only need
 
 ---
 
-[← Back to overview](./) | [Next: Choose your cloud →](./#choose-your-cloud)
+[← Back to overview](../) | [Next: Choose your cloud →](../#choose-your-cloud)
