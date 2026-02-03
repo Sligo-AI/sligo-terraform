@@ -8,9 +8,8 @@ description: "Official Terraform modules for deploying Sligo Cloud Platform on A
 baseurl: "/sligo-terraform"
 url: "https://sligo-ai.github.io"
 
-# Theme: local copy in docs/sligo-jekyll-theme (no separate repo needed)
-# To use the theme from GitHub instead: set remote_theme: Sligo-AI/sligo-jekyll-theme and remove theme: line
-theme: sligo-jekyll-theme
+# Theme: must be in a public GitHub repo (GitHub Pages cannot use local path gems)
+remote_theme: Sligo-AI/sligo-jekyll-theme
 
 # Theme Settings
 theme_settings:

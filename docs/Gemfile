@@ -2,8 +2,8 @@
 # From repo root, run: cd docs && bundle install && bundle exec jekyll serve
 source "https://rubygems.org"
 
-# Local theme (docs/sligo-jekyll-theme) — no separate theme repo needed
-gem "sligo-jekyll-theme", path: "sligo-jekyll-theme"
+# Required for remote_theme (GitHub Pages uses this to load the theme from GitHub)
+gem "jekyll-remote-theme"
 
 gem "github-pages", group: :jekyll_plugins
 gem "webrick" # Required for Ruby 3.0+
