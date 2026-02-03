@@ -1,0 +1,9 @@
+# When GitHub Pages source is /docs, this Gemfile must live in the docs folder.
+# From repo root, run: cd docs && bundle install && bundle exec jekyll serve
+source "https://rubygems.org"
+
+# Local theme (docs/sligo-jekyll-theme) — no separate theme repo needed
+gem "sligo-jekyll-theme", path: "sligo-jekyll-theme"
+
+gem "github-pages", group: :jekyll_plugins
+gem "webrick" # Required for Ruby 3.0+

@@ -1,0 +1,297 @@
+// =============================================================================
+// CALLOUTS / ALERTS
+// =============================================================================
+
+.callout {
+  display: flex;
+  gap: $space-4;
+  margin: $space-6 0;
+  padding: $space-5;
+  border-radius: $radius-lg;
+  border-left: 4px solid;
+  
+  // Icon
+  .callout-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+  
+  // Content
+  .callout-content {
+    flex: 1;
+    min-width: 0;
+    
+    > *:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .callout-title {
+    font-weight: $weight-semibold;
+    margin-bottom: $space-2;
+  }
+  
+  // Inline code adjustments
+  code:not([class*="language-"]) {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+  
+  // Links
+  a {
+    text-decoration: underline;
+    
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+// Info callout (default)
+.callout,
+.callout--info {
+  background-color: rgba($color-info, 0.1);
+  border-color: $color-info;
+  
+  .callout-icon {
+    color: $color-info;
+  }
+  
+  .callout-title {
+    color: darken($color-info, 15%);
+  }
+}
+
+[data-theme="dark"] {
+  .callout,
+  .callout--info {
+    background-color: rgba($color-info, 0.15);
+    
+    .callout-title {
+      color: lighten($color-info, 10%);
+    }
+  }
+}
+
+// Warning callout
+.callout--warning {
+  background-color: rgba($color-warning, 0.1);
+  border-color: $color-warning;
+  
+  .callout-icon {
+    color: $color-warning;
+  }
+  
+  .callout-title {
+    color: darken($color-warning, 15%);
+  }
+}
+
+[data-theme="dark"] .callout--warning {
+  background-color: rgba($color-warning, 0.15);
+  
+  .callout-title {
+    color: lighten($color-warning, 5%);
+  }
+}
+
+// Error/Danger callout
+.callout--error,
+.callout--danger {
+  background-color: rgba($color-error, 0.1);
+  border-color: $color-error;
+  
+  .callout-icon {
+    color: $color-error;
+  }
+  
+  .callout-title {
+    color: darken($color-error, 10%);
+  }
+}
+
+[data-theme="dark"] {
+  .callout--error,
+  .callout--danger {
+    background-color: rgba($color-error, 0.15);
+    
+    .callout-title {
+      color: lighten($color-error, 10%);
+    }
+  }
+}
+
+// Success callout
+.callout--success {
+  background-color: rgba($color-success, 0.1);
+  border-color: $color-success;
+  
+  .callout-icon {
+    color: $color-success;
+  }
+  
+  .callout-title {
+    color: darken($color-success, 15%);
+  }
+}
+
+[data-theme="dark"] .callout--success {
+  background-color: rgba($color-success, 0.15);
+  
+  .callout-title {
+    color: lighten($color-success, 10%);
+  }
+}
+
+// Tip callout
+.callout--tip {
+  background-color: rgba($color-primary, 0.1);
+  border-color: $color-primary;
+  
+  .callout-icon {
+    color: $color-primary;
+  }
+  
+  .callout-title {
+    color: $color-primary;
+  }
+}
+
+[data-theme="dark"] .callout--tip {
+  background-color: rgba($color-primary-dark, 0.15);
+  border-color: $color-primary-dark;
+  
+  .callout-icon {
+    color: $color-primary-dark;
+  }
+  
+  .callout-title {
+    color: $color-primary-dark;
+  }
+}
+
+// Note callout (neutral)
+.callout--note {
+  background-color: var(--bg-hover);
+  border-color: var(--border-color);
+  
+  .callout-icon {
+    color: var(--color-muted);
+  }
+  
+  .callout-title {
+    color: var(--color-headline);
+  }
+}
+
+// =============================================================================
+// BLOCKQUOTE ALERT SYNTAX SUPPORT
+// GitHub-style alert syntax: > [!NOTE], > [!TIP], etc.
+// =============================================================================
+
+blockquote {
+  &[data-callout="note"],
+  &[data-callout="tip"],
+  &[data-callout="important"],
+  &[data-callout="warning"],
+  &[data-callout="caution"] {
+    @extend .callout;
+    display: block;
+    
+    p:first-child {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+      font-weight: $weight-semibold;
+      
+      &::before {
+        content: "";
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        background-size: contain;
+        background-repeat: no-repeat;
+      }
+    }
+  }
+  
+  &[data-callout="note"] {
+    @extend .callout--note;
+  }
+  
+  &[data-callout="tip"] {
+    @extend .callout--tip;
+  }
+  
+  &[data-callout="important"] {
+    @extend .callout--info;
+  }
+  
+  &[data-callout="warning"] {
+    @extend .callout--warning;
+  }
+  
+  &[data-callout="caution"] {
+    @extend .callout--error;
+  }
+}
+
+// =============================================================================
+// SIMPLE INLINE ALERTS
+// =============================================================================
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  padding: $space-4;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  
+  svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+  }
+  
+  &--info {
+    background-color: rgba($color-info, 0.1);
+    color: darken($color-info, 20%);
+    
+    svg { color: $color-info; }
+  }
+  
+  &--success {
+    background-color: rgba($color-success, 0.1);
+    color: darken($color-success, 20%);
+    
+    svg { color: $color-success; }
+  }
+  
+  &--warning {
+    background-color: rgba($color-warning, 0.1);
+    color: darken($color-warning, 25%);
+    
+    svg { color: $color-warning; }
+  }
+  
+  &--error {
+    background-color: rgba($color-error, 0.1);
+    color: darken($color-error, 15%);
+    
+    svg { color: $color-error; }
+  }
+}
+
+[data-theme="dark"] .alert {
+  &--info { color: lighten($color-info, 15%); }
+  &--success { color: lighten($color-success, 15%); }
+  &--warning { color: $color-warning; }
+  &--error { color: lighten($color-error, 15%); }
+}

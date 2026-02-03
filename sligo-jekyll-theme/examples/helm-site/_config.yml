@@ -1,0 +1,133 @@
+# =============================================================================
+# Sligo Helm Charts Documentation Site Configuration
+# =============================================================================
+
+# Site Settings
+title: "Sligo Helm Charts"
+description: "Official Helm charts for deploying Sligo Cloud Platform."
+baseurl: "/sligo-helm-charts"
+url: "https://sligo-ai.github.io"
+
+# Theme (use remote_theme for GitHub Pages)
+remote_theme: Sligo-AI/sligo-jekyll-theme
+
+# Theme Settings
+theme_settings:
+  # Logos
+  logo_light: "Full_Color_500x120.svg"
+  logo_dark: "Rev_Color_500x120.svg"
+  logo_mark_light: "Mark-Full_Color_150x150.svg"
+  logo_mark_dark: "Mark-Full_Color-Dark_Mode_150x150.svg"
+  
+  # Features
+  dark_mode: true
+  search: true
+  version_selector: true
+  edit_on_github: true
+  copy_code_button: true
+  toc: true
+  
+  # Repository
+  github_repo: "Sligo-AI/sligo-helm-charts"
+  github_branch: "main"
+  docs_path: ""
+  
+  # Versions
+  current_version: "1.0.0"
+  versions:
+    - label: "1.0.0"
+      url: "/"
+  
+  # Header links
+  header_links:
+    - label: "GitHub"
+      url: "https://github.com/Sligo-AI/sligo-helm-charts"
+      icon: "github"
+    - label: "Terraform"
+      url: "https://sligo-ai.github.io/sligo-terraform/"
+      icon: "cloud"
+    - label: "Support"
+      url: "mailto:support@sligo.ai"
+      icon: "mail"
+  
+  # Footer
+  footer:
+    copyright: "Sligo AI"
+    links:
+      - label: "Sligo AI"
+        url: "https://sligo.ai"
+      - label: "Terraform Modules"
+        url: "https://sligo-ai.github.io/sligo-terraform/"
+      - label: "Privacy"
+        url: "https://sligo.ai/privacy"
+
+# Navigation
+navigation:
+  - title: "Getting Started"
+    items:
+      - title: "Overview"
+        url: "/"
+        icon: "book"
+      - title: "Installation"
+        url: "/docs/INSTALLATION/"
+        icon: "rocket"
+  - title: "Configuration"
+    items:
+      - title: "Secrets Setup"
+        url: "/docs/SECRETS/"
+        icon: "key"
+        badge: "Required"
+        badge_type: "warning"
+      - title: "Configuration Reference"
+        url: "/docs/CONFIGURATION/"
+        icon: "cog"
+      - title: "Terraform Integration"
+        url: "/docs/TERRAFORM/"
+        icon: "cloud"
+  - title: "Operations"
+    items:
+      - title: "Upgrade Guide"
+        url: "/docs/UPGRADE/"
+        icon: "arrow-up"
+      - title: "Troubleshooting"
+        url: "/docs/TROUBLESHOOTING/"
+        icon: "wrench"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+
+# Plugins (GitHub Pages supported)
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .git
+  - .gitignore
+  - charts/
+  - "*.tgz"
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+  - scope:
+      path: "docs"
+    values:
+      layout: "page"
+      toc: true

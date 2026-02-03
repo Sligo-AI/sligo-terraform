@@ -1,5 +1,7 @@
 ---
-title: Deploy on Azure AKS
+layout: page
+title: "Deploy on Azure AKS"
+description: "Step-by-step guide for deploying Sligo Cloud on Azure AKS with Azure Database for PostgreSQL, Azure Cache for Redis, and Blob Storage."
 ---
 
 # Deploy Sligo Cloud on Azure AKS

@@ -1,0 +1,133 @@
+# Sligo Jekyll Theme Configuration
+# Copy this to your site's _config.yml and customize as needed
+
+# Site Settings
+title: "Sligo Cloud Documentation"
+description: "Official documentation for Sligo Cloud Platform"
+baseurl: "" # e.g., "/sligo-terraform" for project pages
+url: "" # e.g., "https://sligo-ai.github.io"
+
+# Theme Settings
+theme_settings:
+  # Logo paths (relative to assets/images/)
+  logo_light: "Full_Color_500x120.svg"
+  logo_dark: "Rev_Color_500x120.svg"
+  logo_mark_light: "Mark-Full_Color_150x150.svg"
+  logo_mark_dark: "Mark-Full_Color-Dark_Mode_150x150.svg"
+  
+  # Features
+  dark_mode: true           # Enable dark mode toggle
+  search: true              # Enable search functionality
+  version_selector: true    # Enable version dropdown
+  edit_on_github: true      # Show "Edit this page" links
+  copy_code_button: true    # Add copy button to code blocks
+  toc: true                 # Enable table of contents on pages
+  
+  # Repository settings (for edit links)
+  github_repo: "Sligo-AI/sligo-terraform"
+  github_branch: "main"
+  docs_path: "" # e.g., "docs/" if docs are in a subfolder
+  
+  # Version settings
+  current_version: "1.0.0"
+  versions:
+    - label: "1.0.0"
+      url: "/"
+    # - label: "0.9.0"
+    #   url: "/v0.9.0/"
+
+  # External links in header
+  header_links:
+    - label: "GitHub"
+      url: "https://github.com/Sligo-AI/sligo-terraform"
+      icon: "github"
+    - label: "Support"
+      url: "mailto:support@sligo.ai"
+      icon: "mail"
+
+  # Footer settings
+  footer:
+    copyright: "Sligo AI"
+    links:
+      - label: "Website"
+        url: "https://sligo.ai"
+      - label: "Privacy"
+        url: "https://sligo.ai/privacy"
+      - label: "Terms"
+        url: "https://sligo.ai/terms"
+
+# Navigation
+# Define your sidebar navigation structure
+navigation:
+  - title: "Getting Started"
+    items:
+      - title: "Overview"
+        url: "/"
+      - title: "Quick Start"
+        url: "/quick-start/"
+      - title: "Prerequisites"
+        url: "/prerequisites/"
+  - title: "Installation"
+    items:
+      - title: "AWS EKS"
+        url: "/aws-eks/"
+      - title: "GCP GKE"
+        url: "/gcp-gke/"
+  - title: "Configuration"
+    items:
+      - title: "Variables"
+        url: "/variables/"
+      - title: "Secrets"
+        url: "/secrets/"
+  - title: "Reference"
+    items:
+      - title: "Troubleshooting"
+        url: "/troubleshooting/"
+      - title: "Upgrade Guide"
+        url: "/upgrade/"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .git
+  - .gitignore
+  - README.md
+  - LICENSE
+
+# Collections (optional, for organizing docs)
+collections:
+  docs:
+    output: true
+    permalink: /:path/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "doc"
+      toc: true

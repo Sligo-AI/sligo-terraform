@@ -1,0 +1,242 @@
+// =============================================================================
+// SLIGO JEKYLL THEME - MAIN STYLESHEET
+// =============================================================================
+
+// Base
+@import "base/variables";
+@import "base/reset";
+@import "base/typography";
+@import "base/code";
+
+// Components
+@import "components/header";
+@import "components/sidebar";
+@import "components/toc";
+@import "components/search";
+@import "components/callouts";
+@import "components/buttons";
+@import "components/footer";
+
+// Utilities
+@import "utilities/helpers";
+
+// =============================================================================
+// LAYOUT
+// =============================================================================
+
+.site-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.site-main {
+  display: flex;
+  flex: 1;
+  padding-top: $header-height;
+}
+
+// Main content area
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: $space-8 $space-6;
+  
+  @media (min-width: $breakpoint-lg) {
+    margin-left: $sidebar-width;
+  }
+}
+
+// Content container with TOC
+.content-wrapper {
+  display: flex;
+  gap: $space-8;
+  max-width: calc(#{$content-max-width} + #{$toc-width} + #{$space-8});
+  margin: 0 auto;
+}
+
+// Main article content
+.content-main {
+  flex: 1;
+  min-width: 0;
+  max-width: $content-max-width;
+}
+
+// Page header
+.page-header {
+  margin-bottom: $space-8;
+  padding-bottom: $space-6;
+  border-bottom: 1px solid var(--border-color);
+  
+  .page-title {
+    margin-bottom: $space-3;
+  }
+  
+  .page-description {
+    font-size: $text-lg;
+    color: var(--color-body);
+    margin-bottom: 0;
+  }
+  
+  .page-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-4;
+    margin-top: $space-4;
+    font-size: $text-sm;
+    color: var(--color-muted);
+    
+    span {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+    }
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// Homepage / Landing layout
+.layout-home {
+  .main-content {
+    padding: $space-10 $space-6;
+  }
+  
+  .hero {
+    max-width: $content-max-width;
+    margin: 0 auto $space-12;
+    text-align: center;
+    
+    .hero-title {
+      font-family: $font-display;
+      font-size: clamp(#{$text-4xl}, 6vw, #{$text-5xl});
+      font-weight: $weight-regular;
+      color: var(--color-headline);
+      margin-bottom: $space-6;
+    }
+    
+    .hero-description {
+      font-size: $text-xl;
+      color: var(--color-body);
+      max-width: 600px;
+      margin: 0 auto $space-8;
+    }
+    
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: $space-4;
+    }
+  }
+  
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: $space-6;
+    max-width: $page-max-width;
+    margin: 0 auto;
+  }
+  
+  .feature-card {
+    padding: $space-6;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: $radius-xl;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+    
+    &:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow);
+    }
+    
+    .feature-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      margin-bottom: $space-4;
+      background-color: rgba($color-primary, 0.1);
+      border-radius: $radius-lg;
+      color: var(--color-primary);
+      
+      svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
+    
+    .feature-title {
+      font-size: $text-lg;
+      font-weight: $weight-semibold;
+      margin-bottom: $space-2;
+    }
+    
+    .feature-description {
+      font-size: $text-sm;
+      color: var(--color-body);
+      margin-bottom: 0;
+    }
+  }
+}
+
+// =============================================================================
+// RESPONSIVE ADJUSTMENTS
+// =============================================================================
+
+// Mobile navigation open - prevent body scroll
+body.nav-open {
+  overflow: hidden;
+  
+  @media (min-width: $breakpoint-lg) {
+    overflow: auto;
+  }
+}
+
+// Smooth scroll for anchor links
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+// Reduced motion preference
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Print styles
+@media print {
+  .site-header,
+  .sidebar,
+  .toc,
+  .search-toggle,
+  .theme-toggle,
+  .edit-page,
+  .page-nav {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: 0;
+  }
+  
+  .content {
+    a[href]::after {
+      content: " (" attr(href) ")";
+      font-size: 0.8em;
+      color: #666;
+    }
+  }
+}

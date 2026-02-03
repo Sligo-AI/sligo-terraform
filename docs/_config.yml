@@ -1,6 +1,120 @@
-title: Sligo Cloud Terraform
-description: Deploy Sligo Cloud on AWS, GCP, or Azure
+# =============================================================================
+# Sligo Terraform Documentation (GitHub Pages from /docs)
+# =============================================================================
 
-# GitHub Pages uses Jekyll - this enables clean URLs
+# Site Settings
+title: "Sligo Cloud - Terraform Modules"
+description: "Official Terraform modules for deploying Sligo Cloud Platform on AWS EKS, GCP GKE, and Azure AKS."
+baseurl: "/sligo-terraform"
+url: "https://sligo-ai.github.io"
+
+# Theme: local copy in docs/sligo-jekyll-theme (no separate repo needed)
+# To use the theme from GitHub instead: set remote_theme: Sligo-AI/sligo-jekyll-theme and remove theme: line
+theme: sligo-jekyll-theme
+
+# Theme Settings
+theme_settings:
+  logo_light: "Full_Color_500x120.svg"
+  logo_dark: "Rev_Color_500x120.svg"
+  logo_mark_light: "Mark-Full_Color_150x150.svg"
+  logo_mark_dark: "Mark-Full_Color-Dark_Mode_150x150.svg"
+
+  dark_mode: true
+  search: true
+  version_selector: true
+  edit_on_github: true
+  copy_code_button: true
+  toc: true
+
+  github_repo: "Sligo-AI/sligo-terraform"
+  github_branch: "main"
+  docs_path: "docs/"
+
+  current_version: "1.0.0"
+  versions:
+    - label: "1.0.0"
+      url: "/"
+
+  header_links:
+    - label: "GitHub"
+      url: "https://github.com/Sligo-AI/sligo-terraform"
+      icon: "github"
+    - label: "Helm Charts"
+      url: "https://sligo-ai.github.io/sligo-helm-charts/"
+      icon: "package"
+    - label: "Support"
+      url: "mailto:support@sligo.ai"
+      icon: "mail"
+
+  footer:
+    copyright: "Sligo AI"
+    links:
+      - label: "Sligo AI"
+        url: "https://sligo.ai"
+      - label: "Helm Charts"
+        url: "https://sligo-ai.github.io/sligo-helm-charts/"
+
+# Navigation (matches existing doc files in /docs)
+navigation:
+  - title: "Getting Started"
+    items:
+      - title: "Overview"
+        url: "/"
+        icon: "book"
+      - title: "Getting Started"
+        url: "/getting-started/"
+        icon: "rocket"
+  - title: "Installation"
+    items:
+      - title: "AWS EKS"
+        url: "/aws/"
+        icon: "cloud"
+      - title: "GCP GKE"
+        url: "/gcp/"
+        icon: "cloud"
+      - title: "Azure AKS"
+        url: "/azure/"
+        icon: "cloud"
+  - title: "Configuration"
+    items:
+      - title: "Secrets Management"
+        url: "/secrets/"
+        icon: "key"
+      - title: "Multiple Environments"
+        url: "/multiple-environments/"
+        icon: "server"
+  - title: "Reference"
+    items:
+      - title: "Troubleshooting"
+        url: "/troubleshooting/"
+        icon: "wrench"
+      - title: "Upgrading"
+        url: "/upgrading/"
+        icon: "arrow-up"
+
+# Build settings
 markdown: kramdown
-permalink: pretty
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# When building from /docs, exclude parent repo files via GitHub Pages (source = docs)
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"

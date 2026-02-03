@@ -1,5 +1,7 @@
 ---
-title: Multiple Environments
+layout: page
+title: "Multiple Environments"
+description: "Manage dev, staging, and production as separate deployments with create-environment."
 ---
 
 # Managing Multiple Environments

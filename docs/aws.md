@@ -1,5 +1,7 @@
 ---
-title: Deploy on AWS EKS
+layout: page
+title: "Deploy on AWS EKS"
+description: "Step-by-step guide for deploying Sligo Cloud on Amazon EKS with Aurora, ElastiCache, and S3."
 ---
 
 # Deploy Sligo Cloud on AWS EKS

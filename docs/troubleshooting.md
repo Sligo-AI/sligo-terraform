@@ -1,5 +1,7 @@
 ---
-title: Troubleshooting
+layout: page
+title: "Troubleshooting"
+description: "Common issues and solutions for Sligo Terraform deployments."
 ---
 
 # Troubleshooting

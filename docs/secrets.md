@@ -1,5 +1,7 @@
 ---
-title: Secrets Management
+layout: page
+title: "Secrets Management"
+description: "Securely provide secrets to Terraform (db_password, jwt_secret, api_key) for Sligo Cloud."
 ---
 
 # Secrets Management

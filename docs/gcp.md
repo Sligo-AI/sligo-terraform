@@ -1,5 +1,7 @@
 ---
-title: Deploy on GCP GKE
+layout: page
+title: "Deploy on GCP GKE"
+description: "Step-by-step guide for deploying Sligo Cloud on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
 ---
 
 # Deploy Sligo Cloud on GCP GKE

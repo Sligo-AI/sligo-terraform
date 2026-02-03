@@ -1,5 +1,7 @@
 ---
-title: Getting Started
+layout: page
+title: "Getting Started"
+description: "Obtain Sligo credentials and configure your environment for deployment."
 ---
 
 # Getting Started

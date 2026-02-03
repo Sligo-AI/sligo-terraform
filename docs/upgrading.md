@@ -1,5 +1,7 @@
 ---
-title: Upgrading
+layout: page
+title: "Upgrading"
+description: "Upgrade Sligo Cloud application and Terraform module versions."
 ---
 
 # Upgrading

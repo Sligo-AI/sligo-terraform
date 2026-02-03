@@ -1,10 +1,29 @@
 ---
-title: Sligo Cloud Terraform
+layout: home
+title: "Sligo Cloud - Terraform Modules"
+description: "Official Terraform modules for deploying Sligo Cloud Platform on AWS EKS, GCP GKE, and Azure AKS."
+hero_actions:
+  - label: "Get Started"
+    url: "/getting-started/"
+    style: "primary"
+    icon: true
+  - label: "View on GitHub"
+    url: "https://github.com/Sligo-AI/sligo-terraform"
+    style: "outline"
+features:
+  - title: "Infrastructure as Code"
+    description: "Production-ready Terraform configurations for AWS EKS, GCP GKE, and Azure AKS deployments."
+    icon: "cloud"
+  - title: "Automated Provisioning"
+    description: "Kubernetes clusters, managed databases, cache, storage, and Helm chart deployment."
+    icon: "server"
+  - title: "Multiple Environments"
+    description: "Easy management of dev, staging, and production with isolated configurations."
+    icon: "cog"
+  - title: "Integrated with Helm"
+    description: "Seamlessly deploys the Sligo Cloud Helm Chart with all required configurations."
+    icon: "package"
 ---
-
-# Sligo Cloud - Terraform Modules
-
-Deploy Sligo Cloud Platform on your preferred cloud with production-ready Terraform modules.
 
 ## Choose Your Cloud
 

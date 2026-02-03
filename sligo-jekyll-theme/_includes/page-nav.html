@@ -1,0 +1,58 @@
+{% comment %}
+  Automatically generates previous/next navigation links based on the navigation structure
+{% endcomment %}
+
+{% assign flat_nav = "" | split: "" %}
+
+{% for group in site.navigation %}
+  {% for item in group.items %}
+    {% assign flat_nav = flat_nav | push: item %}
+    {% if item.children %}
+      {% for child in item.children %}
+        {% assign flat_nav = flat_nav | push: child %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{% assign prev_page = nil %}
+{% assign next_page = nil %}
+{% assign found_current = false %}
+
+{% for item in flat_nav %}
+  {% if found_current and next_page == nil %}
+    {% assign next_page = item %}
+  {% endif %}
+  
+  {% if item.url == page.url %}
+    {% assign found_current = true %}
+  {% endif %}
+  
+  {% unless found_current %}
+    {% assign prev_page = item %}
+  {% endunless %}
+{% endfor %}
+
+{% if prev_page or next_page %}
+<nav class="page-nav" aria-label="Page navigation">
+  {% if prev_page %}
+  <a href="{{ prev_page.url | relative_url }}" class="page-nav-link page-nav-link--prev">
+    <span class="page-nav-label">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Previous
+    </span>
+    <span class="page-nav-title">{{ prev_page.title }}</span>
+  </a>
+  {% endif %}
+  
+  {% if next_page %}
+  <a href="{{ next_page.url | relative_url }}" class="page-nav-link page-nav-link--next">
+    <span class="page-nav-label">
+      Next
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </span>
+    <span class="page-nav-title">{{ next_page.title }}</span>
+  </a>
+  {% endif %}
+</nav>
+{% endif %}
