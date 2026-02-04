@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Deploy on GCP GKE"
-description: "Step-by-step guide for deploying Sligo Cloud on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
+description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
 ---
 
 ## Prerequisites
@@ -102,7 +102,7 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Memorystore + GCS 
 - **Memorystore** (Redis)
 - **4 GCS buckets** (file-manager, agent-avatars, logos, rag)
 - **GCE Ingress** (HTTP(S) load balancer)
-- **Sligo Cloud Helm chart** deployment
+- **Sligo Enterprise Helm chart** deployment
 
 ---
 

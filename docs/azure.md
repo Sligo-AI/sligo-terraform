@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Deploy on Azure AKS"
-description: "Step-by-step guide for deploying Sligo Cloud on Azure AKS with Azure Database for PostgreSQL, Azure Cache for Redis, and Blob Storage."
+description: "Step-by-step guide for deploying Sligo Enterprise on Azure AKS with Azure Database for PostgreSQL, Azure Cache for Redis, and Blob Storage."
 ---
 
 ## Prerequisites
@@ -102,7 +102,7 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
 - **Azure Cache for Redis**
 - **Azure Storage Account** with 4 blob containers (file-manager, agent-avatars, logos, rag)
 - **Nginx Ingress Controller** (LoadBalancer service)
-- **Sligo Cloud Helm chart** deployment
+- **Sligo Enterprise Helm chart** deployment
 
 ---
 

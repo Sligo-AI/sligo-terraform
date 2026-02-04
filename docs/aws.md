@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Deploy on AWS EKS"
-description: "Step-by-step guide for deploying Sligo Cloud on Amazon EKS with Aurora, ElastiCache, and S3."
+description: "Step-by-step guide for deploying Sligo Enterprise on Amazon EKS with Aurora, ElastiCache, and S3."
 ---
 
 ## Prerequisites
@@ -104,7 +104,7 @@ Deployment typically takes 15–25 minutes (EKS + Aurora + ElastiCache + S3).
 - **ElastiCache Redis**
 - **4 S3 buckets** (file-manager, agent-avatars, logos, rag)
 - **AWS Load Balancer Controller** + ALB ingress
-- **Sligo Cloud Helm chart** deployment
+- **Sligo Enterprise Helm chart** deployment
 
 ---
 

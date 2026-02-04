@@ -1,8 +1,8 @@
 ---
 layout: home
 permalink: /
-title: "Sligo Cloud - Terraform Modules"
-description: "Official Terraform modules for deploying Sligo Cloud Platform on AWS EKS, GCP GKE, and Azure AKS."
+title: "Sligo Enterprise - Terraform Modules"
+description: "Official Terraform modules for deploying Sligo Enterprise Platform on AWS EKS, GCP GKE, and Azure AKS."
 hero_actions:
   - label: "Get Started"
     url: "/getting-started/"
@@ -22,7 +22,7 @@ features:
     description: "Easy management of dev, staging, and production with isolated configurations."
     icon: "cog"
   - title: "Integrated with Helm"
-    description: "Seamlessly deploys the Sligo Cloud Helm Chart with all required configurations."
+    description: "Seamlessly deploys the Sligo Enterprise Helm Chart with all required configurations."
     icon: "package"
 ---
 

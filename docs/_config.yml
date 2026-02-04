@@ -3,8 +3,8 @@
 # =============================================================================
 
 # Site Settings
-title: "Sligo Cloud - Terraform Modules"
-description: "Official Terraform modules for deploying Sligo Cloud Platform on AWS EKS, GCP GKE, and Azure AKS."
+title: "Sligo Enterprise - Terraform Modules"
+description: "Official Terraform modules for deploying Sligo Enterprise Platform on AWS EKS, GCP GKE, and Azure AKS."
 baseurl: "/sligo-terraform"
 url: "https://sligo-ai.github.io"
 

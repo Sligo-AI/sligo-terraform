@@ -1,12 +1,12 @@
 ---
 layout: page
 title: "Upgrading"
-description: "Upgrade Sligo Cloud application and Terraform module versions."
+description: "Upgrade Sligo Enterprise application and Terraform module versions."
 ---
 
 ## Application Version
 
-To upgrade Sligo Cloud to a new version:
+To upgrade Sligo Enterprise to a new version:
 
 1. Check available versions (contact support@sligo.ai or check your GAR).
 2. Update `app_version` in `terraform.tfvars`:

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Secrets Management"
-description: "Securely provide secrets to Terraform (db_password, jwt_secret, api_key) for Sligo Cloud."
+description: "Securely provide secrets to Terraform (db_password, jwt_secret, api_key) for Sligo Enterprise."
 ---
 
 ## Option 1: terraform.tfvars (Development)
