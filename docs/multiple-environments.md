@@ -4,10 +4,6 @@ title: "Multiple Environments"
 description: "Manage dev, staging, and production as separate deployments with create-environment."
 ---
 
-# Managing Multiple Environments
-
-Run dev, staging, and production as separate deployments.
-
 ## Recommended: Use create-environment
 
 ```bash

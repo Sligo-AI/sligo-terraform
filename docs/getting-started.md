@@ -4,10 +4,6 @@ title: "Getting Started"
 description: "Obtain Sligo credentials and configure your environment for deployment."
 ---
 
-# Getting Started
-
-Before deploying Sligo Cloud, you need credentials from Sligo.
-
 ## Step 1: Contact Sligo
 
 Email **support@sligo.ai** to receive:

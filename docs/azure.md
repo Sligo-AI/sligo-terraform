@@ -4,10 +4,6 @@ title: "Deploy on Azure AKS"
 description: "Step-by-step guide for deploying Sligo Cloud on Azure AKS with Azure Database for PostgreSQL, Azure Cache for Redis, and Blob Storage."
 ---
 
-# Deploy Sligo Cloud on Azure AKS
-
-Step-by-step guide for deploying on Azure Kubernetes Service with Azure Database for PostgreSQL, Azure Cache for Redis, and Azure Blob Storage.
-
 ## Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.0

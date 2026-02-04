@@ -4,10 +4,6 @@ title: "Secrets Management"
 description: "Securely provide secrets to Terraform (db_password, jwt_secret, api_key) for Sligo Cloud."
 ---
 
-# Secrets Management
-
-How to securely provide secrets to Terraform (db_password, jwt_secret, api_key, etc.).
-
 ## Option 1: terraform.tfvars (Development)
 
 Store secrets in `terraform.tfvars` (add to `.gitignore`):

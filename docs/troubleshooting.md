@@ -4,8 +4,6 @@ title: "Troubleshooting"
 description: "Common issues and solutions for Sligo Terraform deployments."
 ---
 
-# Troubleshooting
-
 ## Common Issues
 
 ### Terraform init fails

@@ -4,8 +4,6 @@ title: "Upgrading"
 description: "Upgrade Sligo Cloud application and Terraform module versions."
 ---
 
-# Upgrading
-
 ## Application Version
 
 To upgrade Sligo Cloud to a new version:

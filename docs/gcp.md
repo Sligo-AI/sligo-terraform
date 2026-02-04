@@ -4,10 +4,6 @@ title: "Deploy on GCP GKE"
 description: "Step-by-step guide for deploying Sligo Cloud on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
 ---
 
-# Deploy Sligo Cloud on GCP GKE
-
-Step-by-step guide for deploying on Google Kubernetes Engine with Cloud SQL, Memorystore Redis, and Cloud Storage.
-
 ## Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
