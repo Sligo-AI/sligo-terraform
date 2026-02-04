@@ -12,9 +12,7 @@ In the repo: **Settings → Pages → Build and deployment**
 
 ## Local development
 
-1. **Push the theme first** (one-time): The theme lives in `../sligo-jekyll-theme/`. Push it to a new repo `Sligo-AI/sligo-jekyll-theme` so `remote_theme` works on GitHub Pages.
-
-2. **Run Jekyll from the docs folder:**
+1. **Run Jekyll from the docs folder:**
 
    ```bash
    cd docs
@@ -24,24 +22,11 @@ In the repo: **Settings → Pages → Build and deployment**
 
    Open **http://localhost:4000/sligo-terraform/** (baseurl is `/sligo-terraform`).
 
-3. **Optional – use the local theme** (no remote needed): In `docs/_config.yml`, comment out `remote_theme` and set:
-
-   ```yaml
-   theme: sligo-jekyll-theme
-   ```
-
-   Then run Jekyll from the **repo root** (so the theme is found):
-
-   ```bash
-   bundle install --gemfile=docs/Gemfile
-   cd docs && bundle exec jekyll serve
-   ```
-
-   If the theme is in the repo at `sligo-jekyll-theme/`, you may need to run from root with a config that points to the theme path (see [Jekyll themes](https://jekyllrb.com/docs/themes/)).
+   The theme is loaded from **Sligo-AI/sligo-jekyll-theme** via `remote_theme` (same as on GitHub Pages).
 
 ## Theme
 
-- **Remote:** `remote_theme: Sligo-AI/sligo-jekyll-theme` (after the theme repo exists).  
-- **Local:** Theme copy is in `../sligo-jekyll-theme/` for reference or local use.
+- **Repo:** [Sligo-AI/sligo-jekyll-theme](https://github.com/Sligo-AI/sligo-jekyll-theme) — the theme lives in its own repo; this repo does not contain a copy.
+- **Config:** `remote_theme: Sligo-AI/sligo-jekyll-theme` in `_config.yml`.
 
-Logo assets are in `assets/images/` (copied from the theme). Navigation and theme options are in `_config.yml`.
+Logo assets are in `assets/images/`. Navigation and theme options are in `_config.yml`.

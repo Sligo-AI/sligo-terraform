@@ -94,6 +94,7 @@ navigation:
 # Build settings
 markdown: kramdown
 highlighter: rouge
+permalink: pretty
 
 kramdown:
   input: GFM
@@ -117,3 +118,4 @@ defaults:
       type: "pages"
     values:
       layout: "page"
+      permalink: pretty
