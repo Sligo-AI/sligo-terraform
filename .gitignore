@@ -36,11 +36,3 @@ test-output/
 
 # User-created environments
 environments/
-
-# Jekyll (docs)
-docs/_site/
-docs/.sass-cache/
-docs/.jekyll-cache/
-
-# Theme lives in separate repo (Sligo-AI/sligo-jekyll-theme)
-sligo-jekyll-theme/

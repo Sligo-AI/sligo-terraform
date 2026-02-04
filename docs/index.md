@@ -1,5 +1,6 @@
 ---
 layout: home
+permalink: /
 title: "Sligo Cloud - Terraform Modules"
 description: "Official Terraform modules for deploying Sligo Cloud Platform on AWS EKS, GCP GKE, and Azure AKS."
 hero_actions:

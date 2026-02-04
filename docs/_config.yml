@@ -106,13 +106,11 @@ plugins:
   - jekyll-sitemap
 
 # When building from /docs, exclude parent repo files via GitHub Pages (source = docs)
-# Exclude README.md so the homepage is index.md (Terraform docs), not the Jekyll setup readme
 exclude:
   - Gemfile
   - Gemfile.lock
   - node_modules
   - vendor
-  - README.md
 
 defaults:
   - scope:
@@ -120,4 +118,8 @@ defaults:
       type: "pages"
     values:
       layout: "page"
-      permalink: pretty
+  - scope:
+      path: "index.md"
+    values:
+      layout: "home"
+      permalink: /
