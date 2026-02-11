@@ -247,35 +247,57 @@ resource "kubernetes_secret" "nextjs_secrets" {
   }
 
   data = merge({
-    NEXT_PUBLIC_API_URL            = var.next_public_api_url
-    NEXT_PUBLIC_URL                = var.frontend_url
-    FRONTEND_URL                   = var.frontend_url
-    NEXTAUTH_SECRET                = var.nextauth_secret
-    PORT                           = "3000"
-    REDIS_URL                      = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    BACKEND_URL                    = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
-    DATABASE_URL                   = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
-    WORKOS_API_KEY                 = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID               = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD         = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID   = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY  = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY               = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                 = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GOOGLE_CLIENT_SECRET           = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    BUCKET_NAME_AGENT_AVATARS      = local.gcs_bucket_agent_avatars_id
-    BUCKET_NAME_FILE_MANAGER       = local.gcs_bucket_file_manager_id
-    BUCKET_NAME_LOGOS              = local.gcs_bucket_logos_id
-    BUCKET_NAME_RAG                = local.gcs_bucket_rag_id
-    NODE_ENV                       = "production"
-    SKIP_ENV_VALIDATION            = "true"
-    GOOGLE_PROJECTID               = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
-  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {})
+    NEXT_PUBLIC_API_URL                    = var.next_public_api_url
+    NEXT_PUBLIC_URL                        = var.frontend_url
+    FRONTEND_URL                           = var.frontend_url
+    NEXTAUTH_SECRET                        = var.nextauth_secret
+    PORT                                   = "3000"
+    REDIS_URL                              = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
+    BACKEND_URL                            = "http://sligo-backend:3001"
+    MCP_GATEWAY_URL                        = "http://mcp-gateway:3002"
+    DATABASE_URL                           = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
+    AUTH_PROVIDER                          = var.auth_provider
+    WORKOS_API_KEY                         = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID                       = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD                 = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID           = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY          = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID         = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET                   = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET                 = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                         = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS              = local.gcs_bucket_agent_avatars_id
+    BUCKET_NAME_FILE_MANAGER               = local.gcs_bucket_file_manager_id
+    BUCKET_NAME_LOGOS                      = local.gcs_bucket_logos_id
+    BUCKET_NAME_RAG                        = local.gcs_bucket_rag_id
+    NODE_ENV                               = "production"
+    SKIP_ENV_VALIDATION                    = "true"
+    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
+    AUTH_SESSION_SECRET                    = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
+    OIDC_ISSUER                            = var.oidc_issuer
+    OIDC_CLIENT_ID                         = var.oidc_client_id
+    OIDC_CLIENT_SECRET                     = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
+    OIDC_SCOPES                            = var.oidc_scopes
+    OIDC_DEFAULT_ORG_ID                    = var.oidc_default_org_id
+    OIDC_DEFAULT_ORG_NAME                  = var.oidc_default_org_name
+    } : {}, var.auth_provider == "saml" ? {
+    AUTH_SESSION_SECRET                                     = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
+    SAML_ENTRYPOINT                                         = var.saml_entrypoint
+    SAML_ISSUER                                             = var.saml_issuer
+    SAML_CERT                                               = var.saml_cert != "" ? var.saml_cert : "placeholder"
+    SAML_DEFAULT_ORG_ID                                     = var.saml_default_org_id
+    SAML_DEFAULT_ORG_NAME                                   = var.saml_default_org_name
+    } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    SINGLESTORE_HOST                                        = var.singlestore_host
+    SINGLESTORE_PORT                                        = var.singlestore_port
+    SINGLESTORE_USER                                        = var.singlestore_user
+    SINGLESTORE_PASSWORD                                    = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
+    SINGLESTORE_DATABASE                                    = var.singlestore_database
+  } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {})
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -314,28 +336,34 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
   }
 
   data = merge({
-    SECRET                       = var.gateway_secret
-    PORT                         = "3002"
-    FRONTEND_URL                 = var.frontend_url
-    BUCKET_NAME_FILE_MANAGER     = local.gcs_bucket_file_manager_id
-    REDIS_URL                    = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    REDIS_URL_STRUCTURED_OUTPUTS = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    PINECONE_API_KEY             = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX               = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    OPENAI_API_KEY               = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PERPLEXITY_API_KEY           = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY               = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
-    SPENDHQ_BASE_URL             = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
-    SPENDHQ_CLIENT_ID            = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
-    SPENDHQ_CLIENT_SECRET        = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
-    SPENDHQ_TOKEN_URL            = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
-    SPENDHQ_SS_HOST              = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
-    SPENDHQ_SS_USERNAME          = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
-    SPENDHQ_SS_PASSWORD          = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
-    SPENDHQ_SS_PORT              = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-    ANTHROPIC_API_KEY            = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    GOOGLE_PROJECTID             = var.google_project_id != "" ? var.google_project_id : ""
-  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {})
+    SECRET                                 = var.gateway_secret
+    PORT                                   = "3002"
+    FRONTEND_URL                           = var.frontend_url
+    BUCKET_NAME_FILE_MANAGER               = local.gcs_bucket_file_manager_id
+    REDIS_URL                              = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
+    REDIS_URL_STRUCTURED_OUTPUTS           = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
+    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PERPLEXITY_API_KEY                     = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY                         = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    SPENDHQ_BASE_URL                       = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
+    SPENDHQ_CLIENT_ID                      = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
+    SPENDHQ_CLIENT_SECRET                  = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
+    SPENDHQ_TOKEN_URL                      = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
+    SPENDHQ_SS_HOST                        = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
+    SPENDHQ_SS_USERNAME                    = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
+    SPENDHQ_SS_PASSWORD                    = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
+    SPENDHQ_SS_PORT                        = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
+    ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    SINGLESTORE_HOST                       = var.singlestore_host
+    SINGLESTORE_PORT                       = var.singlestore_port
+    SINGLESTORE_USER                       = var.singlestore_user
+    SINGLESTORE_PASSWORD                   = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
+    SINGLESTORE_DATABASE                   = var.singlestore_database
+  } : {})
 }
 
 # Database Secret

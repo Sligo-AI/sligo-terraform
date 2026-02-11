@@ -209,6 +209,87 @@ variable "workos_cookie_password" {
   sensitive   = true
 }
 
+variable "auth_provider" {
+  description = "Auth provider: workos (default), oidc, or saml"
+  type        = string
+  default     = "workos"
+}
+
+variable "auth_session_secret" {
+  description = "Session signing secret for OIDC/SAML (min 32 chars). Required when auth_provider is oidc or saml."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "oidc_issuer" {
+  description = "OIDC issuer URL (when auth_provider=oidc)"
+  type        = string
+  default     = ""
+}
+
+variable "oidc_client_id" {
+  description = "OIDC client ID (when auth_provider=oidc)"
+  type        = string
+  default     = ""
+}
+
+variable "oidc_client_secret" {
+  description = "OIDC client secret (when auth_provider=oidc)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "oidc_scopes" {
+  description = "OIDC scopes (when auth_provider=oidc). Default: openid profile email"
+  type        = string
+  default     = "openid profile email"
+}
+
+variable "oidc_default_org_id" {
+  description = "OIDC default organization ID (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "oidc_default_org_name" {
+  description = "OIDC default organization name (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "saml_entrypoint" {
+  description = "SAML IdP SSO URL (when auth_provider=saml)"
+  type        = string
+  default     = ""
+}
+
+variable "saml_issuer" {
+  description = "SAML SP entity ID / issuer (when auth_provider=saml)"
+  type        = string
+  default     = ""
+}
+
+variable "saml_cert" {
+  description = "SAML IdP certificate PEM (when auth_provider=saml)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "saml_default_org_id" {
+  description = "SAML default organization ID (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "saml_default_org_name" {
+  description = "SAML default organization name (optional)"
+  type        = string
+  default     = ""
+}
+
 variable "next_public_google_client_id" {
   description = "Google OAuth Client ID (public)"
   type        = string
@@ -236,6 +317,61 @@ variable "pinecone_api_key" {
 
 variable "pinecone_index" {
   description = "Pinecone index name"
+  type        = string
+  default     = ""
+}
+
+variable "pinecone_environment" {
+  description = "Pinecone environment (legacy SDK, optional)"
+  type        = string
+  default     = ""
+}
+
+variable "rag_vector_store" {
+  description = "Default RAG vector store: pinecone, singlestore, or omit to default to Pinecone"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_host" {
+  description = "SingleStore host for RAG vector store (when rag_vector_store=singlestore)"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_port" {
+  description = "SingleStore port"
+  type        = string
+  default     = "3306"
+}
+
+variable "singlestore_user" {
+  description = "SingleStore username for RAG"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_password" {
+  description = "SingleStore password for RAG"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "singlestore_database" {
+  description = "SingleStore database name for RAG"
+  type        = string
+  default     = ""
+}
+
+variable "auth_base_url" {
+  description = "Auth base URL (fallback if NEXT_PUBLIC_URL not set)"
+  type        = string
+  default     = ""
+}
+
+variable "auth_cookie_name" {
+  description = "Session cookie name (default: sligo_session)"
   type        = string
   default     = ""
 }

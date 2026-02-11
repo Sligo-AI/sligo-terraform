@@ -139,6 +139,75 @@ variable "workos_cookie_password" {
   sensitive   = true
 }
 
+variable "auth_provider" {
+  description = "Auth provider: workos (default), oidc, or saml"
+  type        = string
+  default     = "workos"
+}
+
+variable "auth_session_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "oidc_issuer" {
+  type    = string
+  default = ""
+}
+
+variable "oidc_client_id" {
+  type    = string
+  default = ""
+}
+
+variable "oidc_client_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "oidc_scopes" {
+  type    = string
+  default = "openid profile email"
+}
+
+variable "oidc_default_org_id" {
+  type    = string
+  default = ""
+}
+
+variable "oidc_default_org_name" {
+  type    = string
+  default = ""
+}
+
+variable "saml_entrypoint" {
+  type    = string
+  default = ""
+}
+
+variable "saml_issuer" {
+  type    = string
+  default = ""
+}
+
+variable "saml_cert" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "saml_default_org_id" {
+  type    = string
+  default = ""
+}
+
+variable "saml_default_org_name" {
+  type    = string
+  default = ""
+}
+
 variable "encryption_key" {
   description = "Encryption key - must be 64 hex characters (32 bytes) for AES-256"
   type        = string
@@ -228,6 +297,61 @@ variable "pinecone_api_key" {
 
 variable "pinecone_index" {
   description = "Pinecone index name"
+  type        = string
+  default     = ""
+}
+
+variable "pinecone_environment" {
+  description = "Pinecone environment (legacy SDK, optional)"
+  type        = string
+  default     = ""
+}
+
+variable "rag_vector_store" {
+  description = "Default RAG vector store: pinecone, singlestore, or omit to default to Pinecone"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_host" {
+  description = "SingleStore host for RAG vector store (when rag_vector_store=singlestore)"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_port" {
+  description = "SingleStore port"
+  type        = string
+  default     = "3306"
+}
+
+variable "singlestore_user" {
+  description = "SingleStore username for RAG"
+  type        = string
+  default     = ""
+}
+
+variable "singlestore_password" {
+  description = "SingleStore password for RAG"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "singlestore_database" {
+  description = "SingleStore database name for RAG"
+  type        = string
+  default     = ""
+}
+
+variable "auth_base_url" {
+  description = "Auth base URL (fallback if NEXT_PUBLIC_URL not set)"
+  type        = string
+  default     = ""
+}
+
+variable "auth_cookie_name" {
+  description = "Session cookie name (default: sligo_session)"
   type        = string
   default     = ""
 }
