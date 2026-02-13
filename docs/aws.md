@@ -4,6 +4,8 @@ title: "Deploy on AWS EKS"
 description: "Step-by-step guide for deploying Sligo Enterprise on Amazon EKS with Aurora, ElastiCache, and S3."
 ---
 
+![AWS Deployment](assets/images/AWS%20Deployment.png)
+
 ## Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.0

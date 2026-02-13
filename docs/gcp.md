@@ -4,6 +4,8 @@ title: "Deploy on GCP GKE"
 description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
 ---
 
+![GCP Deployment](assets/images/GCP%20Deployment.png)
+
 ## Prerequisites
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.0
