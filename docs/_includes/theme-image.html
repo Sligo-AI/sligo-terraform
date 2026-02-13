@@ -1,0 +1,18 @@
+{% comment %}
+  Renders an image that switches by theme (Sligo Jekyll theme uses data-theme on html).
+  Parameters: light (required), dark (optional, falls back to light), alt (required)
+  Example: {% include theme-image.html light="aws-deployment.png" dark="aws-deployment-dark.png" alt="AWS Deployment" %}
+{% endcomment %}
+{% assign light_src = site.baseurl | append: "/assets/images/" | append: include.light %}
+{% assign dark_src = include.dark | default: include.light %}
+{% assign dark_src = site.baseurl | append: "/assets/images/" | append: dark_src %}
+<style>
+.theme-aware-image img.theme-light { display: block; }
+.theme-aware-image img.theme-dark { display: none; }
+html[data-theme="dark"] .theme-aware-image img.theme-light { display: none; }
+html[data-theme="dark"] .theme-aware-image img.theme-dark { display: block; }
+</style>
+<div class="theme-aware-image">
+  <img class="theme-light" src="{{ light_src }}" alt="{{ include.alt }}">
+  <img class="theme-dark" src="{{ dark_src }}" alt="{{ include.alt }}">
+</div>

@@ -30,3 +30,13 @@ In the repo: **Settings → Pages → Build and deployment**
 - **Config:** `remote_theme: Sligo-AI/sligo-jekyll-theme` in `_config.yml`.
 
 Logo assets are in `assets/images/`. Navigation and theme options are in `_config.yml`.
+
+### Theme-aware deployment diagrams
+
+The AWS, GCP, and Azure deployment pages use `_includes/theme-image.html` so the diagram can differ in dark vs light mode. To show a different image in dark mode, add `-dark` variants and reference them:
+
+- `aws-deployment.png` (light) / `aws-deployment-dark.png` (dark)
+- `azure-deployment.png` (light) / `azure-deployment-dark.png` (dark)
+- `gcp-deployment.png` (light) / `gcp-deployment-dark.png` (dark)
+
+If you omit the `dark` parameter in the include, the same image is used for both themes.

@@ -4,7 +4,7 @@ title: "Deploy on AWS EKS"
 description: "Step-by-step guide for deploying Sligo Enterprise on Amazon EKS with Aurora, ElastiCache, and S3."
 ---
 
-![AWS Deployment]({{ site.baseurl }}/assets/images/aws-deployment.png)
+{% include theme-image.html light="aws-deployment.png" dark="aws-deployment-dark.png" alt="AWS Deployment" %}
 
 ## Prerequisites
 
