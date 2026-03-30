@@ -16,8 +16,9 @@ db_tier = "db-f1-micro"
 db_username = "sligo"
 # db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
 
-# Redis Configuration
-redis_memory_size_gb = 1
+# Redis Configuration (in-cluster Redis Stack, always persistent)
+redis_persistence_size          = "1Gi"
+redis_persistence_storage_class = "standard-rwo"
 
 # GCS Storage Configuration (optional)
 # gcs_bucket_name = "my-app-storage"  # Leave empty to auto-generate

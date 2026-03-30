@@ -27,10 +27,98 @@ variable "cluster_version" {
   default     = "1.28"
 }
 
+variable "node_machine_type" {
+  description = "Machine type for GKE node pool (e.g. e2-medium, e2-standard-2). Use at least e2-standard-2 so Sligo pods (backend requests 1 CPU) can schedule."
+  type        = string
+  default     = "e2-standard-2"
+}
+
+# Existing Network (when client provides VPC/subnet)
+variable "use_existing_network" {
+  description = "When true, use existing VPC and subnet instead of creating new ones"
+  type        = bool
+  default     = false
+}
+
+variable "existing_network_name" {
+  description = "Name of existing VPC network (required when use_existing_network=true)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_subnet_name" {
+  description = "Name of existing subnet (required when use_existing_network=true)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_subnet_region" {
+  description = "Region of existing subnet (defaults to gcp_region when empty)"
+  type        = string
+  default     = ""
+}
+
+variable "secondary_pod_range_name" {
+  description = "Name of subnet secondary range for GKE pods (required when use_existing_network=true)"
+  type        = string
+  default     = "pods"
+}
+
+variable "secondary_service_range_name" {
+  description = "Name of subnet secondary range for GKE services (required when use_existing_network=true)"
+  type        = string
+  default     = "services"
+}
+
+variable "secondary_pod_cidr" {
+  description = "CIDR for the pod secondary range (required when use_existing_network=true and Terraform manages the ranges)"
+  type        = string
+  default     = ""
+}
+
+variable "secondary_service_cidr" {
+  description = "CIDR for the service secondary range (required when use_existing_network=true and Terraform manages the ranges)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_private_endpoint" {
+  description = "When true, the cluster master is only accessible from within the VPC. Required by some org policies."
+  type        = bool
+  default     = false
+}
+
+variable "master_ipv4_cidr_block" {
+  description = "CIDR block for the GKE master's internal IP range (must be /28 and not overlap with existing ranges)"
+  type        = string
+  default     = "172.16.0.0/28"
+}
+
+variable "master_authorized_cidrs" {
+  description = "List of CIDR blocks authorized to reach the private master endpoint (required when enable_private_endpoint=true)"
+  type = list(object({
+    cidr_block   = string
+    display_name = string
+  }))
+  default = []
+}
+
+variable "use_existing_psa" {
+  description = "When true, do not create PSA resources (google_compute_global_address, google_service_networking_connection). Client provides PSA ranges. Cloud SQL and Redis will use the existing Service Networking connection."
+  type        = bool
+  default     = false
+}
+
 # Application Configuration
 variable "domain_name" {
   description = "Domain name for the application"
   type        = string
+}
+
+variable "use_managed_ssl_certificate" {
+  description = "When true, Terraform creates a GKE ManagedCertificate (Google-managed SSL) for domain_name and api.<domain_name>, and attaches it to the GCE Ingress. DNS must point to the load balancer for the cert to be issued. Set to false for HTTP-only."
+  type        = bool
+  default     = true
 }
 
 variable "client_repository_name" {
@@ -42,6 +130,30 @@ variable "app_version" {
   description = "Sligo Cloud application version tag (e.g., 'v1.0.0', 'v1.2.3'). This should match a version tag pushed to the container registry. Use 'latest' for development only."
   type        = string
   default     = "latest"
+}
+
+variable "chart_version" {
+  description = "sligo-cloud Helm chart version (e.g., '1.0.1'). Chart 1.0.1+ supports extraVolumes/extraVolumeMounts for GCP credentials. Ignored when chart_path is set."
+  type        = string
+  default     = "1.0.1"
+}
+
+variable "chart_path" {
+  description = "Optional path to local sligo-cloud chart .tgz file. When set, uses local chart instead of repository."
+  type        = string
+  default     = ""
+}
+
+variable "release_upgrade_trigger" {
+  description = "Optional value to force a Helm upgrade (runs release-setup pre-upgrade job: Prisma migrate, sync). Change this (e.g. timestamp or increment) and apply to trigger the hook and pod restarts without changing app_version."
+  type        = string
+  default     = ""
+}
+
+variable "super_admin_emails" {
+  description = "Super Admin allowlist. Comma-separated emails. When set, user must be in this list AND have isSuperAdmin=true in DB."
+  type        = string
+  default     = ""
 }
 
 variable "sligo_service_account_key_path" {
@@ -70,11 +182,17 @@ variable "db_password" {
   sensitive   = true
 }
 
-# Redis Configuration
-variable "redis_memory_size_gb" {
-  description = "Memorystore Redis memory size in GB"
-  type        = number
-  default     = 1
+# Redis Configuration (in-cluster Redis Stack, always persistent)
+variable "redis_persistence_size" {
+  description = "PersistentVolumeClaim size for Redis Stack data"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "redis_persistence_storage_class" {
+  description = "Storage class for Redis Stack PVC (e.g. standard-rwo on GKE)"
+  type        = string
+  default     = "standard-rwo"
 }
 
 # GCS Storage Configuration
@@ -120,6 +238,24 @@ variable "use_existing_gcs_bucket" {
   default     = false
 }
 
+variable "gcs_allow_public_agent_avatars_logos" {
+  description = "If true, grant allUsers objectViewer on agent-avatars and logos buckets (public read). Set to false when the project has Public Access Prevention enforced; avatars/logos will need to be served via signed URLs by the app."
+  type        = bool
+  default     = false
+}
+
+variable "use_existing_agent_avatars_bucket" {
+  description = "If true, use an existing external bucket for agent avatars (e.g. your own public bucket). Set gcs_bucket_agent_avatars_name to the bucket name. No bucket or IAM is created for agent avatars."
+  type        = bool
+  default     = false
+}
+
+variable "gcs_bucket_agent_avatars_project" {
+  description = "When use_existing_agent_avatars_bucket is true and the bucket lives in a different GCP project, set this to that project ID. Passed to the app so it can target the correct project for that bucket (e.g. for SDK calls or signed URLs). Leave empty if the bucket is in the same project as the cluster."
+  type        = string
+  default     = ""
+}
+
 # Secrets
 variable "jwt_secret" {
   description = "JWT secret for backend"
@@ -129,6 +265,12 @@ variable "jwt_secret" {
 
 variable "api_key" {
   description = "API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "backend_api_key" {
+  description = "Shared API key used by the frontend to authenticate requests to the backend (required, must not be empty)"
   type        = string
   sensitive   = true
 }
@@ -180,6 +322,12 @@ variable "auth_provider" {
   description = "Auth provider: workos (default), oidc, or saml"
   type        = string
   default     = "workos"
+}
+
+variable "auth_invitations" {
+  description = "Auth invitations provider (e.g. workos). Set to enable invitation flows."
+  type        = string
+  default     = ""
 }
 
 variable "auth_session_secret" {
@@ -350,6 +498,12 @@ variable "auth_cookie_name" {
   default     = ""
 }
 
+variable "auth_cookie_same_site" {
+  description = "Session cookie SameSite: lax (default) or none. Use 'none' for iframe embedding (requires HTTPS)."
+  type        = string
+  default     = ""
+}
+
 variable "sql_connection_string_decryption_iv" {
   description = "SQL connection string decryption IV"
   type        = string
@@ -389,6 +543,12 @@ variable "tavily_api_key" {
   type        = string
   default     = ""
   sensitive   = true
+}
+
+variable "storage_provider" {
+  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  type        = string
+  default     = ""
 }
 
 variable "gcp_sa_key" {
@@ -451,11 +611,81 @@ variable "langsmith_api_key" {
   sensitive   = true
 }
 
+variable "langsmith_tracing" {
+  description = "Enable LangSmith tracing (true/false)"
+  type        = string
+  default     = "false"
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project name for traces"
+  type        = string
+  default     = ""
+}
+
+variable "langsmith_endpoint" {
+  description = "LangSmith API endpoint URL"
+  type        = string
+  default     = "https://api.smith.langchain.com"
+}
+
 variable "onedrive_client_secret" {
   description = "OneDrive OAuth Client Secret"
   type        = string
   default     = ""
   sensitive   = true
+}
+
+# Azure AI Search (optional; for nextjs + mcp-gateway when using RAG vector store azureaisearch)
+variable "azure_aisearch_endpoint" {
+  description = "Azure AI Search endpoint URL (e.g. https://your-service.search.windows.net)"
+  type        = string
+  default     = ""
+}
+
+variable "azure_aisearch_key" {
+  description = "Azure AI Search admin key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_aisearch_index" {
+  description = "Azure AI Search index name (optional, default: vectorsearch)"
+  type        = string
+  default     = "vectorsearch"
+}
+
+variable "azure_aisearch_query_type" {
+  description = "Azure AI Search query type (optional: similarity, similarity_hybrid, semantic_hybrid)"
+  type        = string
+  default     = "similarity_hybrid"
+}
+
+# Azure OpenAI (optional; for backend)
+variable "azure_openai_api_key" {
+  description = "Azure OpenAI API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_openai_api_instance_name" {
+  description = "Azure OpenAI instance/deployment name"
+  type        = string
+  default     = ""
+}
+
+variable "azure_openai_api_version" {
+  description = "Azure OpenAI API version (e.g. 2024-02-15-preview)"
+  type        = string
+  default     = "2024-02-15-preview"
+}
+
+variable "azure_openai_base_path" {
+  description = "Azure OpenAI base path (e.g. https://your-resource.openai.azure.com/openai/deployments/your-deployment)"
+  type        = string
+  default     = ""
 }
 
 # SPENDHQ Configuration (for mcp-gateway)

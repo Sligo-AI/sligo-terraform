@@ -62,6 +62,7 @@ module "sligo_azure" {
   next_public_google_client_key    = var.next_public_google_client_key
   google_client_secret             = var.google_client_secret
   google_project_id                = var.google_project_id
+  storage_provider                 = var.storage_provider
   gcp_sa_key                       = var.gcp_sa_key
   rag_sa_key                       = var.rag_sa_key
   google_vertex_ai_web_credentials = var.google_vertex_ai_web_credentials
@@ -97,4 +98,14 @@ module "sligo_azure" {
   spendhq_ss_username   = var.spendhq_ss_username
   spendhq_ss_password   = var.spendhq_ss_password
   spendhq_ss_port       = var.spendhq_ss_port
+
+  # Azure AI Search (optional) + Azure OpenAI (optional)
+  azure_aisearch_endpoint        = var.azure_aisearch_endpoint
+  azure_aisearch_key             = var.azure_aisearch_key
+  azure_aisearch_index           = var.azure_aisearch_index
+  azure_aisearch_query_type      = var.azure_aisearch_query_type
+  azure_openai_api_key           = var.azure_openai_api_key
+  azure_openai_api_instance_name = var.azure_openai_api_instance_name
+  azure_openai_api_version       = var.azure_openai_api_version
+  azure_openai_base_path         = var.azure_openai_base_path
 }

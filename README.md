@@ -61,6 +61,8 @@ Then configure your environment and run `terraform init && terraform apply`.
 | Upgrading | [upgrading](https://sligo-ai.github.io/sligo-terraform/upgrading/) |
 | Troubleshooting | [troubleshooting](https://sligo-ai.github.io/sligo-terraform/troubleshooting/) |
 
+Module variables include **`storage_provider`** (`gcs` or `s3`; optional, app defaults to `gcs`). For all app env vars (e.g. `STORAGE_PROVIDER`), see the secrets doc and the Helm chart [SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md).
+
 ---
 
 ## Repository Structure

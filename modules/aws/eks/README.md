@@ -134,6 +134,8 @@ Internet → ALB (HTTPS) → Ingress → Next.js App (Port 3000)
 | `cluster_version` | Kubernetes version | `string` | `"1.28"` |
 | `aws_region` | AWS region | `string` | `"us-east-1"` |
 | `acm_certificate_arn` | Existing ACM certificate ARN | `string` | `""` |
+| `route53_zone_id` | Route 53 hosted zone ID for the domain; when set, creates ACM validation records and (with `alb_hostname`) app/api CNAMEs | `string` | `""` |
+| `alb_hostname` | ALB hostname for app CNAME records; set with `route53_zone_id` to create DNS for domain and api subdomain | `string` | `""` |
 | `encryption_key` | 64-character hex encryption key | `string` | `""` |
 | `workos_api_key` | WorkOS API key | `string` | `""` |
 | `workos_client_id` | WorkOS Client ID | `string` | `""` |
@@ -175,6 +177,12 @@ If `acm_certificate_arn` is empty:
 - Creates DNS-validated ACM certificate
 - Outputs DNS validation records
 - Configures HTTPS listeners and SSL redirect
+
+### Optional Route 53 DNS
+
+When `route53_zone_id` is set (domain hosted in Route 53 in this account):
+- **ACM validation:** Terraform creates the validation CNAME records and waits for the certificate to be issued (`aws_acm_certificate_validation`).
+- **App DNS:** If `alb_hostname` is also set, Terraform creates CNAME records for `domain_name` and `api.<domain_name>` pointing to the ALB. Set `alb_hostname` after the first apply (get it with `kubectl get ingress -n sligo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'`), then apply again.
 
 ### Ingress Configuration
 

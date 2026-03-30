@@ -70,11 +70,17 @@ variable "db_password" {
   sensitive   = true
 }
 
-# Redis Configuration
-variable "redis_memory_size_gb" {
-  description = "Memorystore Redis memory size in GB"
-  type        = number
-  default     = 1
+# Redis Configuration (in-cluster Redis Stack, always persistent)
+variable "redis_persistence_size" {
+  description = "PersistentVolumeClaim size for Redis Stack data"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "redis_persistence_storage_class" {
+  description = "Storage class for Redis Stack PVC (e.g. standard-rwo on GKE)"
+  type        = string
+  default     = "standard-rwo"
 }
 
 # GCS Storage Configuration
@@ -201,6 +207,12 @@ variable "encryption_key" {
   sensitive = true
 }
 
+variable "super_admin_emails" {
+  description = "Super Admin allowlist. Comma-separated emails."
+  type        = string
+  default     = ""
+}
+
 variable "next_public_google_client_id" {
   type    = string
   default = ""
@@ -220,6 +232,12 @@ variable "google_client_secret" {
 variable "google_project_id" {
   type    = string
   default = ""
+}
+
+variable "storage_provider" {
+  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  type        = string
+  default     = ""
 }
 
 variable "gcp_sa_key" {
@@ -265,6 +283,24 @@ variable "langsmith_api_key" {
   type      = string
   default   = ""
   sensitive = true
+}
+
+variable "langsmith_tracing" {
+  description = "Enable LangSmith tracing (true/false)"
+  type        = string
+  default     = "false"
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project name for traces"
+  type        = string
+  default     = ""
+}
+
+variable "langsmith_endpoint" {
+  description = "LangSmith API endpoint URL"
+  type        = string
+  default     = "https://api.smith.langchain.com"
 }
 
 variable "pinecone_api_key" {
@@ -375,4 +411,41 @@ variable "spendhq_ss_password" {
 variable "spendhq_ss_port" {
   type    = string
   default = "3306"
+}
+
+# Azure AI Search (optional; nextjs + mcp-gateway)
+variable "azure_aisearch_endpoint" {
+  type    = string
+  default = ""
+}
+variable "azure_aisearch_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+variable "azure_aisearch_index" {
+  type    = string
+  default = "vectorsearch"
+}
+variable "azure_aisearch_query_type" {
+  type    = string
+  default = "similarity_hybrid"
+}
+# Azure OpenAI (optional; backend)
+variable "azure_openai_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+variable "azure_openai_api_instance_name" {
+  type    = string
+  default = ""
+}
+variable "azure_openai_api_version" {
+  type    = string
+  default = "2024-02-15-preview"
+}
+variable "azure_openai_base_path" {
+  type    = string
+  default = ""
 }

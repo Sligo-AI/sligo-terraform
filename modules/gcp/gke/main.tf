@@ -4,13 +4,64 @@ provider "google" {
   region  = var.gcp_region
 }
 
+# Short prefix for service account account_id (GCP max 30 chars: ^[a-z](?:[-a-z0-9]{4,28}[a-z0-9])$)
+locals {
+  sa_account_id_prefix   = substr(replace(var.cluster_name, "_", "-"), 0, min(19, length(replace(var.cluster_name, "_", "-"))))
+  existing_subnet_region = var.existing_subnet_region != "" ? var.existing_subnet_region : var.gcp_region
+}
+
+# Data source for existing network (when use_existing_network=true)
+data "google_compute_network" "existing" {
+  count   = var.use_existing_network ? 1 : 0
+  name    = var.existing_network_name
+  project = var.gcp_project_id
+}
+
+data "google_compute_subnetwork" "existing" {
+  count   = var.use_existing_network ? 1 : 0
+  name    = var.existing_subnet_name
+  region  = local.existing_subnet_region
+  project = var.gcp_project_id
+}
+
+locals {
+  network_id   = var.use_existing_network ? data.google_compute_network.existing[0].id : google_compute_network.vpc[0].id
+  network_name = var.use_existing_network ? data.google_compute_network.existing[0].name : google_compute_network.vpc[0].name
+  subnet_id    = var.use_existing_network ? data.google_compute_subnetwork.existing[0].id : google_compute_subnetwork.subnet[0].id
+  subnet_name  = var.use_existing_network ? data.google_compute_subnetwork.existing[0].name : google_compute_subnetwork.subnet[0].name
+}
+
+# Add secondary IP ranges to existing subnet (when use_existing_network=true and CIDRs are provided)
+resource "null_resource" "subnet_secondary_ranges" {
+  count = var.use_existing_network && var.secondary_pod_cidr != "" && var.secondary_service_cidr != "" ? 1 : 0
+
+  triggers = {
+    subnet             = var.existing_subnet_name
+    pod_range_name     = var.secondary_pod_range_name
+    pod_cidr           = var.secondary_pod_cidr
+    service_range_name = var.secondary_service_range_name
+    service_cidr       = var.secondary_service_cidr
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$GOOGLE_APPLICATION_CREDENTIALS \
+      gcloud compute networks subnets update ${var.existing_subnet_name} \
+        --region=${local.existing_subnet_region} \
+        --project=${var.gcp_project_id} \
+        --add-secondary-ranges="${var.secondary_pod_range_name}=${var.secondary_pod_cidr},${var.secondary_service_range_name}=${var.secondary_service_cidr}"
+    EOT
+  }
+}
+
 # Enable required APIs
 resource "google_project_service" "required_apis" {
   for_each = toset([
+    "aiplatform.googleapis.com",
     "container.googleapis.com",
-    "sqladmin.googleapis.com",
-    "redis.googleapis.com",
     "compute.googleapis.com",
+    "servicenetworking.googleapis.com",
+    "sqladmin.googleapis.com",
     "storage.googleapis.com"
   ])
 
@@ -20,36 +71,94 @@ resource "google_project_service" "required_apis" {
   disable_on_destroy = false
 }
 
-# VPC Network
+# VPC Network (only when not using existing)
 resource "google_compute_network" "vpc" {
+  count                   = var.use_existing_network ? 0 : 1
   name                    = "${var.cluster_name}-vpc"
   auto_create_subnetworks = false
 
   depends_on = [google_project_service.required_apis]
 }
 
-# Subnet
+# Subnet (only when not using existing)
 resource "google_compute_subnetwork" "subnet" {
+  count         = var.use_existing_network ? 0 : 1
   name          = "${var.cluster_name}-subnet"
   ip_cidr_range = "10.0.0.0/16"
   region        = var.gcp_region
-  network       = google_compute_network.vpc.id
+  network       = google_compute_network.vpc[0].id
+}
+
+# Reserved IP range for private service connection (Cloud SQL, etc.) - skipped when use_existing_psa=true (client provides PSA)
+resource "google_compute_global_address" "private_ip_range" {
+  count         = var.use_existing_psa ? 0 : 1
+  name          = "${var.cluster_name}-private-ip-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = local.network_id
+  project       = var.gcp_project_id
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# Service Networking connection (required for Cloud SQL private IP) - skipped when use_existing_psa=true (client provides PSA)
+resource "google_service_networking_connection" "private_vpc_connection" {
+  count                   = var.use_existing_psa ? 0 : 1
+  network                 = local.network_id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_range[0].name]
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# Ensures PSA is ready before Cloud SQL (workaround for static depends_on)
+resource "null_resource" "psa_ready" {
+  triggers = var.use_existing_psa ? {} : { connection = google_service_networking_connection.private_vpc_connection[0].id }
+}
+
+# Cloud Router + NAT so private GKE nodes/pods can reach the internet (e.g. WorkOS api.workos.com)
+# Skipped when use_existing_network=true — the client's VPC already has a NAT covering ALL_SUBNETWORKS_ALL_IP_RANGES
+resource "google_compute_router" "router" {
+  count   = var.use_existing_network ? 0 : 1
+  name    = "${var.cluster_name}-router"
+  region  = var.gcp_region
+  network = local.network_id
+  project = var.gcp_project_id
+}
+
+resource "google_compute_router_nat" "nat" {
+  count                              = var.use_existing_network ? 0 : 1
+  name                               = "${var.cluster_name}-nat"
+  router                             = google_compute_router.router[0].name
+  region                             = var.gcp_region
+  project                            = var.gcp_project_id
+  nat_ip_allocate_option             = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
 # GKE Cluster
 resource "google_container_cluster" "primary" {
-  name     = var.cluster_name
-  location = var.gcp_region
-  project  = var.gcp_project_id
-
+  name                = var.cluster_name
+  location            = var.gcp_region
+  project             = var.gcp_project_id
+  deletion_protection = true
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
   remove_default_node_pool = true
   initial_node_count       = 1
 
-  network    = google_compute_network.vpc.name
-  subnetwork = google_compute_subnetwork.subnet.name
+  network    = local.network_name
+  subnetwork = local.subnet_name
+
+  dynamic "ip_allocation_policy" {
+    for_each = var.use_existing_network ? [1] : []
+    content {
+      cluster_secondary_range_name  = var.secondary_pod_range_name
+      services_secondary_range_name = var.secondary_service_range_name
+    }
+  }
 
   # Enable Workload Identity
   workload_identity_config {
@@ -59,8 +168,22 @@ resource "google_container_cluster" "primary" {
   # Enable private cluster
   private_cluster_config {
     enable_private_nodes    = true
-    enable_private_endpoint = false
-    master_ipv4_cidr_block  = "172.16.0.0/28"
+    enable_private_endpoint = var.enable_private_endpoint
+    master_ipv4_cidr_block  = var.master_ipv4_cidr_block
+  }
+
+  # Required when enable_private_endpoint = true
+  dynamic "master_authorized_networks_config" {
+    for_each = var.enable_private_endpoint ? [1] : []
+    content {
+      dynamic "cidr_blocks" {
+        for_each = var.master_authorized_cidrs
+        content {
+          cidr_block   = cidr_blocks.value.cidr_block
+          display_name = cidr_blocks.value.display_name
+        }
+      }
+    }
   }
 
   # Enable network policy
@@ -75,7 +198,7 @@ resource "google_container_cluster" "primary" {
 
   depends_on = [
     google_project_service.required_apis,
-    google_compute_subnetwork.subnet
+    null_resource.subnet_secondary_ranges
   ]
 }
 
@@ -89,7 +212,7 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     preemptible  = false
-    machine_type = "e2-medium"
+    machine_type = var.node_machine_type
 
     # Google recommends custom service accounts that have cloud-platform scope and permissions
     service_account = google_service_account.gke_node.email
@@ -111,25 +234,26 @@ resource "google_container_node_pool" "primary_nodes" {
 
 # Service Account for GKE nodes
 resource "google_service_account" "gke_node" {
-  account_id   = "${var.cluster_name}-gke-node"
-  display_name = "GKE Node Service Account"
+  account_id   = "${local.sa_account_id_prefix}-gke-node"
+  display_name = "GKE Node Service Account (${var.cluster_name})"
   project      = var.gcp_project_id
 }
 
 # Cloud SQL PostgreSQL Database
 resource "google_sql_database_instance" "postgres" {
-  name             = "${var.cluster_name}-postgres"
-  database_version = "POSTGRES_15"
-  region           = var.gcp_region
-  project          = var.gcp_project_id
+  name                = "${var.cluster_name}-postgres"
+  database_version    = "POSTGRES_15"
+  region              = var.gcp_region
+  project             = var.gcp_project_id
+  deletion_protection = true
 
   settings {
     tier                        = var.db_tier
-    deletion_protection_enabled = false
+    deletion_protection_enabled = true
 
     ip_configuration {
       ipv4_enabled                                  = false
-      private_network                               = google_compute_network.vpc.id
+      private_network                               = local.network_id
       enable_private_path_for_google_cloud_services = true
     }
 
@@ -139,10 +263,7 @@ resource "google_sql_database_instance" "postgres" {
     }
   }
 
-  depends_on = [
-    google_project_service.required_apis,
-    google_compute_network.vpc
-  ]
+  depends_on = [google_project_service.required_apis, null_resource.psa_ready]
 }
 
 # Cloud SQL Database
@@ -160,21 +281,7 @@ resource "google_sql_user" "user" {
   project  = var.gcp_project_id
 }
 
-# Memorystore Redis
-resource "google_redis_instance" "redis" {
-  name           = "${var.cluster_name}-redis"
-  tier           = "BASIC"
-  memory_size_gb = var.redis_memory_size_gb
-  region         = var.gcp_region
-  project        = var.gcp_project_id
-
-  authorized_network = google_compute_network.vpc.id
-
-  depends_on = [
-    google_project_service.required_apis,
-    google_compute_network.vpc
-  ]
-}
+# GKE uses in-cluster Redis Stack (from Helm) with persistence. Memorystore is not used.
 
 # Kubernetes Provider Configuration
 provider "kubernetes" {
@@ -217,6 +324,38 @@ resource "kubernetes_namespace" "sligo" {
   depends_on = [time_sleep.wait_for_cluster]
 }
 
+# Google-managed SSL certificate for GCE Ingress (main domain only; GKE allows max 1 domain per ManagedCertificate)
+resource "kubernetes_manifest" "managed_cert_app" {
+  count = var.use_managed_ssl_certificate ? 1 : 0
+
+  manifest = {
+    apiVersion = "networking.gke.io/v1beta1"
+    kind       = "ManagedCertificate"
+    metadata = {
+      name      = "sligo-managed-cert-app"
+      namespace = kubernetes_namespace.sligo.metadata[0].name
+    }
+    spec = {
+      domains = [var.domain_name]
+    }
+  }
+}
+
+# BackendConfig: 60s timeout for app backend so auth callback (WorkOS exchange + redirect) is not cut off by default 30s
+resource "kubernetes_manifest" "app_backend_config" {
+  manifest = {
+    apiVersion = "cloud.google.com/v1"
+    kind       = "BackendConfig"
+    metadata = {
+      name      = "sligo-app-backendconfig"
+      namespace = kubernetes_namespace.sligo.metadata[0].name
+    }
+    spec = {
+      timeoutSec = 60
+    }
+  }
+}
+
 # Image Pull Secret for GAR
 resource "kubernetes_secret" "gar_pull_secret" {
   metadata {
@@ -247,43 +386,46 @@ resource "kubernetes_secret" "nextjs_secrets" {
   }
 
   data = merge({
-    NEXT_PUBLIC_API_URL                    = var.next_public_api_url
-    NEXT_PUBLIC_URL                        = var.frontend_url
-    FRONTEND_URL                           = var.frontend_url
-    NEXTAUTH_SECRET                        = var.nextauth_secret
-    PORT                                   = "3000"
-    REDIS_URL                              = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    BACKEND_URL                            = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL                        = "http://mcp-gateway:3002"
-    DATABASE_URL                           = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
-    AUTH_PROVIDER                          = var.auth_provider
-    WORKOS_API_KEY                         = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID                       = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD                 = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID           = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY          = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID         = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GOOGLE_CLIENT_SECRET                   = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    ONEDRIVE_CLIENT_SECRET                 = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                         = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    BUCKET_NAME_AGENT_AVATARS              = local.gcs_bucket_agent_avatars_id
-    BUCKET_NAME_FILE_MANAGER               = local.gcs_bucket_file_manager_id
-    BUCKET_NAME_LOGOS                      = local.gcs_bucket_logos_id
-    BUCKET_NAME_RAG                        = local.gcs_bucket_rag_id
-    NODE_ENV                               = "production"
-    SKIP_ENV_VALIDATION                    = "true"
-    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
-    AUTH_SESSION_SECRET                    = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
-    OIDC_ISSUER                            = var.oidc_issuer
-    OIDC_CLIENT_ID                         = var.oidc_client_id
-    OIDC_CLIENT_SECRET                     = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
-    OIDC_SCOPES                            = var.oidc_scopes
-    OIDC_DEFAULT_ORG_ID                    = var.oidc_default_org_id
-    OIDC_DEFAULT_ORG_NAME                  = var.oidc_default_org_name
+    NEXT_PUBLIC_API_URL                                = var.next_public_api_url
+    NEXT_PUBLIC_URL                                    = var.frontend_url
+    FRONTEND_URL                                       = var.frontend_url
+    NEXTAUTH_SECRET                                    = var.nextauth_secret
+    PORT                                               = "3000"
+    REDIS_URL                                          = local.redis_url
+    BACKEND_URL                                        = "http://sligo-backend:3001"
+    BACKEND_API_KEY                                    = var.backend_api_key
+    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
+    DATABASE_URL                                       = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
+    AUTH_PROVIDER                                      = var.auth_provider
+    AUTH_INVITATIONS                                   = var.auth_invitations != "" ? var.auth_invitations : ""
+    WORKOS_API_KEY                                     = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID                                   = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD                             = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID                       = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY                      = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID                     = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET                               = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET                             = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS                          = local.gcs_bucket_agent_avatars_id
+    BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
+    BUCKET_NAME_LOGOS                                  = local.gcs_bucket_logos_id
+    BUCKET_NAME_RAG                                    = local.gcs_bucket_rag_id
+    NODE_ENV                                           = "production"
+    SKIP_ENV_VALIDATION                                = "true"
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
+    SUPER_ADMIN_EMAILS                                 = var.super_admin_emails != "" ? var.super_admin_emails : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, local.rag_sa_key != "" ? { RAG_SA_KEY = local.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
+    AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
+    OIDC_ISSUER                                        = var.oidc_issuer
+    OIDC_CLIENT_ID                                     = var.oidc_client_id
+    OIDC_CLIENT_SECRET                                 = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
+    OIDC_SCOPES                                        = var.oidc_scopes
+    OIDC_DEFAULT_ORG_ID                                = var.oidc_default_org_id
+    OIDC_DEFAULT_ORG_NAME                              = var.oidc_default_org_name
     } : {}, var.auth_provider == "saml" ? {
     AUTH_SESSION_SECRET                                     = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     SAML_ENTRYPOINT                                         = var.saml_entrypoint
@@ -297,7 +439,13 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SINGLESTORE_USER                                        = var.singlestore_user
     SINGLESTORE_PASSWORD                                    = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
     SINGLESTORE_DATABASE                                    = var.singlestore_database
-  } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {})
+    } : {}, var.azure_aisearch_endpoint != "" ? {
+    RAG_VECTOR_STORE          = "azureaisearch"
+    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
+    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
+    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
+    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
+  } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {})
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -307,26 +455,35 @@ resource "kubernetes_secret" "backend_secrets" {
   }
 
   data = merge({
-    JWT_SECRET                           = var.jwt_secret
-    API_KEY                              = var.api_key
-    PORT                                 = "3001"
-    DATABASE_URL                         = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
-    REDIS_URL                            = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    MCP_GATEWAY_URL                      = "http://mcp-gateway:3002"
-    SQL_CONNECTION_STRING_DECRYPTION_IV  = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
-    SQL_CONNECTION_STRING_DECRYPTION_KEY = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
-    ENCRYPTION_KEY                       = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    OPENAI_API_KEY                       = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    OPENAI_BASE_URL                      = var.openai_base_url
-    ANTHROPIC_API_KEY                    = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    VERBOSE_LOGGING                      = tostring(var.verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS           = tostring(var.backend_request_timeout_ms)
-    LANGSMITH_API_KEY                    = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    BUCKET_NAME_FILE_MANAGER             = local.gcs_bucket_file_manager_id
-    NODE_ENV                             = "production"
-    SKIP_ENV_VALIDATION                  = "true"
-    GOOGLE_PROJECTID                     = var.google_project_id != "" ? var.google_project_id : ""
-  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {})
+    JWT_SECRET                                         = var.jwt_secret
+    API_KEY                                            = var.api_key
+    BACKEND_API_KEY                                    = var.backend_api_key
+    PORT                                               = "3001"
+    DATABASE_URL                                       = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
+    REDIS_URL                                          = local.redis_url
+    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
+    SQL_CONNECTION_STRING_DECRYPTION_IV                = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
+    SQL_CONNECTION_STRING_DECRYPTION_KEY               = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
+    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    OPENAI_BASE_URL                                    = var.openai_base_url
+    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
+    BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
+    LANGSMITH_TRACING                                  = var.langsmith_tracing
+    LANGSMITH_PROJECT                                  = var.langsmith_project
+    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
+    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
+    NODE_ENV                                           = "production"
+    SKIP_ENV_VALIDATION                                = "true"
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
+    AZURE_OPENAI_API_KEY                               = var.azure_openai_api_key
+    AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
+    AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
+    AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
+  } : {})
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -336,34 +493,59 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
   }
 
   data = merge({
-    SECRET                                 = var.gateway_secret
-    PORT                                   = "3002"
-    FRONTEND_URL                           = var.frontend_url
-    BUCKET_NAME_FILE_MANAGER               = local.gcs_bucket_file_manager_id
-    REDIS_URL                              = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    REDIS_URL_STRUCTURED_OUTPUTS           = "rediss://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}"
-    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PERPLEXITY_API_KEY                     = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY                         = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
-    SPENDHQ_BASE_URL                       = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
-    SPENDHQ_CLIENT_ID                      = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
-    SPENDHQ_CLIENT_SECRET                  = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
-    SPENDHQ_TOKEN_URL                      = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
-    SPENDHQ_SS_HOST                        = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
-    SPENDHQ_SS_USERNAME                    = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
-    SPENDHQ_SS_PASSWORD                    = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
-    SPENDHQ_SS_PORT                        = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-    ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
-    SINGLESTORE_HOST                       = var.singlestore_host
-    SINGLESTORE_PORT                       = var.singlestore_port
-    SINGLESTORE_USER                       = var.singlestore_user
-    SINGLESTORE_PASSWORD                   = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
-    SINGLESTORE_DATABASE                   = var.singlestore_database
+    SECRET                                             = var.gateway_secret
+    PORT                                               = "3002"
+    FRONTEND_URL                                       = var.frontend_url
+    BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
+    REDIS_URL                                          = local.redis_url
+    REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url
+    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PERPLEXITY_API_KEY                                 = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY                                     = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    SPENDHQ_BASE_URL                                   = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
+    SPENDHQ_CLIENT_ID                                  = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
+    SPENDHQ_CLIENT_SECRET                              = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
+    SPENDHQ_TOKEN_URL                                  = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
+    SPENDHQ_SS_HOST                                    = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
+    SPENDHQ_SS_USERNAME                                = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
+    SPENDHQ_SS_PASSWORD                                = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
+    SPENDHQ_SS_PORT                                    = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
+    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    LANGSMITH_TRACING                                  = var.langsmith_tracing
+    LANGSMITH_PROJECT                                  = var.langsmith_project
+    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
+    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    SINGLESTORE_HOST                                   = var.singlestore_host
+    SINGLESTORE_PORT                                   = var.singlestore_port
+    SINGLESTORE_USER                                   = var.singlestore_user
+    SINGLESTORE_PASSWORD                               = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
+    SINGLESTORE_DATABASE                               = var.singlestore_database
+    } : {}, var.azure_aisearch_endpoint != "" ? {
+    RAG_VECTOR_STORE          = "azureaisearch"
+    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
+    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
+    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
+    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
   } : {})
+}
+
+# GCP credentials as a file for ADC (Application Default Credentials) - same flow as SHQ/AWS.
+# Mounted at /secrets/gcp/credentials.json so backend/mcp-gateway use explicit SA for Vertex AI.
+resource "kubernetes_secret" "gcp_credentials" {
+  count = (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? 1 : 0
+
+  metadata {
+    name      = "gcp-credentials"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+
+  data = {
+    "credentials.json" = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials
+  }
 }
 
 # Database Secret
@@ -382,19 +564,6 @@ resource "kubernetes_secret" "database_secret" {
   }
 }
 
-# Redis Secret
-resource "kubernetes_secret" "redis_secret" {
-  metadata {
-    name      = "redis-secret"
-    namespace = kubernetes_namespace.sligo.metadata[0].name
-  }
-
-  data = {
-    host = google_redis_instance.redis.host
-    port = tostring(google_redis_instance.redis.port)
-  }
-}
-
 # GCS Buckets for Application Storage (4 buckets - same architecture as AWS S3)
 resource "random_id" "bucket_suffix" {
   byte_length = 4
@@ -406,6 +575,13 @@ resource "google_storage_bucket" "file_manager" {
   location      = var.gcs_bucket_location
   project       = var.gcp_project_id
   force_destroy = false
+
+  cors {
+    origin          = [var.frontend_url]
+    method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
 
   versioning {
     enabled = var.gcs_bucket_versioning
@@ -423,11 +599,18 @@ resource "google_storage_bucket" "file_manager" {
 }
 
 resource "google_storage_bucket" "agent_avatars" {
-  count         = var.use_existing_gcs_bucket ? 0 : 1
+  count         = (var.use_existing_gcs_bucket || var.use_existing_agent_avatars_bucket) ? 0 : 1
   name          = var.gcs_bucket_agent_avatars_name != "" ? var.gcs_bucket_agent_avatars_name : "${var.cluster_name}-agent-avatars-${random_id.bucket_suffix.hex}"
   location      = var.gcs_bucket_location
   project       = var.gcp_project_id
   force_destroy = false
+
+  cors {
+    origin          = [var.frontend_url]
+    method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
 
   versioning {
     enabled = var.gcs_bucket_versioning
@@ -451,6 +634,13 @@ resource "google_storage_bucket" "logos" {
   project       = var.gcp_project_id
   force_destroy = false
 
+  cors {
+    origin          = [var.frontend_url]
+    method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
+
   versioning {
     enabled = var.gcs_bucket_versioning
   }
@@ -473,6 +663,13 @@ resource "google_storage_bucket" "rag" {
   project       = var.gcp_project_id
   force_destroy = false
 
+  cors {
+    origin          = [var.frontend_url]
+    method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
+
   versioning {
     enabled = var.gcs_bucket_versioning
   }
@@ -490,15 +687,18 @@ resource "google_storage_bucket" "rag" {
 
 locals {
   gcs_bucket_file_manager_id  = var.use_existing_gcs_bucket ? var.gcs_bucket_name : google_storage_bucket.file_manager[0].name
-  gcs_bucket_agent_avatars_id = var.use_existing_gcs_bucket ? var.gcs_bucket_agent_avatars_name : google_storage_bucket.agent_avatars[0].name
+  gcs_bucket_agent_avatars_id = var.use_existing_gcs_bucket ? var.gcs_bucket_agent_avatars_name : (var.use_existing_agent_avatars_bucket ? var.gcs_bucket_agent_avatars_name : google_storage_bucket.agent_avatars[0].name)
   gcs_bucket_logos_id         = var.use_existing_gcs_bucket ? var.gcs_bucket_logos_name : google_storage_bucket.logos[0].name
   gcs_bucket_rag_id           = var.use_existing_gcs_bucket ? var.gcs_bucket_rag_name : google_storage_bucket.rag[0].name
+
+  # Redis URL: in-cluster Redis Stack (Helm), always persistent
+  redis_url = "redis://redis.${kubernetes_namespace.sligo.metadata[0].name}.svc.cluster.local:6379"
 }
 
 # Service Account for GCS Access (for use by pods)
 resource "google_service_account" "gcs_access" {
-  account_id   = "${var.cluster_name}-gcs-access"
-  display_name = "GCS Access Service Account"
+  account_id   = "${local.sa_account_id_prefix}-gcs-access"
+  display_name = "GCS Access Service Account (${var.cluster_name})"
   project      = var.gcp_project_id
 }
 
@@ -510,7 +710,7 @@ resource "google_storage_bucket_iam_member" "gcs_file_manager" {
 }
 
 resource "google_storage_bucket_iam_member" "gcs_agent_avatars" {
-  count  = var.use_existing_gcs_bucket ? 0 : 1
+  count  = (var.use_existing_gcs_bucket || var.use_existing_agent_avatars_bucket) ? 0 : 1
   bucket = google_storage_bucket.agent_avatars[0].name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.gcs_access.email}"
@@ -523,11 +723,56 @@ resource "google_storage_bucket_iam_member" "gcs_logos" {
   member = "serviceAccount:${google_service_account.gcs_access.email}"
 }
 
+# Agent avatars and logos: optional public read. Skip when Public Access Prevention is enforced or using external agent avatars bucket.
+resource "google_storage_bucket_iam_member" "gcs_agent_avatars_public" {
+  count  = (!var.use_existing_gcs_bucket && !var.use_existing_agent_avatars_bucket && var.gcs_allow_public_agent_avatars_logos) ? 1 : 0
+  bucket = google_storage_bucket.agent_avatars[0].name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
+
+resource "google_storage_bucket_iam_member" "gcs_logos_public" {
+  count  = (!var.use_existing_gcs_bucket && var.gcs_allow_public_agent_avatars_logos) ? 1 : 0
+  bucket = google_storage_bucket.logos[0].name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
+
 resource "google_storage_bucket_iam_member" "gcs_rag" {
   count  = var.use_existing_gcs_bucket ? 0 : 1
   bucket = google_storage_bucket.rag[0].name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.gcs_access.email}"
+}
+
+# Workload Identity: allow app pod to use gcs_access GCP SA (no key needed; org may block iam.serviceAccountKeys.create)
+resource "kubernetes_service_account" "app_gcs" {
+  metadata {
+    name      = "sligo-app-gcs"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = google_service_account.gcs_access.email
+    }
+  }
+}
+
+resource "google_service_account_iam_member" "app_gcs_workload_identity" {
+  service_account_id = google_service_account.gcs_access.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.gcp_project_id}.svc.id.goog[${kubernetes_namespace.sligo.metadata[0].name}/${kubernetes_service_account.app_gcs.metadata[0].name}]"
+}
+
+# Allow gcs_access SA to call signBlob on itself - required for GCS signed URLs with Workload Identity.
+# When the app (via Workload Identity) acts as gcs_access, the effective caller for signBlob is gcs_access.
+resource "google_service_account_iam_member" "gcs_access_self_token_creator" {
+  service_account_id = google_service_account.gcs_access.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.gcs_access.email}"
+}
+
+locals {
+  # Use explicit rag_sa_key when set; otherwise rely on Workload Identity (app uses ADC → gcs_access SA)
+  rag_sa_key = var.rag_sa_key != "" ? var.rag_sa_key : ""
 }
 
 # GCS Bucket Secret for Kubernetes
@@ -537,24 +782,49 @@ resource "kubernetes_secret" "gcs_secret" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
 
-  data = {
+  data = merge({
     bucket_name_file_manager  = local.gcs_bucket_file_manager_id
     bucket_name_agent_avatars = local.gcs_bucket_agent_avatars_id
     bucket_name_logos         = local.gcs_bucket_logos_id
     bucket_name_rag           = local.gcs_bucket_rag_id
     project_id                = var.gcp_project_id
     service_account_email     = google_service_account.gcs_access.email
+  }, var.gcs_bucket_agent_avatars_project != "" ? { bucket_agent_avatars_project = var.gcs_bucket_agent_avatars_project } : {})
+}
+
+# GCP ADC config: mount credentials as file for backend and mcpGateway (same as SHQ/AWS).
+locals {
+  gcp_adc_enabled = var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != ""
+  gcp_adc_config = local.gcp_adc_enabled ? {
+    extraVolumes = [{
+      name = "gcp-credentials"
+      secret = {
+        secretName = kubernetes_secret.gcp_credentials[0].metadata[0].name
+      }
+    }]
+    extraVolumeMounts = [{
+      name      = "gcp-credentials"
+      mountPath = "/secrets/gcp"
+      readOnly  = true
+    }]
+    env = {
+      GOOGLE_APPLICATION_CREDENTIALS = "/secrets/gcp/credentials.json"
+    }
+    } : {
+    extraVolumes      = []
+    extraVolumeMounts = []
+    env               = {}
   }
 }
 
 # Helm Release for Sligo Cloud (same structure as AWS EKS)
 resource "helm_release" "sligo_cloud" {
   name       = "sligo-cloud"
-  repository = "https://sligo-ai.github.io/sligo-helm-charts"
-  chart      = "sligo-cloud"
-  version    = var.app_version
+  repository = var.chart_path != "" ? "" : "https://sligo-ai.github.io/sligo-helm-charts"
+  chart      = var.chart_path != "" ? var.chart_path : "sligo-cloud"
+  version    = var.chart_path != "" ? null : var.chart_version
   namespace  = kubernetes_namespace.sligo.metadata[0].name
-  timeout    = 600 # 10 minutes timeout
+  timeout    = 1200 # 20 minutes (release-setup job + Redis Stack + pod rollouts can take long)
 
   values = [
     yamlencode({
@@ -562,14 +832,18 @@ resource "helm_release" "sligo_cloud" {
         imagePullSecrets = [
           kubernetes_secret.gar_pull_secret.metadata[0].name
         ]
+        releaseUpgradeTrigger = var.release_upgrade_trigger
       }
 
       ingress = {
         enabled   = true
         className = "gce"
-        annotations = {
-          "kubernetes.io/ingress.class" = "gce"
-        }
+        annotations = merge(
+          { "kubernetes.io/ingress.class" = "gce" },
+          var.use_managed_ssl_certificate ? { "networking.gke.io/managed-certificates" = "sligo-managed-cert-app" } : {}
+        )
+        # No spec.tls secret; use GKE ManagedCertificate via annotation when use_managed_ssl_certificate is true
+        tls = []
         hosts = [
           {
             host = var.domain_name
@@ -585,7 +859,15 @@ resource "helm_release" "sligo_cloud" {
       }
 
       app = {
-        replicaCount = 1
+        replicaCount       = 1
+        serviceAccount     = kubernetes_service_account.app_gcs.metadata[0].name
+        serviceAccountName = kubernetes_service_account.app_gcs.metadata[0].name
+        service = {
+          type = "NodePort"
+          annotations = {
+            "cloud.google.com/backend-config" = jsonencode({ "ports" = { "3000" = "sligo-app-backendconfig" } })
+          }
+        }
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-frontend"
           tag        = var.app_version
@@ -604,7 +886,7 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
-      backend = {
+      backend = merge({
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-backend"
@@ -622,9 +904,9 @@ resource "helm_release" "sligo_cloud" {
             memory = "4Gi"
           }
         }
-      }
+      }, local.gcp_adc_config)
 
-      mcpGateway = {
+      mcpGateway = merge({
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-mcp-gateway"
@@ -642,7 +924,7 @@ resource "helm_release" "sligo_cloud" {
             memory = "2Gi"
           }
         }
-      }
+      }, local.gcp_adc_config)
 
       # Pre-install/pre-upgrade Job: Prisma migrate + sync AI models + sync MCP servers (same as build-and-publish)
       releaseSetup = {
@@ -668,11 +950,13 @@ resource "helm_release" "sligo_cloud" {
 
       redis = {
         enabled = true
-        type    = "external"
-        external = {
-          host       = google_redis_instance.redis.host
-          port       = google_redis_instance.redis.port
-          secretName = kubernetes_secret.redis_secret.metadata[0].name
+        type    = "internal"
+        internal = {
+          persistence = {
+            enabled      = true
+            size         = var.redis_persistence_size
+            storageClass = var.redis_persistence_storage_class
+          }
         }
       }
     })
@@ -680,11 +964,31 @@ resource "helm_release" "sligo_cloud" {
 
   depends_on = [
     time_sleep.wait_for_cluster,
+    kubernetes_manifest.managed_cert_app,
     kubernetes_secret.gar_pull_secret,
     kubernetes_secret.nextjs_secrets,
     kubernetes_secret.backend_secrets,
     kubernetes_secret.mcp_gateway_secrets,
+    kubernetes_secret.gcp_credentials,
     kubernetes_secret.database_secret,
-    kubernetes_secret.redis_secret
+    kubernetes_service_account.app_gcs,
+    google_service_account_iam_member.app_gcs_workload_identity
   ]
+}
+
+# Ingress address (IP or hostname) for DNS - may be pending until GCE LB is ready
+data "kubernetes_ingress_v1" "sligo" {
+  metadata {
+    name      = "sligo-cloud"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+  depends_on = [helm_release.sligo_cloud]
+}
+
+locals {
+  ingress_address = try(
+    data.kubernetes_ingress_v1.sligo.status[0].load_balancer[0].ingress[0].ip,
+    data.kubernetes_ingress_v1.sligo.status[0].load_balancer[0].ingress[0].hostname,
+    ""
+  )
 }

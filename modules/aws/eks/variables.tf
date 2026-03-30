@@ -53,6 +53,18 @@ variable "acm_certificate_arn" {
   default     = ""
 }
 
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone ID for the application domain (e.g. sligo.ai). When set, Terraform will create ACM DNS validation records and optionally CNAME records for the app and api subdomain pointing to the ALB. Leave empty to manage DNS manually."
+  type        = string
+  default     = ""
+}
+
+variable "alb_hostname" {
+  description = "ALB hostname for app DNS (e.g. k8s-sligo-xxxx.elb.us-east-1.amazonaws.com). When set with route53_zone_id, Terraform creates CNAME records for domain_name and api.<domain_name> pointing to this hostname. Get the value after first apply with: kubectl get ingress -n sligo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'"
+  type        = string
+  default     = ""
+}
+
 variable "client_repository_name" {
   description = "Client-specific GAR repository name (provided by Sligo)"
   type        = string
@@ -62,6 +74,24 @@ variable "app_version" {
   description = "Sligo Cloud application version tag (e.g., 'v1.0.0', 'v1.2.3'). This should match a version tag pushed to the container registry. Use 'latest' for development only."
   type        = string
   default     = "latest"
+}
+
+variable "chart_version" {
+  description = "sligo-cloud Helm chart version (e.g., '1.0.1'). Chart 1.0.1+ supports extraVolumes/extraVolumeMounts for GCP credentials. Ignored when chart_path is set."
+  type        = string
+  default     = "1.0.1"
+}
+
+variable "chart_path" {
+  description = "Optional path to local sligo-cloud chart .tgz file. When set, uses local chart instead of repository."
+  type        = string
+  default     = ""
+}
+
+variable "release_upgrade_trigger" {
+  description = "Optional value to force a Helm upgrade (runs release-setup job: Prisma migrate, sync). Change this (e.g. timestamp or increment) and apply to trigger the pre-upgrade job without changing app_version."
+  type        = string
+  default     = ""
 }
 
 variable "sligo_service_account_key_path" {
@@ -177,6 +207,12 @@ variable "gateway_secret" {
   sensitive   = true
 }
 
+variable "backend_api_key" {
+  description = "Shared API key used by the frontend to authenticate requests to the backend (required, must not be empty)"
+  type        = string
+  sensitive   = true
+}
+
 variable "frontend_url" {
   description = "Frontend URL"
   type        = string
@@ -213,6 +249,12 @@ variable "auth_provider" {
   description = "Auth provider: workos (default), oidc, or saml"
   type        = string
   default     = "workos"
+}
+
+variable "auth_invitations" {
+  description = "Auth invitations provider (e.g. workos, oidc). Set to enable invitation flows."
+  type        = string
+  default     = ""
 }
 
 variable "auth_session_secret" {
@@ -376,6 +418,12 @@ variable "auth_cookie_name" {
   default     = ""
 }
 
+variable "auth_cookie_same_site" {
+  description = "Session cookie SameSite: lax (default) or none. Use 'none' for iframe embedding (requires HTTPS)."
+  type        = string
+  default     = ""
+}
+
 variable "sql_connection_string_decryption_iv" {
   description = "SQL connection string decryption IV"
   type        = string
@@ -459,6 +507,12 @@ variable "google_vertex_ai_web_credentials" {
   sensitive   = true
 }
 
+variable "node_env" {
+  description = "NODE_ENV for app and backend (e.g. development, production)"
+  type        = string
+  default     = "production"
+}
+
 variable "verbose_logging" {
   description = "Enable verbose logging for backend"
   type        = bool
@@ -469,6 +523,12 @@ variable "backend_request_timeout_ms" {
   description = "Backend request timeout in milliseconds"
   type        = number
   default     = 300000
+}
+
+variable "super_admin_emails" {
+  description = "Super Admin allowlist. Comma-separated emails. When set, user must be in this list AND have isSuperAdmin=true in DB."
+  type        = string
+  default     = ""
 }
 
 variable "openai_base_url" {
@@ -484,6 +544,24 @@ variable "langsmith_api_key" {
   sensitive   = true
 }
 
+variable "langsmith_tracing" {
+  description = "Enable LangSmith tracing (true/false)"
+  type        = string
+  default     = "false"
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project name for traces"
+  type        = string
+  default     = ""
+}
+
+variable "langsmith_endpoint" {
+  description = "LangSmith API endpoint URL"
+  type        = string
+  default     = "https://api.smith.langchain.com"
+}
+
 variable "onedrive_client_secret" {
   description = "OneDrive OAuth Client Secret"
   type        = string
@@ -491,6 +569,57 @@ variable "onedrive_client_secret" {
   sensitive   = true
 }
 
+# Azure AI Search (optional; for nextjs + mcp-gateway when using RAG vector store azureaisearch)
+variable "azure_aisearch_endpoint" {
+  description = "Azure AI Search endpoint URL (e.g. https://your-service.search.windows.net)"
+  type        = string
+  default     = ""
+}
+
+variable "azure_aisearch_key" {
+  description = "Azure AI Search admin key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_aisearch_index" {
+  description = "Azure AI Search index name (optional, default: vectorsearch)"
+  type        = string
+  default     = "vectorsearch"
+}
+
+variable "azure_aisearch_query_type" {
+  description = "Azure AI Search query type (optional: similarity, similarity_hybrid, semantic_hybrid)"
+  type        = string
+  default     = "similarity_hybrid"
+}
+
+# Azure OpenAI (optional; for backend)
+variable "azure_openai_api_key" {
+  description = "Azure OpenAI API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_openai_api_instance_name" {
+  description = "Azure OpenAI instance/deployment name"
+  type        = string
+  default     = ""
+}
+
+variable "azure_openai_api_version" {
+  description = "Azure OpenAI API version (e.g. 2024-02-15-preview)"
+  type        = string
+  default     = "2024-02-15-preview"
+}
+
+variable "azure_openai_base_path" {
+  description = "Azure OpenAI base path (e.g. https://your-resource.openai.azure.com/openai/deployments/your-deployment)"
+  type        = string
+  default     = ""
+}
 
 # SPENDHQ Configuration (for mcp-gateway)
 variable "spendhq_base_url" {
@@ -552,10 +681,27 @@ variable "vpc_id" {
   default     = ""
 }
 
+# When true, Terraform creates security group rules allowing ALB to reach app/backend/mcp-gateway pods.
+# Count must be known at plan time; the ALB SG is created by the LB controller after first apply, so
+# these rules are optional (controller also manages access). Set to true only if you need them and run
+# apply twice (second apply creates the rules after ALB SG exists).
+variable "create_alb_sg_rules" {
+  description = "Create security group rules for ALB to reach pods (default false; AWS LB controller manages access). Set true and run apply twice if you need these rules."
+  type        = bool
+  default     = false
+}
+
 variable "subnet_ids" {
   description = "Subnet IDs (optional, will create if not provided)"
   type        = list(string)
   default     = []
+}
+
+# Storage provider: gcs or s3 (optional; app defaults to gcs when unset)
+variable "storage_provider" {
+  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  type        = string
+  default     = ""
 }
 
 # AWS S3 credentials (optional – omit when using IRSA / pod IAM roles)

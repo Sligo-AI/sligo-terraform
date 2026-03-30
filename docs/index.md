@@ -40,7 +40,7 @@ features:
 
 - **Kubernetes cluster** (EKS, GKE, or AKS)
 - **Managed database** (Aurora/Cloud SQL/Azure Database for PostgreSQL)
-- **Managed cache** (ElastiCache/Memorystore/Azure Cache for Redis)
+- **Cache** (ElastiCache / in-cluster Redis Stack on GKE / Azure Cache for Redis)
 - **Object storage** (S3/GCS/Azure Blob)
 - **Helm chart deployment** with secrets and ingress
 - **Environment automation** via `make create-environment`

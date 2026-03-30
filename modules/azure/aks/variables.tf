@@ -366,6 +366,11 @@ variable "tavily_api_key" {
   default   = ""
   sensitive = true
 }
+variable "storage_provider" {
+  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  type        = string
+  default     = ""
+}
 variable "gcp_sa_key" {
   type      = string
   default   = ""
@@ -412,6 +417,42 @@ variable "onedrive_client_secret" {
   type      = string
   default   = ""
   sensitive = true
+}
+# Azure AI Search (optional; for nextjs + mcp-gateway when using RAG vector store azureaisearch)
+variable "azure_aisearch_endpoint" {
+  type    = string
+  default = ""
+}
+variable "azure_aisearch_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+variable "azure_aisearch_index" {
+  type    = string
+  default = "vectorsearch"
+}
+variable "azure_aisearch_query_type" {
+  type    = string
+  default = "similarity_hybrid"
+}
+# Azure OpenAI (optional; for backend)
+variable "azure_openai_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+variable "azure_openai_api_instance_name" {
+  type    = string
+  default = ""
+}
+variable "azure_openai_api_version" {
+  type    = string
+  default = "2024-02-15-preview"
+}
+variable "azure_openai_base_path" {
+  type    = string
+  default = ""
 }
 variable "spendhq_base_url" {
   type    = string

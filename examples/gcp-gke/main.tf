@@ -19,8 +19,9 @@ module "sligo_gcp" {
   db_username = var.db_username
   db_password = var.db_password
 
-  # Redis configuration
-  redis_memory_size_gb = var.redis_memory_size_gb
+  # Redis configuration (in-cluster Redis Stack, always persistent)
+  redis_persistence_size          = var.redis_persistence_size
+  redis_persistence_storage_class = var.redis_persistence_storage_class
 
   # GCS Storage configuration
   use_existing_gcs_bucket = var.use_existing_gcs_bucket
@@ -49,12 +50,14 @@ module "sligo_gcp" {
   saml_default_org_id    = var.saml_default_org_id
   saml_default_org_name  = var.saml_default_org_name
   encryption_key         = var.encryption_key
+  super_admin_emails     = var.super_admin_emails
 
   # Google Cloud Configuration
   next_public_google_client_id     = var.next_public_google_client_id
   next_public_google_client_key    = var.next_public_google_client_key
   google_client_secret             = var.google_client_secret
   google_project_id                = var.google_project_id
+  storage_provider                 = var.storage_provider
   gcp_sa_key                       = var.gcp_sa_key
   rag_sa_key                       = var.rag_sa_key
   google_vertex_ai_web_credentials = var.google_vertex_ai_web_credentials
@@ -63,6 +66,9 @@ module "sligo_gcp" {
   backend_request_timeout_ms       = var.backend_request_timeout_ms
   openai_base_url                  = var.openai_base_url
   langsmith_api_key                = var.langsmith_api_key
+  langsmith_tracing                = var.langsmith_tracing
+  langsmith_project                = var.langsmith_project
+  langsmith_endpoint               = var.langsmith_endpoint
 
   # Pinecone Configuration
   pinecone_api_key     = var.pinecone_api_key
@@ -90,4 +96,14 @@ module "sligo_gcp" {
   spendhq_ss_username   = var.spendhq_ss_username
   spendhq_ss_password   = var.spendhq_ss_password
   spendhq_ss_port       = var.spendhq_ss_port
+
+  # Azure AI Search (optional) + Azure OpenAI (optional)
+  azure_aisearch_endpoint        = var.azure_aisearch_endpoint
+  azure_aisearch_key             = var.azure_aisearch_key
+  azure_aisearch_index           = var.azure_aisearch_index
+  azure_aisearch_query_type      = var.azure_aisearch_query_type
+  azure_openai_api_key           = var.azure_openai_api_key
+  azure_openai_api_instance_name = var.azure_openai_api_instance_name
+  azure_openai_api_version       = var.azure_openai_api_version
+  azure_openai_base_path         = var.azure_openai_base_path
 }

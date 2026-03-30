@@ -433,3 +433,54 @@ variable "spendhq_ss_port" {
   type        = string
   default     = "3306"
 }
+
+# Azure AI Search (optional; nextjs + mcp-gateway)
+variable "azure_aisearch_endpoint" {
+  description = "Azure AI Search endpoint URL"
+  type        = string
+  default     = ""
+}
+variable "azure_aisearch_key" {
+  description = "Azure AI Search admin key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "azure_aisearch_index" {
+  description = "Azure AI Search index name"
+  type        = string
+  default     = "vectorsearch"
+}
+variable "azure_aisearch_query_type" {
+  description = "Azure AI Search query type"
+  type        = string
+  default     = "similarity_hybrid"
+}
+# Azure OpenAI (optional; backend)
+variable "azure_openai_api_key" {
+  description = "Azure OpenAI API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "azure_openai_api_instance_name" {
+  description = "Azure OpenAI instance/deployment name"
+  type        = string
+  default     = ""
+}
+variable "azure_openai_api_version" {
+  description = "Azure OpenAI API version"
+  type        = string
+  default     = "2024-02-15-preview"
+}
+variable "azure_openai_base_path" {
+  description = "Azure OpenAI base path URL"
+  type        = string
+  default     = ""
+}
+
+variable "storage_provider" {
+  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  type        = string
+  default     = ""
+}

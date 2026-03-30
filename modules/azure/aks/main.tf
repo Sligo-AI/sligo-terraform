@@ -43,7 +43,46 @@ resource "azurerm_subnet" "aks" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+# Delegated subnet for PostgreSQL Flexible Server (required for VNet integration)
+resource "azurerm_subnet" "postgres" {
+  name                 = "${var.cluster_name}-pg-subnet"
+  resource_group_name  = local.rg_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.0.2.0/24"]
+
+  delegation {
+    name = "pg-delegation"
+
+    service_delegation {
+      name    = "Microsoft.DBforPostgreSQL/flexibleServers"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+# Subnet for private endpoints (Redis, etc.)
+resource "azurerm_subnet" "private_endpoints" {
+  name                 = "${var.cluster_name}-pe-subnet"
+  resource_group_name  = local.rg_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.0.3.0/24"]
+}
+
+# Private DNS zone for PostgreSQL Flexible Server name resolution within VNet
+resource "azurerm_private_dns_zone" "postgres" {
+  name                = "privatelink.postgres.database.azure.com"
+  resource_group_name = local.rg_name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
+  name                  = "${var.cluster_name}-pg-dns-link"
+  resource_group_name   = local.rg_name
+  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
 # PostgreSQL Flexible Server (Azure Database for PostgreSQL)
+# Private VNet integration: accessible only from AKS cluster subnet, no public exposure
 resource "azurerm_postgresql_flexible_server" "postgres" {
   name                   = "${replace(var.cluster_name, "-", "")}-pg"
   resource_group_name    = local.rg_name
@@ -54,15 +93,9 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   sku_name               = var.postgres_sku_name
   storage_mb             = var.postgres_storage_mb
 
-  # Public access with firewall for simpler setup; can switch to private later
-  public_network_access_enabled = true
-}
-
-resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_all" {
-  name             = "allow-azure"
-  server_id        = azurerm_postgresql_flexible_server.postgres.id
-  start_ip_address = "0.0.0.0"
-  end_ip_address   = "255.255.255.255"
+  delegated_subnet_id           = azurerm_subnet.postgres.id
+  private_dns_zone_id           = azurerm_private_dns_zone.postgres.id
+  public_network_access_enabled = false
 }
 
 resource "azurerm_postgresql_flexible_server_database" "sligo" {
@@ -73,15 +106,49 @@ resource "azurerm_postgresql_flexible_server_database" "sligo" {
 }
 
 # Azure Cache for Redis
+# Private endpoint: accessible only from VNet, no public exposure
 resource "azurerm_redis_cache" "redis" {
-  name                 = "${replace(var.cluster_name, "-", "")}-redis"
-  location             = local.rg_location
-  resource_group_name  = local.rg_name
-  capacity             = var.redis_capacity
-  family               = var.redis_family
-  sku_name             = var.redis_sku_name
-  non_ssl_port_enabled = false
-  minimum_tls_version  = "1.2"
+  name                          = "${replace(var.cluster_name, "-", "")}-redis"
+  location                      = local.rg_location
+  resource_group_name           = local.rg_name
+  capacity                      = var.redis_capacity
+  family                        = var.redis_family
+  sku_name                      = var.redis_sku_name
+  non_ssl_port_enabled          = false
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = false
+}
+
+# Private DNS zone for Redis name resolution within VNet
+resource "azurerm_private_dns_zone" "redis" {
+  name                = "privatelink.redis.cache.windows.net"
+  resource_group_name = local.rg_name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
+  name                  = "${var.cluster_name}-redis-dns-link"
+  resource_group_name   = local.rg_name
+  private_dns_zone_name = azurerm_private_dns_zone.redis.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
+resource "azurerm_private_endpoint" "redis" {
+  name                = "${var.cluster_name}-redis-pe"
+  location            = local.rg_location
+  resource_group_name = local.rg_name
+  subnet_id           = azurerm_subnet.private_endpoints.id
+
+  private_service_connection {
+    name                           = "${var.cluster_name}-redis-psc"
+    private_connection_resource_id = azurerm_redis_cache.redis.id
+    subresource_names              = ["redisCache"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "default"
+    private_dns_zone_ids = [azurerm_private_dns_zone.redis.id]
+  }
 }
 
 # Storage Account and Blob Containers (4 containers - same as AWS S3/GCS)
@@ -97,6 +164,23 @@ resource "azurerm_storage_account" "main" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
+
+  blob_properties {
+    cors_rule {
+      allowed_origins    = [var.frontend_url]
+      allowed_methods    = ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"]
+      allowed_headers    = ["*"]
+      exposed_headers    = ["*"]
+      max_age_in_seconds = 3600
+    }
+  }
+
+  # Restrict to VNet: deny public access, allow only AKS subnet
+  network_rules {
+    default_action             = "Deny"
+    bypass                     = ["AzureServices"]
+    virtual_network_subnet_ids = [azurerm_subnet.aks.id]
+  }
 }
 
 resource "azurerm_storage_container" "file_manager" {
@@ -221,45 +305,45 @@ resource "kubernetes_secret" "nextjs_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    NEXT_PUBLIC_API_URL                    = var.next_public_api_url
-    NEXT_PUBLIC_URL                        = var.frontend_url
-    FRONTEND_URL                           = var.frontend_url
-    NEXTAUTH_SECRET                        = var.nextauth_secret
-    PORT                                   = "3000"
-    REDIS_URL                              = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    BACKEND_URL                            = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL                        = "http://mcp-gateway:3002"
-    DATABASE_URL                           = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    AUTH_PROVIDER                          = var.auth_provider
-    WORKOS_API_KEY                         = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID                       = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD                 = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID           = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY          = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID         = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GOOGLE_CLIENT_SECRET                   = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    ONEDRIVE_CLIENT_SECRET                 = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                         = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    BUCKET_NAME_AGENT_AVATARS              = local.blob_agent_avatars
-    BUCKET_NAME_FILE_MANAGER               = local.blob_file_manager
-    BUCKET_NAME_LOGOS                      = local.blob_logos
-    BUCKET_NAME_RAG                        = local.blob_rag
-    NODE_ENV                               = "production"
-    SKIP_ENV_VALIDATION                    = "true"
-    AZURE_STORAGE_ACCOUNT_NAME             = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY              = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
-    AUTH_SESSION_SECRET                    = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
-    OIDC_ISSUER                            = var.oidc_issuer
-    OIDC_CLIENT_ID                         = var.oidc_client_id
-    OIDC_CLIENT_SECRET                     = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
-    OIDC_SCOPES                            = var.oidc_scopes
-    OIDC_DEFAULT_ORG_ID                    = var.oidc_default_org_id
-    OIDC_DEFAULT_ORG_NAME                  = var.oidc_default_org_name
+    NEXT_PUBLIC_API_URL                                = var.next_public_api_url
+    NEXT_PUBLIC_URL                                    = var.frontend_url
+    FRONTEND_URL                                       = var.frontend_url
+    NEXTAUTH_SECRET                                    = var.nextauth_secret
+    PORT                                               = "3000"
+    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    BACKEND_URL                                        = "http://sligo-backend:3001"
+    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
+    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
+    AUTH_PROVIDER                                      = var.auth_provider
+    WORKOS_API_KEY                                     = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID                                   = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD                             = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID                       = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY                      = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID                     = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET                               = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET                             = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS                          = local.blob_agent_avatars
+    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
+    BUCKET_NAME_LOGOS                                  = local.blob_logos
+    BUCKET_NAME_RAG                                    = local.blob_rag
+    NODE_ENV                                           = "production"
+    SKIP_ENV_VALIDATION                                = "true"
+    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
+    AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
+    OIDC_ISSUER                                        = var.oidc_issuer
+    OIDC_CLIENT_ID                                     = var.oidc_client_id
+    OIDC_CLIENT_SECRET                                 = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
+    OIDC_SCOPES                                        = var.oidc_scopes
+    OIDC_DEFAULT_ORG_ID                                = var.oidc_default_org_id
+    OIDC_DEFAULT_ORG_NAME                              = var.oidc_default_org_name
     } : {}, var.auth_provider == "saml" ? {
     AUTH_SESSION_SECRET                                     = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     SAML_ENTRYPOINT                                         = var.saml_entrypoint
@@ -273,6 +357,12 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SINGLESTORE_USER                                        = var.singlestore_user
     SINGLESTORE_PASSWORD                                    = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
     SINGLESTORE_DATABASE                                    = var.singlestore_database
+    } : {}, var.azure_aisearch_endpoint != "" ? {
+    RAG_VECTOR_STORE          = "azureaisearch"
+    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
+    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
+    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
+    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
   } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {})
 }
 
@@ -282,28 +372,33 @@ resource "kubernetes_secret" "backend_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    JWT_SECRET                           = var.jwt_secret
-    API_KEY                              = var.api_key
-    PORT                                 = "3001"
-    DATABASE_URL                         = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    REDIS_URL                            = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    MCP_GATEWAY_URL                      = "http://mcp-gateway:3002"
-    SQL_CONNECTION_STRING_DECRYPTION_IV  = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
-    SQL_CONNECTION_STRING_DECRYPTION_KEY = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
-    ENCRYPTION_KEY                       = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    OPENAI_API_KEY                       = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    OPENAI_BASE_URL                      = var.openai_base_url
-    ANTHROPIC_API_KEY                    = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    VERBOSE_LOGGING                      = tostring(var.verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS           = tostring(var.backend_request_timeout_ms)
-    LANGSMITH_API_KEY                    = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    BUCKET_NAME_FILE_MANAGER             = local.blob_file_manager
-    NODE_ENV                             = "production"
-    SKIP_ENV_VALIDATION                  = "true"
-    AZURE_STORAGE_ACCOUNT_NAME           = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY            = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                     = var.google_project_id != "" ? var.google_project_id : ""
-  }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {})
+    JWT_SECRET                                         = var.jwt_secret
+    API_KEY                                            = var.api_key
+    PORT                                               = "3001"
+    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
+    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
+    SQL_CONNECTION_STRING_DECRYPTION_IV                = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
+    SQL_CONNECTION_STRING_DECRYPTION_KEY               = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
+    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    OPENAI_BASE_URL                                    = var.openai_base_url
+    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
+    BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
+    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
+    NODE_ENV                                           = "production"
+    SKIP_ENV_VALIDATION                                = "true"
+    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
+    AZURE_OPENAI_API_KEY                               = var.azure_openai_api_key
+    AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
+    AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
+    AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
+  } : {})
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -312,35 +407,41 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    SECRET                                 = var.gateway_secret
-    PORT                                   = "3002"
-    FRONTEND_URL                           = var.frontend_url
-    BUCKET_NAME_FILE_MANAGER               = local.blob_file_manager
-    REDIS_URL                              = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    REDIS_URL_STRUCTURED_OUTPUTS           = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PERPLEXITY_API_KEY                     = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY                         = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
-    SPENDHQ_BASE_URL                       = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
-    SPENDHQ_CLIENT_ID                      = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
-    SPENDHQ_CLIENT_SECRET                  = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
-    SPENDHQ_TOKEN_URL                      = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
-    SPENDHQ_SS_HOST                        = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
-    SPENDHQ_SS_USERNAME                    = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
-    SPENDHQ_SS_PASSWORD                    = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
-    SPENDHQ_SS_PORT                        = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-    ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    AZURE_STORAGE_ACCOUNT_NAME             = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY              = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
-    SINGLESTORE_HOST                       = var.singlestore_host
-    SINGLESTORE_PORT                       = var.singlestore_port
-    SINGLESTORE_USER                       = var.singlestore_user
-    SINGLESTORE_PASSWORD                   = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
-    SINGLESTORE_DATABASE                   = var.singlestore_database
+    SECRET                                             = var.gateway_secret
+    PORT                                               = "3002"
+    FRONTEND_URL                                       = var.frontend_url
+    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
+    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    REDIS_URL_STRUCTURED_OUTPUTS                       = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PERPLEXITY_API_KEY                                 = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY                                     = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    SPENDHQ_BASE_URL                                   = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
+    SPENDHQ_CLIENT_ID                                  = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
+    SPENDHQ_CLIENT_SECRET                              = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
+    SPENDHQ_TOKEN_URL                                  = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
+    SPENDHQ_SS_HOST                                    = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
+    SPENDHQ_SS_USERNAME                                = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
+    SPENDHQ_SS_PASSWORD                                = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
+    SPENDHQ_SS_PORT                                    = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
+    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    SINGLESTORE_HOST                                   = var.singlestore_host
+    SINGLESTORE_PORT                                   = var.singlestore_port
+    SINGLESTORE_USER                                   = var.singlestore_user
+    SINGLESTORE_PASSWORD                               = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
+    SINGLESTORE_DATABASE                               = var.singlestore_database
+    } : {}, var.azure_aisearch_endpoint != "" ? {
+    RAG_VECTOR_STORE          = "azureaisearch"
+    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
+    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
+    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
+    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
   } : {})
 }
 

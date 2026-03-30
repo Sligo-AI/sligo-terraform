@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Deploy on GCP GKE"
-description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, Memorystore, and Cloud Storage."
+description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, in-cluster Redis Stack, and Cloud Storage."
 ---
 
 {% include theme-image.html light="gcp-deployment.png" dark="gcp-deployment-dark.png" alt="GCP Deployment" %}
@@ -70,7 +70,7 @@ Edit `terraform.tfvars` with your values. Key variables:
 | `jwt_secret`, `api_key`, `nextauth_secret`, `gateway_secret` | App secrets |
 | `encryption_key` | 64 hex chars: `openssl rand -hex 32` |
 
-**Optional:** `db_tier` (default `db-f1-micro`), `redis_memory_size_gb`, `use_existing_gcs_bucket`.
+**Optional:** `db_tier` (default `db-f1-micro`), `redis_persistence_size` (default `1Gi`), `redis_persistence_storage_class` (default `standard-rwo`), `use_existing_gcs_bucket`.
 
 ---
 
@@ -82,7 +82,7 @@ terraform plan
 terraform apply
 ```
 
-Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Memorystore + GCS buckets).
+Deployment typically takes 15–25 minutes (GKE + Cloud SQL + in-cluster Redis Stack + GCS buckets).
 
 ---
 
@@ -101,7 +101,7 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Memorystore + GCS 
 
 - **GKE cluster** with node pool
 - **Cloud SQL** (PostgreSQL)
-- **Memorystore** (Redis)
+- **In-cluster Redis Stack** (RedisJSON, persistent)
 - **4 GCS buckets** (file-manager, agent-avatars, logos, rag)
 - **GCE Ingress** (HTTP(S) load balancer)
 - **Sligo Enterprise Helm chart** deployment
