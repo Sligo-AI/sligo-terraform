@@ -76,3 +76,18 @@ output "gcs_bucket_rag_name" {
   description = "GCS bucket name for RAG storage"
   value       = local.gcs_bucket_rag_id
 }
+
+output "external_secrets_operator_enabled" {
+  description = "Whether External Secrets Operator resources are managed by this module."
+  value       = var.enable_external_secrets_operator
+}
+
+output "secret_manager_project_id" {
+  description = "Project ID used for central Secret Manager reads/writes when ESO is enabled."
+  value       = var.secret_manager_project_id
+}
+
+output "secret_name_prefix" {
+  description = "Computed secret prefix used for deployment-isolated secret IDs."
+  value       = local.gsm_secret_prefix
+}

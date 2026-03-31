@@ -100,6 +100,53 @@ variable "sligo_service_account_key_path" {
   sensitive   = true
 }
 
+variable "enable_external_secrets_operator" {
+  description = "When true, install External Secrets Operator and a ClusterSecretStore for Google Secret Manager in secret_manager_project_id (auth uses the same JSON key file as GAR)."
+  type        = bool
+  default     = false
+}
+
+variable "use_eso_managed_app_secrets" {
+  description = "When true, app/backend/mcp secrets are synced from GSM via External Secrets instead of Terraform kubernetes_secret resources. Requires enable_external_secrets_operator."
+  type        = bool
+  default     = false
+}
+
+variable "secret_names" {
+  description = "Base secret names (without prefix). Full GSM secret IDs are computed as secret_name_prefix plus name."
+  type        = list(string)
+  default = [
+    "db-password",
+    "jwt-secret",
+    "api-key",
+    "nextauth-secret",
+    "encryption-key",
+    "workos-api-key",
+    "openai-api-key",
+    "anthropic-api-key",
+    "backend-api-key",
+    "gateway-secret"
+  ]
+}
+
+variable "secret_manager_project_id" {
+  description = "GCP project ID hosting GSM secrets (central platform project)."
+  type        = string
+  default     = "sligo-ai-platform"
+}
+
+variable "secret_name_prefix" {
+  description = "Prefix for GSM secret IDs to isolate by client or environment. Leave empty to derive from cluster_name."
+  type        = string
+  default     = ""
+}
+
+variable "create_secret_placeholders" {
+  description = "When true, the GCP GKE module can create GSM secret placeholders in secret_manager_project_id. EKS does not create GSM resources; use sligo-onboarding or manual provisioning in GCP."
+  type        = bool
+  default     = false
+}
+
 # Database Configuration (Aurora Serverless v2)
 variable "db_username" {
   description = "Database username"

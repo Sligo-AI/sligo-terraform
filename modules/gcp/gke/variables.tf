@@ -250,6 +250,53 @@ variable "use_existing_agent_avatars_bucket" {
   default     = false
 }
 
+variable "enable_external_secrets_operator" {
+  description = "When true, install External Secrets Operator and provision GCP Secret Manager placeholders for app secrets."
+  type        = bool
+  default     = false
+}
+
+variable "use_eso_managed_app_secrets" {
+  description = "When true, app/backend/mcp Kubernetes secrets are sourced from External Secrets instead of Terraform plaintext kubernetes_secret resources."
+  type        = bool
+  default     = false
+}
+
+variable "secret_names" {
+  description = "Base secret names (without prefix). Full GSM secret IDs are computed as <secret_name_prefix><name>."
+  type        = list(string)
+  default = [
+    "db-password",
+    "jwt-secret",
+    "api-key",
+    "nextauth-secret",
+    "encryption-key",
+    "workos-api-key",
+    "openai-api-key",
+    "anthropic-api-key",
+    "backend-api-key",
+    "gateway-secret"
+  ]
+}
+
+variable "secret_manager_project_id" {
+  description = "Project ID hosting GSM secrets for this deployment. Defaults to Sligo shared platform project."
+  type        = string
+  default     = "sligo-ai-platform"
+}
+
+variable "secret_name_prefix" {
+  description = "Prefix applied to all secret_names to isolate by client/environment (for example sligo-qxo-staging-). Leave empty to auto-derive from cluster_name."
+  type        = string
+  default     = ""
+}
+
+variable "create_secret_placeholders" {
+  description = "When true, create missing GSM secret placeholders in secret_manager_project_id. Keep false when secrets are centrally pre-provisioned."
+  type        = bool
+  default     = false
+}
+
 variable "gcs_bucket_agent_avatars_project" {
   description = "When use_existing_agent_avatars_bucket is true and the bucket lives in a different GCP project, set this to that project ID. Passed to the app so it can target the correct project for that bucket (e.g. for SDK calls or signed URLs). Leave empty if the bucket is in the same project as the cluster."
   type        = string

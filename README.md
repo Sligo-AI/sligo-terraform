@@ -40,6 +40,19 @@ Then configure your environment and run `terraform init && terraform apply`.
 - **Helm chart deployment** with secrets and ingress
 - **Environment automation** via `make create-environment`
 
+### Phase 4 secret management switches (GKE, EKS, AKS)
+
+All three cluster modules support staged External Secrets adoption against **central Google Secret Manager** in `sligo-ai-platform` (or another project via `secret_manager_project_id`):
+
+- `enable_external_secrets_operator` installs External Secrets Operator and wires a `ClusterSecretStore` to GSM. On **GKE**, Workload Identity is used; on **EKS/AKS**, GSM auth uses the same JSON service account key as GAR (Kubernetes secret referenced by the store).
+- `use_eso_managed_app_secrets` switches app/backend/mcp secrets from Terraform-managed plaintext `kubernetes_secret` resources to ESO-managed secrets.
+- `secret_name_prefix` isolates client/environment secrets (for example `sligo-qxo-staging-`).
+- `create_secret_placeholders` — on **GKE only**, Terraform can create GSM placeholder secrets when enabled; on **EKS/AKS** use sligo-onboarding or manual provisioning in GCP.
+
+Defaults keep current behavior (`false`) so existing environments do not change until you explicitly enable migration.
+
+Sligo's enterprise model uses centralized secret governance in `sligo-ai-platform` with prefix isolation per client/environment.
+
 ---
 
 ## Prerequisites

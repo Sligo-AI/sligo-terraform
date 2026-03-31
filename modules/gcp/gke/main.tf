@@ -380,6 +380,8 @@ resource "kubernetes_secret" "gar_pull_secret" {
 
 # Application Secrets (same structure as AWS EKS)
 resource "kubernetes_secret" "nextjs_secrets" {
+  count = var.use_eso_managed_app_secrets ? 0 : 1
+
   metadata {
     name      = "nextjs-secrets"
     namespace = kubernetes_namespace.sligo.metadata[0].name
@@ -449,6 +451,8 @@ resource "kubernetes_secret" "nextjs_secrets" {
 }
 
 resource "kubernetes_secret" "backend_secrets" {
+  count = var.use_eso_managed_app_secrets ? 0 : 1
+
   metadata {
     name      = "backend-secrets"
     namespace = kubernetes_namespace.sligo.metadata[0].name
@@ -487,6 +491,8 @@ resource "kubernetes_secret" "backend_secrets" {
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
+  count = var.use_eso_managed_app_secrets ? 0 : 1
+
   metadata {
     name      = "mcp-gateway-secrets"
     namespace = kubernetes_namespace.sligo.metadata[0].name
@@ -773,6 +779,194 @@ resource "google_service_account_iam_member" "gcs_access_self_token_creator" {
 locals {
   # Use explicit rag_sa_key when set; otherwise rely on Workload Identity (app uses ADC → gcs_access SA)
   rag_sa_key = var.rag_sa_key != "" ? var.rag_sa_key : ""
+
+  nextjs_secret_name      = "nextjs-secrets"
+  backend_secret_name     = "backend-secrets"
+  mcp_gateway_secret_name = "mcp-gateway-secrets"
+  default_secret_prefix   = "sligo-${replace(var.cluster_name, "_", "-")}-"
+  gsm_secret_prefix       = var.secret_name_prefix != "" ? var.secret_name_prefix : local.default_secret_prefix
+  gsm_secret_ids          = { for name in var.secret_names : name => "${local.gsm_secret_prefix}${name}" }
+}
+
+data "google_project" "secret_manager" {
+  count      = var.enable_external_secrets_operator ? 1 : 0
+  project_id = var.secret_manager_project_id
+}
+
+resource "google_secret_manager_secret" "app_secrets" {
+  for_each  = var.enable_external_secrets_operator && var.create_secret_placeholders ? local.gsm_secret_ids : {}
+  secret_id = each.value
+  project   = var.secret_manager_project_id
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_project_iam_member" "app_secrets_access" {
+  count   = var.enable_external_secrets_operator ? 1 : 0
+  project = var.secret_manager_project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.gcs_access.email}"
+
+  condition {
+    title       = "Secret Manager prefix access"
+    description = "Accessor only for secrets with deployment prefix"
+    expression  = "resource.type == \"secretmanager.googleapis.com/Secret\" && resource.name.startsWith(\"projects/${data.google_project.secret_manager[0].number}/secrets/${local.gsm_secret_prefix}\")"
+  }
+}
+
+resource "google_service_account_iam_member" "external_secrets_workload_identity" {
+  count              = var.enable_external_secrets_operator ? 1 : 0
+  service_account_id = google_service_account.gcs_access.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.gcp_project_id}.svc.id.goog[external-secrets/external-secrets]"
+}
+
+resource "helm_release" "external_secrets" {
+  count            = var.enable_external_secrets_operator ? 1 : 0
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  version          = "0.9.11"
+  namespace        = "external-secrets"
+  create_namespace = true
+
+  depends_on = [
+    time_sleep.wait_for_cluster,
+    google_service_account_iam_member.external_secrets_workload_identity
+  ]
+}
+
+resource "kubernetes_manifest" "gcp_secret_manager_store" {
+  count = var.enable_external_secrets_operator ? 1 : 0
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ClusterSecretStore"
+    metadata = {
+      name = "gcp-secret-manager"
+    }
+    spec = {
+      provider = {
+        gcpsm = {
+          projectID = var.secret_manager_project_id
+          auth = {
+            workloadIdentity = {
+              clusterLocation = var.gcp_region
+              clusterName     = google_container_cluster.primary.name
+              serviceAccountRef = {
+                name      = "external-secrets"
+                namespace = "external-secrets"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.external_secrets]
+}
+
+resource "kubernetes_manifest" "external_secret_nextjs" {
+  count = var.enable_external_secrets_operator && var.use_eso_managed_app_secrets ? 1 : 0
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "nextjs-secrets"
+      namespace = kubernetes_namespace.sligo.metadata[0].name
+    }
+    spec = {
+      refreshInterval = "1m"
+      secretStoreRef = {
+        name = "gcp-secret-manager"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = local.nextjs_secret_name
+        creationPolicy = "Owner"
+      }
+      data = [
+        { secretKey = "NEXTAUTH_SECRET", remoteRef = { key = local.gsm_secret_ids["nextauth-secret"] } },
+        { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
+        { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
+        { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_manifest.gcp_secret_manager_store]
+}
+
+resource "kubernetes_manifest" "external_secret_backend" {
+  count = var.enable_external_secrets_operator && var.use_eso_managed_app_secrets ? 1 : 0
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "backend-secrets"
+      namespace = kubernetes_namespace.sligo.metadata[0].name
+    }
+    spec = {
+      refreshInterval = "1m"
+      secretStoreRef = {
+        name = "gcp-secret-manager"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = local.backend_secret_name
+        creationPolicy = "Owner"
+      }
+      data = [
+        { secretKey = "JWT_SECRET", remoteRef = { key = local.gsm_secret_ids["jwt-secret"] } },
+        { secretKey = "API_KEY", remoteRef = { key = local.gsm_secret_ids["api-key"] } },
+        { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
+        { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
+        { secretKey = "ANTHROPIC_API_KEY", remoteRef = { key = local.gsm_secret_ids["anthropic-api-key"] } },
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_manifest.gcp_secret_manager_store]
+}
+
+resource "kubernetes_manifest" "external_secret_mcp_gateway" {
+  count = var.enable_external_secrets_operator && var.use_eso_managed_app_secrets ? 1 : 0
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "mcp-gateway-secrets"
+      namespace = kubernetes_namespace.sligo.metadata[0].name
+    }
+    spec = {
+      refreshInterval = "1m"
+      secretStoreRef = {
+        name = "gcp-secret-manager"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = local.mcp_gateway_secret_name
+        creationPolicy = "Owner"
+      }
+      data = [
+        { secretKey = "SECRET", remoteRef = { key = local.gsm_secret_ids["gateway-secret"] } },
+        { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
+        { secretKey = "ANTHROPIC_API_KEY", remoteRef = { key = local.gsm_secret_ids["anthropic-api-key"] } }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_manifest.gcp_secret_manager_store]
 }
 
 # GCS Bucket Secret for Kubernetes
@@ -873,7 +1067,7 @@ resource "helm_release" "sligo_cloud" {
           tag        = var.app_version
           pullPolicy = "Always"
         }
-        secretName = kubernetes_secret.nextjs_secrets.metadata[0].name
+        secretName = local.nextjs_secret_name
         resources = {
           requests = {
             cpu    = "500m"
@@ -893,7 +1087,7 @@ resource "helm_release" "sligo_cloud" {
           tag        = var.app_version
           pullPolicy = "Always"
         }
-        secretName = kubernetes_secret.backend_secrets.metadata[0].name
+        secretName = local.backend_secret_name
         resources = {
           requests = {
             cpu    = "1000m"
@@ -913,7 +1107,7 @@ resource "helm_release" "sligo_cloud" {
           tag        = var.app_version
           pullPolicy = "Always"
         }
-        secretName = kubernetes_secret.mcp_gateway_secrets.metadata[0].name
+        secretName = local.mcp_gateway_secret_name
         resources = {
           requests = {
             cpu    = "500m"
@@ -934,7 +1128,7 @@ resource "helm_release" "sligo_cloud" {
           tag        = var.app_version
           pullPolicy = "Always"
         }
-        secretName = kubernetes_secret.backend_secrets.metadata[0].name
+        secretName = local.backend_secret_name
       }
 
       database = {
@@ -971,6 +1165,9 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.mcp_gateway_secrets,
     kubernetes_secret.gcp_credentials,
     kubernetes_secret.database_secret,
+    kubernetes_manifest.external_secret_nextjs,
+    kubernetes_manifest.external_secret_backend,
+    kubernetes_manifest.external_secret_mcp_gateway,
     kubernetes_service_account.app_gcs,
     google_service_account_iam_member.app_gcs_workload_identity
   ]
