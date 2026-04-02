@@ -330,9 +330,20 @@ resource "time_sleep" "wait_for_cluster" {
   create_duration = "30s"
 }
 
+# GSM / jsondecode marks many inputs sensitive; zone IDs and ACM ARNs are not credentials but
+# break count/for_each unless we use nonsensitive() for structural decisions.
+locals {
+  route53_zone_id_plain          = nonsensitive(var.route53_zone_id)
+  acm_certificate_arn_plain      = nonsensitive(var.acm_certificate_arn)
+  alb_hostname_plain             = nonsensitive(var.alb_hostname)
+  route53_zone_configured        = trimspace(local.route53_zone_id_plain) != ""
+  create_managed_acm_certificate = trimspace(local.acm_certificate_arn_plain) == ""
+  alb_hostname_configured        = trimspace(local.alb_hostname_plain) != ""
+}
+
 # ACM Certificate for HTTPS (optional - create if acm_certificate_arn is not provided)
 resource "aws_acm_certificate" "sligo" {
-  count             = var.acm_certificate_arn == "" ? 1 : 0
+  count             = local.create_managed_acm_certificate ? 1 : 0
   domain_name       = var.domain_name
   validation_method = "DNS"
 
@@ -349,18 +360,18 @@ resource "aws_acm_certificate" "sligo" {
 # Note: If creating automatically, certificate will be in "Pending validation" state
 # until DNS validation records are added (or Route 53 creates them when route53_zone_id is set)
 locals {
-  certificate_arn = var.acm_certificate_arn != "" ? var.acm_certificate_arn : (var.acm_certificate_arn == "" && length(aws_acm_certificate.sligo) > 0 ? aws_acm_certificate.sligo[0].arn : "")
+  certificate_arn = !local.create_managed_acm_certificate ? local.acm_certificate_arn_plain : (length(aws_acm_certificate.sligo) > 0 ? aws_acm_certificate.sligo[0].arn : "")
 }
 
 # Route 53: optional DNS management when zone is in this account
 data "aws_route53_zone" "dns" {
-  count   = var.route53_zone_id != "" ? 1 : 0
+  count   = local.route53_zone_configured ? 1 : 0
   zone_id = var.route53_zone_id
 }
 
 # ACM DNS validation records in Route 53 (when creating cert and route53_zone_id is set)
 resource "aws_route53_record" "acm_validation" {
-  for_each = var.route53_zone_id != "" && var.acm_certificate_arn == "" && length(aws_acm_certificate.sligo) > 0 ? {
+  for_each = local.route53_zone_configured && local.create_managed_acm_certificate && length(aws_acm_certificate.sligo) > 0 ? {
     for dvo in aws_acm_certificate.sligo[0].domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       type   = dvo.resource_record_type
@@ -377,7 +388,7 @@ resource "aws_route53_record" "acm_validation" {
 
 # Wait for ACM certificate to be issued (when validation records are in Route 53)
 resource "aws_acm_certificate_validation" "sligo" {
-  count = var.route53_zone_id != "" && var.acm_certificate_arn == "" && length(aws_acm_certificate.sligo) > 0 ? 1 : 0
+  count = local.route53_zone_configured && local.create_managed_acm_certificate && length(aws_acm_certificate.sligo) > 0 ? 1 : 0
 
   certificate_arn         = aws_acm_certificate.sligo[0].arn
   validation_record_fqdns = [for r in aws_route53_record.acm_validation : r.fqdn]
@@ -385,7 +396,7 @@ resource "aws_acm_certificate_validation" "sligo" {
 
 # CNAME records for app and api when Route 53 zone and ALB hostname are provided
 resource "aws_route53_record" "app" {
-  count = var.route53_zone_id != "" && var.alb_hostname != "" ? 1 : 0
+  count = local.route53_zone_configured && local.alb_hostname_configured ? 1 : 0
 
   zone_id = var.route53_zone_id
   name    = var.domain_name
@@ -395,7 +406,7 @@ resource "aws_route53_record" "app" {
 }
 
 resource "aws_route53_record" "api" {
-  count = var.route53_zone_id != "" && var.alb_hostname != "" ? 1 : 0
+  count = local.route53_zone_configured && local.alb_hostname_configured ? 1 : 0
 
   zone_id = var.route53_zone_id
   name    = "api.${var.domain_name}"
