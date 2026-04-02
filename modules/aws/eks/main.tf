@@ -137,8 +137,15 @@ resource "aws_route_table_association" "private" {
 }
 
 locals {
+  # Values from Secret Manager JSON are sensitive; terraform-aws-modules/eks uses access_entries in
+  # for_each, which cannot use sensitive-derived maps. IAM ARNs are identifiers, not secrets.
+  eks_cluster_admin_principal_arns_plain = try(
+    nonsensitive(var.eks_cluster_admin_principal_arns),
+    var.eks_cluster_admin_principal_arns,
+  )
+
   eks_explicit_cluster_admin_entries = {
-    for arn in var.eks_cluster_admin_principal_arns :
+    for arn in local.eks_cluster_admin_principal_arns_plain :
     "admin_${substr(sha256(arn), 0, 16)}" => {
       principal_arn = arn
       type          = "STANDARD"
@@ -171,9 +178,9 @@ module "eks" {
   # This ensures node groups can automatically join the cluster
   authentication_mode = "API_AND_CONFIG_MAP"
   # Avoid identity flapping: when explicit admins are set, do not bind admin to whoever runs apply.
-  enable_cluster_creator_admin_permissions = length(var.eks_cluster_admin_principal_arns) == 0
+  enable_cluster_creator_admin_permissions = length(local.eks_cluster_admin_principal_arns_plain) == 0
   access_entries                           = local.eks_explicit_cluster_admin_entries
-  kms_key_administrators                   = length(var.eks_cluster_admin_principal_arns) > 0 ? var.eks_cluster_admin_principal_arns : []
+  kms_key_administrators                   = length(local.eks_cluster_admin_principal_arns_plain) > 0 ? local.eks_cluster_admin_principal_arns_plain : []
 
   # EKS Managed Node Groups
   eks_managed_node_groups = {
