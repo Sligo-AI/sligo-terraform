@@ -136,6 +136,24 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private[count.index].id
 }
 
+locals {
+  eks_explicit_cluster_admin_entries = {
+    for arn in var.eks_cluster_admin_principal_arns :
+    "admin_${substr(sha256(arn), 0, 16)}" => {
+      principal_arn = arn
+      type          = "STANDARD"
+      policy_associations = {
+        cluster_admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+}
+
 # EKS Cluster
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -151,8 +169,11 @@ module "eks" {
 
   # Enable access entries API (required for EKS clusters to allow nodes to join)
   # This ensures node groups can automatically join the cluster
-  authentication_mode                      = "API_AND_CONFIG_MAP"
-  enable_cluster_creator_admin_permissions = true
+  authentication_mode = "API_AND_CONFIG_MAP"
+  # Avoid identity flapping: when explicit admins are set, do not bind admin to whoever runs apply.
+  enable_cluster_creator_admin_permissions = length(var.eks_cluster_admin_principal_arns) == 0
+  access_entries                           = local.eks_explicit_cluster_admin_entries
+  kms_key_administrators                   = length(var.eks_cluster_admin_principal_arns) > 0 ? var.eks_cluster_admin_principal_arns : []
 
   # EKS Managed Node Groups
   eks_managed_node_groups = {

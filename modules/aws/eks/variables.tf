@@ -16,6 +16,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+# When non-empty, these IAM principals receive AmazonEKSClusterAdminPolicy (cluster scope) via EKS access entries,
+# and enable_cluster_creator_admin_permissions is turned off so apply identity (e.g. GitHub OIDC) no longer replaces
+# the cluster_creator entry. Principals not listed here are unchanged; console-created access entries stay unless you
+# import them into Terraform.
+variable "eks_cluster_admin_principal_arns" {
+  description = "IAM role/user ARNs that should always have cluster-admin access via EKS access entries (SSO admin, CI role, etc.). Leave empty to keep legacy behavior: cluster_creator tracks whoever runs Terraform."
+  type        = list(string)
+  default     = []
+}
+
 # Node Group Configuration
 variable "node_group_min_size" {
   description = "Minimum number of nodes in the EKS node group"
