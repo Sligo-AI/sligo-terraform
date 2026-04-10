@@ -117,6 +117,15 @@ resource "null_resource" "psa_ready" {
   triggers = var.use_existing_psa ? {} : { connection = google_service_networking_connection.private_vpc_connection[0].id }
 }
 
+# On destroy, Cloud SQL must fully release private service access before the VPC peering can be
+# deleted; otherwise servicenetworking returns "Producer services are still using this connection".
+resource "time_sleep" "wait_after_sql_destroy" {
+  depends_on = [null_resource.psa_ready]
+
+  create_duration  = "0s"
+  destroy_duration = var.private_service_access_destroy_wait
+}
+
 # Cloud Router + NAT so private GKE nodes/pods can reach the internet (e.g. WorkOS api.workos.com)
 # Skipped when use_existing_network=true — the client's VPC already has a NAT covering ALL_SUBNETWORKS_ALL_IP_RANGES
 resource "google_compute_router" "router" {
@@ -142,7 +151,7 @@ resource "google_container_cluster" "primary" {
   name                = var.cluster_name
   location            = var.gcp_region
   project             = var.gcp_project_id
-  deletion_protection = true
+  deletion_protection = var.gke_deletion_protection
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
   # node pool and immediately delete it.
@@ -245,11 +254,11 @@ resource "google_sql_database_instance" "postgres" {
   database_version    = "POSTGRES_15"
   region              = var.gcp_region
   project             = var.gcp_project_id
-  deletion_protection = true
+  deletion_protection = var.cloud_sql_deletion_protection
 
   settings {
     tier                        = var.db_tier
-    deletion_protection_enabled = true
+    deletion_protection_enabled = var.cloud_sql_deletion_protection
 
     ip_configuration {
       ipv4_enabled                                  = false
@@ -263,7 +272,7 @@ resource "google_sql_database_instance" "postgres" {
     }
   }
 
-  depends_on = [google_project_service.required_apis, null_resource.psa_ready]
+  depends_on = [google_project_service.required_apis, time_sleep.wait_after_sql_destroy]
 }
 
 # Cloud SQL Database
@@ -388,38 +397,40 @@ resource "kubernetes_secret" "nextjs_secrets" {
   }
 
   data = merge({
-    NEXT_PUBLIC_API_URL                                = var.next_public_api_url
-    NEXT_PUBLIC_URL                                    = var.frontend_url
-    FRONTEND_URL                                       = var.frontend_url
-    NEXTAUTH_SECRET                                    = var.nextauth_secret
-    PORT                                               = "3000"
-    REDIS_URL                                          = local.redis_url
-    BACKEND_URL                                        = "http://sligo-backend:3001"
-    BACKEND_API_KEY                                    = var.backend_api_key
-    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
-    DATABASE_URL                                       = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
-    AUTH_PROVIDER                                      = var.auth_provider
-    AUTH_INVITATIONS                                   = var.auth_invitations != "" ? var.auth_invitations : ""
-    WORKOS_API_KEY                                     = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID                                   = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD                             = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID                       = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY                      = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID                     = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GOOGLE_CLIENT_SECRET                               = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    ONEDRIVE_CLIENT_SECRET                             = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    BUCKET_NAME_AGENT_AVATARS                          = local.gcs_bucket_agent_avatars_id
-    BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
-    BUCKET_NAME_LOGOS                                  = local.gcs_bucket_logos_id
-    BUCKET_NAME_RAG                                    = local.gcs_bucket_rag_id
-    NODE_ENV                                           = "production"
-    SKIP_ENV_VALIDATION                                = "true"
-    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
-    SUPER_ADMIN_EMAILS                                 = var.super_admin_emails != "" ? var.super_admin_emails : ""
+    NEXT_PUBLIC_API_URL            = var.next_public_api_url
+    NEXT_PUBLIC_URL                = var.frontend_url
+    FRONTEND_URL                   = var.frontend_url
+    NEXTAUTH_SECRET                = var.nextauth_secret
+    PORT                           = "3000"
+    REDIS_URL                      = local.redis_url
+    BACKEND_URL                    = "http://sligo-backend:3001"
+    BACKEND_API_KEY                = var.backend_api_key
+    MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
+    DATABASE_URL                   = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
+    AUTH_PROVIDER                  = var.auth_provider
+    AUTH_INVITATIONS               = var.auth_invitations != "" ? var.auth_invitations : ""
+    WORKOS_API_KEY                 = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID               = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD         = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID   = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY  = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY               = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                 = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS      = local.gcs_bucket_agent_avatars_id
+    BUCKET_NAME_FILE_MANAGER       = local.gcs_bucket_file_manager_id
+    BUCKET_NAME_LOGOS              = local.gcs_bucket_logos_id
+    BUCKET_NAME_RAG                = local.gcs_bucket_rag_id
+    NODE_ENV                       = "production"
+    SKIP_ENV_VALIDATION            = "true"
+    GOOGLE_PROJECTID               = var.google_project_id != "" ? var.google_project_id : var.gcp_project_id
+    SUPER_ADMIN_EMAILS             = var.super_admin_emails != "" ? var.super_admin_emails : ""
+    # Same JSON as GAR pull — GCS client for MDI default seed (mdi-defaults bucket).
+    MDI_GCP_KEY                                        = file(var.sligo_service_account_key_path)
     }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, local.rag_sa_key != "" ? { RAG_SA_KEY = local.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
     AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     OIDC_ISSUER                                        = var.oidc_issuer
@@ -896,7 +907,8 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
         { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
-        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
+        { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } }
       ]
     }
   }

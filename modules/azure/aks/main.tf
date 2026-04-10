@@ -389,7 +389,8 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
         { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
-        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
+        { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } }
       ]
     }
   }
@@ -471,37 +472,39 @@ resource "kubernetes_secret" "nextjs_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    NEXT_PUBLIC_API_URL                                = var.next_public_api_url
-    NEXT_PUBLIC_URL                                    = var.frontend_url
-    FRONTEND_URL                                       = var.frontend_url
-    NEXTAUTH_SECRET                                    = var.nextauth_secret
-    PORT                                               = "3000"
-    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    BACKEND_URL                                        = "http://sligo-backend:3001"
-    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
-    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    AUTH_PROVIDER                                      = var.auth_provider
-    WORKOS_API_KEY                                     = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
-    WORKOS_CLIENT_ID                                   = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
-    WORKOS_COOKIE_PASSWORD                             = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID                       = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
-    NEXT_PUBLIC_GOOGLE_CLIENT_KEY                      = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
-    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID                     = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
-    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    GOOGLE_CLIENT_SECRET                               = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
-    ONEDRIVE_CLIENT_SECRET                             = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
-    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    BUCKET_NAME_AGENT_AVATARS                          = local.blob_agent_avatars
-    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
-    BUCKET_NAME_LOGOS                                  = local.blob_logos
-    BUCKET_NAME_RAG                                    = local.blob_rag
-    NODE_ENV                                           = "production"
-    SKIP_ENV_VALIDATION                                = "true"
-    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
+    NEXT_PUBLIC_API_URL            = var.next_public_api_url
+    NEXT_PUBLIC_URL                = var.frontend_url
+    FRONTEND_URL                   = var.frontend_url
+    NEXTAUTH_SECRET                = var.nextauth_secret
+    PORT                           = "3000"
+    REDIS_URL                      = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    BACKEND_URL                    = "http://sligo-backend:3001"
+    MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
+    DATABASE_URL                   = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
+    AUTH_PROVIDER                  = var.auth_provider
+    WORKOS_API_KEY                 = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
+    WORKOS_CLIENT_ID               = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
+    WORKOS_COOKIE_PASSWORD         = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID   = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_KEY  = var.next_public_google_client_key != "" ? var.next_public_google_client_key : "placeholder"
+    NEXT_PUBLIC_ONEDRIVE_CLIENT_ID = var.next_public_onedrive_client_id != "" ? var.next_public_onedrive_client_id : "placeholder"
+    PINECONE_API_KEY               = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                 = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
+    ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
+    OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    BUCKET_NAME_AGENT_AVATARS      = local.blob_agent_avatars
+    BUCKET_NAME_FILE_MANAGER       = local.blob_file_manager
+    BUCKET_NAME_LOGOS              = local.blob_logos
+    BUCKET_NAME_RAG                = local.blob_rag
+    NODE_ENV                       = "production"
+    SKIP_ENV_VALIDATION            = "true"
+    AZURE_STORAGE_ACCOUNT_NAME     = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY      = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    GOOGLE_PROJECTID               = var.google_project_id != "" ? var.google_project_id : ""
+    # Same JSON as GAR pull — GCS client for MDI default seed (mdi-defaults bucket).
+    MDI_GCP_KEY                                        = file(var.sligo_service_account_key_path)
     }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
     AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     OIDC_ISSUER                                        = var.oidc_issuer

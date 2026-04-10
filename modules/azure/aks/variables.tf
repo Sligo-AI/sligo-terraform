@@ -89,7 +89,8 @@ variable "secret_names" {
     "openai-api-key",
     "anthropic-api-key",
     "backend-api-key",
-    "gateway-secret"
+    "gateway-secret",
+    "mdi-gcp-key"
   ]
 }
 

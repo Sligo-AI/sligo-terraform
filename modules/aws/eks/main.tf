@@ -956,7 +956,8 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
         { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
-        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
+        { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } }
       ]
     }
   }
@@ -1071,8 +1072,10 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SKIP_ENV_VALIDATION            = "true"
     SUPER_ADMIN_EMAILS             = var.super_admin_emails != "" ? var.super_admin_emails : ""
     # AWS S3 for EKS (we know these; optional keys omitted when using IRSA)
-    AWS_REGION                                         = var.aws_region
-    AWS_ENDPOINT                                       = "https://s3.amazonaws.com"
+    AWS_REGION   = var.aws_region
+    AWS_ENDPOINT = "https://s3.amazonaws.com"
+    # Same JSON as GAR pull / ESO GSM credentials — GCS client for MDI default seed (mdi-defaults bucket).
+    MDI_GCP_KEY                                        = file(var.sligo_service_account_key_path)
     }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.google_project_id != "" ? { GOOGLE_PROJECTID = var.google_project_id } : {}, var.aws_access_key_id != "" && var.aws_secret_access_key != "" ? { AWS_ACCESS_KEY_ID = var.aws_access_key_id, AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key } : {}, var.auth_provider == "oidc" ? {
     AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     OIDC_ISSUER                                        = var.oidc_issuer

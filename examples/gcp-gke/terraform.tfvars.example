@@ -4,6 +4,11 @@ gcp_project_id  = "your-project-id"
 gcp_region      = "us-central1"
 gcp_zones       = ["us-central1-a", "us-central1-b"]
 cluster_version = "1.28"
+# Teardown: set both false, run terraform apply, then terraform destroy
+# gke_deletion_protection       = false
+# cloud_sql_deletion_protection = false
+# If destroy fails on service networking peering, increase wait (default 10m in module):
+# private_service_access_destroy_wait = "15m"
 
 # Application Configuration
 domain_name              = "app.example.com"

@@ -33,6 +33,24 @@ variable "node_machine_type" {
   default     = "e2-standard-2"
 }
 
+variable "gke_deletion_protection" {
+  description = "When true, the GKE cluster cannot be deleted until set to false (e.g. set false, apply, then destroy)."
+  type        = bool
+  default     = true
+}
+
+variable "cloud_sql_deletion_protection" {
+  description = "When true, the Cloud SQL instance cannot be deleted until set to false (e.g. set false, apply, then destroy)."
+  type        = bool
+  default     = true
+}
+
+variable "private_service_access_destroy_wait" {
+  description = "How long to wait after Cloud SQL is destroyed before deleting the VPC service networking connection. GCP often needs several minutes to release the peering; increase if destroy fails with 'Producer services are still using this connection'."
+  type        = string
+  default     = "10m"
+}
+
 # Existing Network (when client provides VPC/subnet)
 variable "use_existing_network" {
   description = "When true, use existing VPC and subnet instead of creating new ones"
@@ -275,7 +293,8 @@ variable "secret_names" {
     "openai-api-key",
     "anthropic-api-key",
     "backend-api-key",
-    "gateway-secret"
+    "gateway-secret",
+    "mdi-gcp-key"
   ]
 }
 
