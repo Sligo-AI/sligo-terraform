@@ -2,6 +2,8 @@
 
 SLIGO_NAMESPACE ?= sligo
 AWS_REGION ?= us-east-1
+# Optional: filter make acm-certs by substring of the certificate primary domain (e.g. your apex domain)
+ACM_CERT_DOMAIN_SUBSTRING ?=
 SLIGO_DEPLOYMENTS = deployment/sligo-app deployment/sligo-backend deployment/mcp-gateway
 LOGS_TAIL ?= 100
 
@@ -29,9 +31,14 @@ login-aws: ## Log in to AWS CLI (SSO; runs configure sso if not yet set up)
 login-gcp: ## Log in to GCP CLI (browser + application default credentials)
 	@gcloud auth login && gcloud auth application-default login
 
-acm-certs: ## List ACM certs whose domain contains spendhq or sligo (AWS_REGION, optional AWS_PROFILE)
-	@aws acm list-certificates --region $(AWS_REGION) \
-	  --query 'CertificateSummaryList[?contains(DomainName, `spendhq`) || contains(DomainName, `sligo`)].{ARN:CertificateArn,Domain:DomainName,Status:Status}' --output table
+acm-certs: ## List ACM certificates in AWS_REGION (optional ACM_CERT_DOMAIN_SUBSTRING to filter by domain)
+	@if [ -z "$(ACM_CERT_DOMAIN_SUBSTRING)" ]; then \
+	  aws acm list-certificates --region $(AWS_REGION) \
+	    --query 'CertificateSummaryList[].{ARN:CertificateArn,Domain:DomainName,Status:Status}' --output table; \
+	else \
+	  aws acm list-certificates --region $(AWS_REGION) \
+	    --query 'CertificateSummaryList[?contains(DomainName, `$(ACM_CERT_DOMAIN_SUBSTRING)`)].{ARN:CertificateArn,Domain:DomainName,Status:Status}' --output table; \
+	fi
 
 k8s: ## Show current K8s context, list all, and switch interactively
 	@echo "Current context: $$(kubectl config current-context 2>/dev/null || echo '(none)')"
