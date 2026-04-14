@@ -8,6 +8,12 @@ location        = "eastus"
 domain_name              = "app.example.com"
 client_repository_name   = "your-client-containers"
 app_version              = "v1.0.0"
+# enable_control_plane_exporter = true  # Optional: GCS export (bucket sligo-tfstate-{client} from client_repository_name without -containers; prefix = basename of Terraform working directory)
+# Optional: extra YAML merged into the sligo-cloud Helm release after module defaults (chart keys not exposed as module variables).
+# helm_extra_values = <<-YAML
+#   exampleSection:
+#     enabled: true
+# YAML
 sligo_service_account_key_path = "./sligo-service-account-key.json"
 
 # Database Configuration

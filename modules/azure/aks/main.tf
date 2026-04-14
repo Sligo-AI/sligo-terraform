@@ -5,7 +5,9 @@ provider "azurerm" {
 
 # Resource Group
 locals {
-  resource_group_name = var.resource_group_name != "" ? var.resource_group_name : "${var.cluster_name}-rg"
+  resource_group_name    = var.resource_group_name != "" ? var.resource_group_name : "${var.cluster_name}-rg"
+  client_name            = replace(var.client_repository_name, "-containers", "")
+  cp_exporter_gcs_bucket = "sligo-tfstate-${local.client_name}"
 }
 
 resource "azurerm_resource_group" "main" {
@@ -686,11 +688,18 @@ resource "helm_release" "sligo_cloud" {
   namespace  = kubernetes_namespace.sligo.metadata[0].name
   timeout    = 600
 
-  values = [
-    yamlencode({
+  values = concat(
+    [yamlencode({
       global = {
         imagePullSecrets = [kubernetes_secret.gar_pull_secret.metadata[0].name]
       }
+
+      controlPlaneExporter = {
+        enabled   = var.enable_control_plane_exporter
+        gcsBucket = local.cp_exporter_gcs_bucket
+        gcsPrefix = basename(path.cwd)
+      }
+
       ingress = {
         enabled   = true
         className = "nginx"
@@ -777,8 +786,9 @@ resource "helm_release" "sligo_cloud" {
           secretName = kubernetes_secret.redis_secret.metadata[0].name
         }
       }
-    })
-  ]
+    })],
+    var.helm_extra_values != "" ? [var.helm_extra_values] : []
+  )
 
   depends_on = [
     time_sleep.wait_for_cluster,

@@ -3,6 +3,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+locals {
+  client_name            = replace(var.client_repository_name, "-containers", "")
+  cp_exporter_gcs_bucket = "sligo-tfstate-${local.client_name}"
+}
+
 # Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
@@ -1598,13 +1603,19 @@ resource "helm_release" "sligo_cloud" {
   namespace  = kubernetes_namespace.sligo.metadata[0].name
   timeout    = 600 # 10 minutes timeout
 
-  values = [
-    yamlencode({
+  values = concat(
+    [yamlencode({
       global = {
         imagePullSecrets = [
           kubernetes_secret.gar_pull_secret.metadata[0].name
         ]
         releaseUpgradeTrigger = var.release_upgrade_trigger
+      }
+
+      controlPlaneExporter = {
+        enabled   = var.enable_control_plane_exporter
+        gcsBucket = local.cp_exporter_gcs_bucket
+        gcsPrefix = basename(path.cwd)
       }
 
       ingress = {
@@ -1738,8 +1749,9 @@ resource "helm_release" "sligo_cloud" {
           secretName = kubernetes_secret.redis_secret.metadata[0].name
         }
       }
-    })
-  ]
+    })],
+    var.helm_extra_values != "" ? [var.helm_extra_values] : []
+  )
 
   depends_on = [
     time_sleep.wait_for_cluster,

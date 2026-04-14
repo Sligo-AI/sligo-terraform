@@ -16,6 +16,8 @@ module "sligo_azure" {
   domain_name                    = var.domain_name
   client_repository_name         = var.client_repository_name
   app_version                    = var.app_version
+  helm_extra_values              = var.helm_extra_values
+  enable_control_plane_exporter  = var.enable_control_plane_exporter
   sligo_service_account_key_path = var.sligo_service_account_key_path
 
   # Database configuration

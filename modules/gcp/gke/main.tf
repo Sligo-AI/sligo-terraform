@@ -8,6 +8,8 @@ provider "google" {
 locals {
   sa_account_id_prefix   = substr(replace(var.cluster_name, "_", "-"), 0, min(19, length(replace(var.cluster_name, "_", "-"))))
   existing_subnet_region = var.existing_subnet_region != "" ? var.existing_subnet_region : var.gcp_region
+  client_name            = replace(var.client_repository_name, "-containers", "")
+  cp_exporter_gcs_bucket = "sligo-tfstate-${local.client_name}"
 }
 
 # Data source for existing network (when use_existing_network=true)
@@ -1032,13 +1034,19 @@ resource "helm_release" "sligo_cloud" {
   namespace  = kubernetes_namespace.sligo.metadata[0].name
   timeout    = 1200 # 20 minutes (release-setup job + Redis Stack + pod rollouts can take long)
 
-  values = [
-    yamlencode({
+  values = concat(
+    [yamlencode({
       global = {
         imagePullSecrets = [
           kubernetes_secret.gar_pull_secret.metadata[0].name
         ]
         releaseUpgradeTrigger = var.release_upgrade_trigger
+      }
+
+      controlPlaneExporter = {
+        enabled   = var.enable_control_plane_exporter
+        gcsBucket = local.cp_exporter_gcs_bucket
+        gcsPrefix = basename(path.cwd)
       }
 
       ingress = {
@@ -1165,8 +1173,9 @@ resource "helm_release" "sligo_cloud" {
           }
         }
       }
-    })
-  ]
+    })],
+    var.helm_extra_values != "" ? [var.helm_extra_values] : []
+  )
 
   depends_on = [
     time_sleep.wait_for_cluster,

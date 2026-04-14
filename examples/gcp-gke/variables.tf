@@ -44,6 +44,18 @@ variable "app_version" {
   default     = "1.0.0"
 }
 
+variable "helm_extra_values" {
+  description = "Optional extra YAML for the sligo-cloud Helm chart (merged after module defaults). See modules/gcp/gke variable helm_extra_values."
+  type        = string
+  default     = ""
+}
+
+variable "enable_control_plane_exporter" {
+  description = "Enable control-plane telemetry export; module derives GCS bucket (sligo-tfstate-{client} with -containers stripped from client_repository_name) and prefix (basename of Terraform cwd). See module variable enable_control_plane_exporter."
+  type        = bool
+  default     = false
+}
+
 variable "sligo_service_account_key_path" {
   description = "Path to Sligo service account key JSON file"
   type        = string

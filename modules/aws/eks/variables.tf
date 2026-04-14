@@ -104,6 +104,18 @@ variable "release_upgrade_trigger" {
   default     = ""
 }
 
+variable "helm_extra_values" {
+  description = "Additional YAML merged into the sligo-cloud Helm release after module-rendered values (Helm: later values override earlier). Use for chart keys not modeled as module variables; do not put secrets here—use Kubernetes secrets or External Secrets."
+  type        = string
+  default     = ""
+}
+
+variable "enable_control_plane_exporter" {
+  description = "When true, Helm enables controlPlaneExporter (GCS telemetry). Bucket is sligo-tfstate-{client} where client is client_repository_name with suffix -containers removed; GCS prefix is basename(path.cwd) from the Terraform working directory."
+  type        = bool
+  default     = false
+}
+
 variable "sligo_service_account_key_path" {
   description = "Path to Sligo service account key JSON file"
   type        = string
