@@ -102,7 +102,11 @@ variable "secret_names" {
     "anthropic-api-key",
     "backend-api-key",
     "gateway-secret",
-    "mdi-gcp-key"
+    "mdi-gcp-key",
+    "langsmith-api-key",
+    "langsmith-project",
+    "langsmith-tracing",
+    "langsmith-endpoint"
   ]
 }
 
@@ -473,6 +477,25 @@ variable "langsmith_api_key" {
   default   = ""
   sensitive = true
 }
+
+variable "langsmith_tracing" {
+  description = "Enable LangSmith tracing (true/false)"
+  type        = string
+  default     = "false"
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project name for traces"
+  type        = string
+  default     = ""
+}
+
+variable "langsmith_endpoint" {
+  description = "LangSmith API endpoint URL"
+  type        = string
+  default     = "https://api.smith.langchain.com"
+}
+
 variable "onedrive_client_secret" {
   type      = string
   default   = ""

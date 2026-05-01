@@ -148,7 +148,11 @@ variable "secret_names" {
     "anthropic-api-key",
     "backend-api-key",
     "gateway-secret",
-    "mdi-gcp-key"
+    "mdi-gcp-key",
+    "langsmith-api-key",
+    "langsmith-project",
+    "langsmith-tracing",
+    "langsmith-endpoint"
   ]
 }
 

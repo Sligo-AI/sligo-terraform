@@ -392,7 +392,11 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
         { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
-        { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } }
+        { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } },
+        { secretKey = "LANGSMITH_API_KEY", remoteRef = { key = local.gsm_secret_ids["langsmith-api-key"] } },
+        { secretKey = "LANGSMITH_PROJECT", remoteRef = { key = local.gsm_secret_ids["langsmith-project"] } },
+        { secretKey = "LANGSMITH_TRACING", remoteRef = { key = local.gsm_secret_ids["langsmith-tracing"] } },
+        { secretKey = "LANGSMITH_ENDPOINT", remoteRef = { key = local.gsm_secret_ids["langsmith-endpoint"] } }
       ]
     }
   }
@@ -496,6 +500,10 @@ resource "kubernetes_secret" "nextjs_secrets" {
     ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
     OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
     ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    LANGSMITH_TRACING              = var.langsmith_tracing
+    LANGSMITH_PROJECT              = var.langsmith_project
+    LANGSMITH_ENDPOINT             = var.langsmith_endpoint
+    LANGSMITH_API_KEY              = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
     BUCKET_NAME_AGENT_AVATARS      = local.blob_agent_avatars
     BUCKET_NAME_FILE_MANAGER       = local.blob_file_manager
     BUCKET_NAME_LOGOS              = local.blob_logos
