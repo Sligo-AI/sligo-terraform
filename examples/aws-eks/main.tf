@@ -66,6 +66,7 @@ module "sligo_aws" {
   rag_sa_key                       = var.rag_sa_key
   google_vertex_ai_web_credentials = var.google_vertex_ai_web_credentials
   anthropic_api_key                = var.anthropic_api_key
+  together_ai_api_key              = var.together_ai_api_key
   verbose_logging                  = var.verbose_logging
   backend_request_timeout_ms       = var.backend_request_timeout_ms
   openai_base_url                  = var.openai_base_url

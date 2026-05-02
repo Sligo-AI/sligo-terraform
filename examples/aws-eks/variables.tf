@@ -267,6 +267,13 @@ variable "anthropic_api_key" {
   sensitive   = true
 }
 
+variable "together_ai_api_key" {
+  description = "Together AI API key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "google_vertex_ai_web_credentials" {
   description = "Google Vertex AI Web Credentials (JSON string)"
   type        = string

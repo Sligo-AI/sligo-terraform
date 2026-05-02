@@ -489,6 +489,7 @@ resource "kubernetes_secret" "backend_secrets" {
     OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
     OPENAI_BASE_URL                                    = var.openai_base_url
     ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    TOGETHER_AI_API_KEY                                = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
     VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
     BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
     LANGSMITH_TRACING                                  = var.langsmith_tracing
@@ -952,6 +953,7 @@ resource "kubernetes_manifest" "external_secret_backend" {
         { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
         { secretKey = "ANTHROPIC_API_KEY", remoteRef = { key = local.gsm_secret_ids["anthropic-api-key"] } },
+        { secretKey = "TOGETHER_AI_API_KEY", remoteRef = { key = local.gsm_secret_ids["together-ai-api-key"] } },
         { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
       ]
     }

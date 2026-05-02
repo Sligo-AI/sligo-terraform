@@ -100,6 +100,7 @@ variable "secret_names" {
     "workos-api-key",
     "openai-api-key",
     "anthropic-api-key",
+    "together-ai-api-key",
     "backend-api-key",
     "gateway-secret",
     "mdi-gcp-key",
@@ -451,6 +452,11 @@ variable "rag_sa_key" {
   sensitive = true
 }
 variable "anthropic_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+variable "together_ai_api_key" {
   type      = string
   default   = ""
   sensitive = true
