@@ -110,6 +110,18 @@ variable "helm_extra_values" {
   default     = ""
 }
 
+variable "gsm_flat" {
+  description = <<-EOT
+    Optional flat map (e.g. the same JSON object loaded from Google Secret Manager in the client root module).
+    Keys that match module scalar inputs listed in locals_gsm_flat.tf (eff_defaults) override those inputs when the value is non-empty after string conversion.
+    List/object values are skipped. Use for new secrets without adding a new root-module argument per key.
+    verbose_logging and backend_request_timeout_ms are read from this map when present (with type coercion).
+  EOT
+  type        = map(any)
+  default     = {}
+  sensitive   = true
+}
+
 variable "enable_control_plane_exporter" {
   description = "When true, Helm enables controlPlaneExporter (GCS telemetry). Bucket is sligo-tfstate-{client} where client is client_repository_name with suffix -containers removed; GCS prefix is basename(path.cwd) from the Terraform working directory."
   type        = bool
@@ -153,7 +165,12 @@ variable "secret_names" {
     "langsmith-api-key",
     "langsmith-project",
     "langsmith-tracing",
-    "langsmith-endpoint"
+    "langsmith-endpoint",
+    "langfuse-base-url",
+    "langfuse-public-key",
+    "langfuse-secret-key",
+    "langsmith-api-base-url",
+    "observability-provider"
   ]
 }
 
@@ -642,6 +659,37 @@ variable "langsmith_endpoint" {
   description = "LangSmith API endpoint URL"
   type        = string
   default     = "https://api.smith.langchain.com"
+}
+
+variable "langfuse_base_url" {
+  description = "Langfuse base URL"
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_public_key" {
+  description = "Langfuse public key"
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_secret_key" {
+  description = "Langfuse secret key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langsmith_api_base_url" {
+  description = "LangSmith API base URL"
+  type        = string
+  default     = ""
+}
+
+variable "observability_provider" {
+  description = "Observability provider"
+  type        = string
+  default     = ""
 }
 
 variable "onedrive_client_secret" {

@@ -107,7 +107,12 @@ variable "secret_names" {
     "langsmith-api-key",
     "langsmith-project",
     "langsmith-tracing",
-    "langsmith-endpoint"
+    "langsmith-endpoint",
+    "langfuse-base-url",
+    "langfuse-public-key",
+    "langfuse-secret-key",
+    "langsmith-api-base-url",
+    "observability-provider"
   ]
 }
 
@@ -500,6 +505,37 @@ variable "langsmith_endpoint" {
   description = "LangSmith API endpoint URL"
   type        = string
   default     = "https://api.smith.langchain.com"
+}
+
+variable "langfuse_base_url" {
+  description = "Langfuse base URL"
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_public_key" {
+  description = "Langfuse public key"
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_secret_key" {
+  description = "Langfuse secret key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langsmith_api_base_url" {
+  description = "LangSmith API base URL"
+  type        = string
+  default     = ""
+}
+
+variable "observability_provider" {
+  description = "Observability provider"
+  type        = string
+  default     = ""
 }
 
 variable "onedrive_client_secret" {

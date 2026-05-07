@@ -396,7 +396,12 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "LANGSMITH_API_KEY", remoteRef = { key = local.gsm_secret_ids["langsmith-api-key"] } },
         { secretKey = "LANGSMITH_PROJECT", remoteRef = { key = local.gsm_secret_ids["langsmith-project"] } },
         { secretKey = "LANGSMITH_TRACING", remoteRef = { key = local.gsm_secret_ids["langsmith-tracing"] } },
-        { secretKey = "LANGSMITH_ENDPOINT", remoteRef = { key = local.gsm_secret_ids["langsmith-endpoint"] } }
+        { secretKey = "LANGSMITH_ENDPOINT", remoteRef = { key = local.gsm_secret_ids["langsmith-endpoint"] } },
+        { secretKey = "LANGFUSE_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-base-url"] } },
+        { secretKey = "LANGFUSE_PUBLIC_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-public-key"] } },
+        { secretKey = "LANGFUSE_SECRET_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-secret-key"] } },
+        { secretKey = "LANGSMITH_API_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langsmith-api-base-url"] } },
+        { secretKey = "OBSERVABILITY_PROVIDER", remoteRef = { key = local.gsm_secret_ids["observability-provider"] } }
       ]
     }
   }
@@ -431,7 +436,11 @@ resource "kubernetes_manifest" "external_secret_backend" {
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
         { secretKey = "ANTHROPIC_API_KEY", remoteRef = { key = local.gsm_secret_ids["anthropic-api-key"] } },
         { secretKey = "TOGETHER_AI_API_KEY", remoteRef = { key = local.gsm_secret_ids["together-ai-api-key"] } },
-        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } }
+        { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
+        { secretKey = "LANGFUSE_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-base-url"] } },
+        { secretKey = "LANGFUSE_PUBLIC_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-public-key"] } },
+        { secretKey = "LANGFUSE_SECRET_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-secret-key"] } },
+        { secretKey = "OBSERVABILITY_PROVIDER", remoteRef = { key = local.gsm_secret_ids["observability-provider"] } }
       ]
     }
   }
@@ -505,6 +514,10 @@ resource "kubernetes_secret" "nextjs_secrets" {
     LANGSMITH_PROJECT              = var.langsmith_project
     LANGSMITH_ENDPOINT             = var.langsmith_endpoint
     LANGSMITH_API_KEY              = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    LANGFUSE_BASE_URL              = var.langfuse_base_url
+    LANGFUSE_PUBLIC_KEY            = var.langfuse_public_key
+    LANGFUSE_SECRET_KEY            = var.langfuse_secret_key != "" ? var.langfuse_secret_key : ""
+    OBSERVABILITY_PROVIDER         = var.observability_provider
     BUCKET_NAME_AGENT_AVATARS      = local.blob_agent_avatars
     BUCKET_NAME_FILE_MANAGER       = local.blob_file_manager
     BUCKET_NAME_LOGOS              = local.blob_logos
@@ -543,7 +556,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {})
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {})
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -570,6 +583,10 @@ resource "kubernetes_secret" "backend_secrets" {
     VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
     BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
     LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    LANGFUSE_BASE_URL                                  = var.langfuse_base_url
+    LANGFUSE_PUBLIC_KEY                                = var.langfuse_public_key
+    LANGFUSE_SECRET_KEY                                = var.langfuse_secret_key != "" ? var.langfuse_secret_key : ""
+    OBSERVABILITY_PROVIDER                             = var.observability_provider
     BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
     NODE_ENV                                           = "production"
     SKIP_ENV_VALIDATION                                = "true"
