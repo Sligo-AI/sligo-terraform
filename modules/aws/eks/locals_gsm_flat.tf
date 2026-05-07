@@ -101,20 +101,17 @@ locals {
 
   gsm_verbose_raw = try(var.gsm_flat["verbose_logging"], null)
   effective_verbose_logging = (
-    local.gsm_verbose_raw == null ? var.verbose_logging : (
-      type(local.gsm_verbose_raw) == "bool" ? local.gsm_verbose_raw : (
-        lower(trimspace(tostring(local.gsm_verbose_raw))) == "true"
-      )
+    local.gsm_verbose_raw == null ? var.verbose_logging : try(
+      tobool(local.gsm_verbose_raw),
+      var.verbose_logging
     )
   )
 
   gsm_backend_timeout_raw = try(var.gsm_flat["backend_request_timeout_ms"], null)
   effective_backend_request_timeout_ms = (
-    local.gsm_backend_timeout_raw == null ? var.backend_request_timeout_ms : (
-      type(local.gsm_backend_timeout_raw) == "number" ? local.gsm_backend_timeout_raw : try(
-        tonumber(trimspace(tostring(local.gsm_backend_timeout_raw))),
-        var.backend_request_timeout_ms
-      )
+    local.gsm_backend_timeout_raw == null ? var.backend_request_timeout_ms : try(
+      tonumber(local.gsm_backend_timeout_raw),
+      var.backend_request_timeout_ms
     )
   )
 }
