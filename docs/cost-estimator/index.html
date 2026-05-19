@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sligo AI · Deployment Cost Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* SpendHQ brand */
+  --blue-dark:   #013B80;
+  --blue-dark-hover: #012a5c;
+  --blue-medium: #5CAADE;
+  --blue-light:  #AFDAF5;
+  --teal:        #4AA3BC;
+  --green:       #0EA062;
+  --green-light: #6BEAB5;
+  --orange-dark: #E94D1C;
+  --orange:      #ED815F;
+  --orange-light:#FBA589;
+  --purple:      #93499C;
+  --gray-dark:   #363636;
+  --gray-light:  #EFF0F1;
+  --white:       #FFFFFF;
+
+  /* Semantic aliases */
+  --bg:          var(--gray-light);
+  --surface:     var(--gray-light);
+  --surface2:    #e4e6e8;
+  --border:      var(--gray-light);
+  --border2:     #d8dadc;
+  --primary:     var(--blue-dark);
+  --primary-hover: var(--blue-dark-hover);
+  --accent:      var(--orange-dark);
+  --text:        var(--gray-dark);
+  --text2:       var(--gray-dark);
+  --muted:       #5c5c5c;
+  --faint:       #8a8a8a;
+
+  /* Cloud tabs (data viz palette) */
+  --aws-color:   var(--blue-dark);
+  --aws-bg:      var(--blue-light);
+  --aws-border:  var(--blue-medium);
+  --azure-color: var(--blue-medium);
+  --azure-bg:    #e8f4fc;
+  --azure-border:#5CAADE;
+  --gcp-color:   var(--teal);
+  --gcp-bg:      #e6f4f7;
+  --gcp-border:  #4AA3BC;
+
+  --llm-color:   var(--blue-dark);
+  --llm-bg:      var(--blue-light);
+  --llm-border:  var(--blue-medium);
+
+  --radius:      8px;
+  --radius-sm:   6px;
+  --shadow-sm:   0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* NAV — 3-column grid so the cloud tabs sit dead-center regardless of side widths */
+.nav {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 56px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; justify-self: start; }
+.nav-logo {
+  font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+  flex-shrink: 0; line-height: 1;
+}
+.nav-logo .spend { color: var(--blue-dark); }
+.nav-logo .hq { color: var(--orange-dark); }
+.nav-tabs {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--gray-light); border: 1px solid var(--border);
+  border-radius: 100px; padding: 4px;
+  justify-self: center;
+}
+.nav-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 100px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid transparent; background: transparent;
+  color: var(--muted); transition: all 0.14s;
+}
+.nav-cloud-logo { width: 18px; height: 18px; flex-shrink: 0; display: block; object-fit: contain; }
+.nav-tab:not([class*="active"]) .nav-cloud-logo { opacity: 0.72; }
+.nav-tab.active-aws  { background: var(--aws-bg);   color: var(--aws-color);   border-color: var(--aws-border); }
+.nav-tab.active-azure{ background: var(--azure-bg); color: var(--azure-color); border-color: var(--azure-border); }
+.nav-tab.active-gcp  { background: var(--gcp-bg);   color: var(--gcp-color);   border-color: var(--gcp-border); }
+.nav-tab:hover:not([class*="active"]) { color: var(--gray-dark); background: var(--white); }
+.nav-actions { display: flex; gap: 8px; justify-self: end; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; border: none; transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.btn-outline {
+  background: transparent; color: var(--blue-dark);
+  border: 1px solid var(--blue-dark);
+}
+.btn-outline:hover { background: var(--blue-light); }
+.btn-solid { background: var(--blue-dark); color: var(--white); }
+.btn-solid:hover { background: var(--blue-dark-hover); }
+.btn-accent {
+  background: var(--orange-dark); color: var(--white);
+  border-radius: 100px;
+}
+.btn-accent:hover { background: #d44318; }
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 48px 32px 40px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.hero-eyebrow {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--blue-medium); margin-bottom: 16px;
+}
+.hero-eyebrow::before,.hero-eyebrow::after {
+  content:''; display:block; width:44px; height:1px; background:var(--blue-light);
+}
+.hero h1 {
+  font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--blue-dark); margin-bottom: 12px; line-height: 1.2;
+}
+.hero p { font-size: 15px; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.65; }
+
+
+
+/* LAYOUT */
+.main {
+  max-width: 1280px; margin: 0 auto;
+  padding: 32px 24px 130px;
+  display: grid; grid-template-columns: 300px 1fr;
+  gap: 24px; align-items: start;
+}
+
+/* SIDEBAR */
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+.panel {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden;
+}
+.panel-header {
+  padding: 12px 24px; border-bottom: 1px solid var(--border2);
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--blue-dark);
+}
+.panel-chip {
+  font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 100px;
+  background: var(--green-light); color: var(--blue-dark); border: none;
+}
+.panel-body { padding: 24px; }
+
+/* MODEL LIST */
+.model-list { display: flex; flex-direction: column; gap: 5px; }
+.model-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--white);
+  cursor: pointer; transition: all 0.14s; user-select: none;
+}
+.model-item:hover { border-color: var(--blue-medium); background: var(--blue-light); }
+.model-item.selected { border-color: var(--blue-dark); background: var(--blue-light); }
+.mchk {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 1.5px solid var(--border2); background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 9px; font-weight: 700; color: #fff;
+  transition: all 0.12s;
+}
+.model-item.selected .mchk { background: var(--blue-dark); border-color: var(--blue-dark); }
+.model-info { flex: 1; min-width: 0; }
+.model-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.model-vendor { font-size: 12px; color: var(--faint); }
+.model-price { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.model-list-scroll { max-height: 340px; overflow-y: auto; padding-right: 2px; }
+.model-provider-group { margin-bottom: 10px; }
+.model-provider-group:last-child { margin-bottom: 0; }
+.model-provider-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 2px 2px 6px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.model-provider-head img { width: 16px; height: 16px; object-fit: contain; }
+.model-logo {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 4px;
+  object-fit: contain; background: var(--white);
+}
+.model-logo-fallback {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 4px;
+  background: var(--surface2); color: var(--muted); font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.catalog-loading, .catalog-error {
+  font-size: 12px; color: var(--muted); padding: 8px 4px; line-height: 1.5;
+}
+.catalog-error code {
+  font-size: 11px; background: var(--surface2); padding: 1px 5px; border-radius: 3px;
+}
+
+/* SLIDERS */
+.slider-group { margin-bottom: 16px; }
+.slider-group:last-child { margin-bottom: 0; }
+.slider-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+.slider-label { font-size: 13px; font-weight: 500; color: var(--text2); }
+.slider-val {
+  font-size: 12px; font-weight: 600; color: var(--blue-dark);
+  background: var(--blue-light); border: none;
+  padding: 2px 10px; border-radius: 100px;
+}
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 4px;
+  background: var(--border2); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--blue-dark); border: 2px solid var(--white);
+  box-shadow: 0 0 0 2px var(--blue-light); cursor: pointer; transition: box-shadow 0.14s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 4px var(--blue-medium); }
+.slider-ends { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: var(--faint); }
+
+/* DETAIL FIELDS */
+.detail-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.detail-field { display: flex; flex-direction: column; gap: 4px; }
+.detail-field.full { grid-column: 1 / -1; }
+.detail-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.detail-input {
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--white);
+  font-family: inherit; font-size: 15px; color: var(--text);
+  outline: none; transition: border-color 0.14s; width: 100%;
+}
+.detail-input:focus { border-color: var(--blue-medium); box-shadow: 0 0 0 2px var(--blue-light); }
+.detail-input::placeholder { color: var(--faint); }
+textarea.notes-ta {
+  width: 100%; min-height: 76px; background: var(--white);
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; color: var(--text);
+  padding: 12px; resize: vertical; outline: none; transition: border-color 0.14s; line-height: 1.6;
+}
+textarea.notes-ta:focus { border-color: var(--blue-medium); box-shadow: 0 0 0 2px var(--blue-light); }
+textarea.notes-ta::placeholder { color: var(--faint); }
+
+/* RESULTS */
+.results { display: flex; flex-direction: column; gap: 12px; }
+
+/* SUMMARY CARD */
+.summary-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-card); padding: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.sum-left { display: flex; align-items: center; gap: 14px; }
+.sum-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sum-icon img { width: 24px; height: 24px; object-fit: contain; }
+.sum-icon-aws   { background: var(--aws-bg);   border: 1px solid var(--aws-border); }
+.sum-icon-azure { background: var(--azure-bg); border: 1px solid var(--azure-border); }
+.sum-icon-gcp   { background: var(--gcp-bg);   border: 1px solid var(--gcp-border); }
+.sum-card-title { font-size: 16px; font-weight: 600; color: var(--blue-dark); }
+.sum-card-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.sum-right { text-align: right; }
+.sum-total { font-size: 36px; font-weight: 700; color: var(--blue-dark); line-height: 1; }
+.sum-total-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.pill { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 100px; }
+.pill-llm   { background: var(--llm-bg);   color: var(--llm-color);   border: 1px solid var(--llm-border); }
+.pill-aws   { background: var(--aws-bg);   color: var(--aws-color);   border: 1px solid var(--aws-border); }
+.pill-azure { background: var(--azure-bg); color: var(--azure-color); border: 1px solid var(--azure-border); }
+.pill-gcp   { background: var(--gcp-bg);   color: var(--gcp-color);   border: 1px solid var(--gcp-border); }
+.pill-neutral { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+
+/* SECTION PANELS */
+.sec-panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
+.sec-header {
+  padding: 12px 24px; background: var(--surface2); border-bottom: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.sec-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sec-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue-dark); }
+.llm-body .model-list { display: flex; flex-direction: column; gap: 6px; padding: 14px 24px; }
+.model-cost {
+  margin-left: auto; text-align: right; flex-shrink: 0; padding-left: 12px;
+  font-size: 16px; font-weight: 600; color: var(--blue-dark); line-height: 1.2;
+}
+.model-cost-sub { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+.model-item:not(.selected) .model-cost { display: none; }
+.slider-hint { font-size: 11px; color: var(--faint); margin-top: 4px; line-height: 1.45; }
+
+/* INFRA GRID */
+.infra-grid { padding: 14px; display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.infra-card {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px; background: var(--white); transition: border-color 0.14s;
+}
+.infra-card:hover { border-color: var(--blue-medium); }
+.ic-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ic-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+  background: var(--white); border: 1px solid var(--border2);
+}
+.ic-icon img { width: 18px; height: 18px; object-fit: contain; }
+.ic-name { font-size: 12px; font-weight: 600; color: var(--text2); }
+.ic-price {
+  font-size: 22px; font-weight: 700;
+  color: var(--blue-dark); margin-bottom: 6px;
+}
+.ic-price span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.ic-desc { font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+.ic-detail { font-size: 11px; color: var(--muted); margin-bottom: 1px; }
+.ic-detail strong { color: var(--text2); font-weight: 500; }
+
+/* COST ROWS */
+.row-list { }
+.cost-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; border-bottom: 1px solid var(--border); gap: 12px;
+}
+.cost-row:last-child { border-bottom: none; }
+.cost-row:hover { background: var(--gray-light); }
+.cr-left { flex: 1; min-width: 0; }
+.cr-name { font-size: 15px; font-weight: 500; color: var(--text2); }
+.cr-note { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.cr-cost { font-size: 16px; font-weight: 600; color: var(--blue-dark); white-space: nowrap; }
+
+/* DISCLAIMER */
+.disclaimer {
+  background: var(--white); border: 1px solid var(--border);
+  border-left: 4px solid var(--orange-dark);
+  border-radius: var(--radius-sm); padding: 16px 20px;
+  font-size: 13px; color: var(--muted); line-height: 1.65;
+}
+.disclaimer strong { color: var(--gray-dark); }
+.disclaimer a { color: var(--blue-dark); font-weight: 500; text-decoration: none; }
+.disclaimer a:hover { text-decoration: underline; color: var(--blue-medium); }
+
+/* FOOTER BAR */
+.footer-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: var(--white); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border); padding: 12px 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+.footer-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.footer-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--blue-dark); }
+.footer-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.footer-right { text-align: right; flex-shrink: 0; }
+.footer-total { font-size: 26px; font-weight: 700; color: var(--blue-dark); line-height: 1; }
+.footer-est { font-size: 14px; font-weight: 400; color: var(--muted); }
+.footer-sub { font-size: 13px; color: var(--muted); }
+
+/* PRINT SHEET — hidden on screen, shown only when printing */
+.print-sheet { display: none; }
+
+@media print {
+  @page { size: A4; margin: 14mm 16mm 16mm; }
+
+  body { background: #fff !important; color: #363636 !important; font-size: 10pt; }
+
+  /* Hide interactive UI; print layout is a separate DOM tree */
+  .nav, .footer-bar, .no-print, .hero, .main { display: none !important; }
+  .print-sheet { display: block !important; }
+
+  .print-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding-bottom: 14px; margin-bottom: 14px;
+    border-bottom: 2px solid #013B80;
+  }
+  .print-header-left { flex: 1; min-width: 0; }
+  .print-header-right { flex-shrink: 0; text-align: right; }
+  .print-logo { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px; }
+  .print-logo .spend { color: #013B80; }
+  .print-logo .hq { color: #E94D1C; }
+  .print-eyebrow {
+    font-size: 8pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #5CAADE;
+  }
+  .print-title { font-size: 18pt; font-weight: 700; color: #013B80; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 2px; }
+  .print-subtitle { font-size: 11pt; font-weight: 600; color: #363636; }
+
+  .print-meta {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px;
+    padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid #d8dadc;
+  }
+  .print-meta-item label {
+    display: block; font-size: 7.5pt; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #8a8a8a; margin-bottom: 2px;
+  }
+  .print-meta-item span { font-size: 10pt; font-weight: 500; color: #363636; }
+  .print-config {
+    grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px;
+    font-size: 9pt; color: #5c5c5c; padding-top: 4px;
+  }
+  .print-config strong { color: #363636; font-weight: 600; }
+
+  .print-section { margin-bottom: 14px; page-break-inside: avoid; }
+  .print-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0 8px; margin-bottom: 4px; border-bottom: 1px solid #d8dadc;
+  }
+  .print-section-title {
+    font-size: 8pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #013B80;
+  }
+  .print-section-total { font-size: 10pt; font-weight: 700; color: #013B80; }
+
+  .print-line {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #EFF0F1;
+  }
+  .print-line:last-child { border-bottom: none; }
+  .print-line-logo {
+    width: 22px; height: 22px; flex-shrink: 0; object-fit: contain;
+    margin-top: 1px; padding: 2px; border-radius: 4px;
+    border: 1px solid #d8dadc; background: #fff;
+  }
+  .print-line-body { flex: 1; min-width: 0; }
+  .print-line-top {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  }
+  .print-line-name { font-size: 10pt; font-weight: 600; color: #363636; }
+  .print-line-cost { font-size: 10pt; font-weight: 700; color: #013B80; white-space: nowrap; }
+  .print-line-desc { font-size: 8.5pt; color: #5c5c5c; margin-top: 2px; line-height: 1.4; }
+
+  .print-notes-block {
+    padding: 10px 12px; background: #EFF0F1; border-radius: 6px;
+    font-size: 9pt; color: #363636; line-height: 1.5; white-space: pre-wrap;
+  }
+
+  .print-grand {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 16px; padding: 14px 16px; background: #EFF0F1;
+    border: 2px solid #013B80; border-radius: 8px; page-break-inside: avoid;
+  }
+  .print-grand-label { font-size: 11pt; font-weight: 700; color: #013B80; }
+  .print-grand-sub { font-size: 8.5pt; color: #5c5c5c; margin-top: 2px; }
+  .print-grand-amount { font-size: 22pt; font-weight: 700; color: #013B80; line-height: 1; }
+  .print-grand-amount span { font-size: 10pt; font-weight: 400; color: #5c5c5c; }
+
+  .print-disclaimer {
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid #d8dadc;
+    font-size: 7.5pt; color: #5c5c5c; line-height: 1.5;
+  }
+  .print-disclaimer strong { color: #363636; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo"><span class="spend">Spend</span><span class="hq">HQ</span></div>
+  </div>
+  <div class="nav-tabs no-print">
+    <button class="nav-tab active-aws" id="tab-aws" onclick="setProvider('aws')">
+      <img class="nav-cloud-logo" src="assets/cloud/aws.png" alt="Amazon Web Services" width="18" height="18" />
+      AWS
+    </button>
+    <button class="nav-tab" id="tab-azure" onclick="setProvider('azure')">
+      <img class="nav-cloud-logo" src="assets/cloud/azure.png" alt="Microsoft Azure" width="18" height="18" />
+      Azure
+    </button>
+    <button class="nav-tab" id="tab-gcp" onclick="setProvider('gcp')">
+      <img class="nav-cloud-logo" src="assets/cloud/gcp.png" alt="Google Cloud" width="18" height="18" />
+      GCP
+    </button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-outline no-print" onclick="window.print()">🖨 Print / PDF</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Deploying Agentic Procurement</div>
+  <h1>Cost Calculator</h1>
+  <p>Estimate the monthly cost of running Agentic Procurement on your preferred cloud provider.</p>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Estimate Details</div></div>
+      <div class="panel-body">
+        <div class="detail-grid">
+          <div class="detail-field">
+            <div class="detail-label">Client</div>
+            <input class="detail-input" id="clientName" placeholder="Acme Corp">
+          </div>
+          <div class="detail-field">
+            <div class="detail-label">Prepared By</div>
+            <input class="detail-input" id="preparedBy" placeholder="Jane Smith">
+          </div>
+          <div class="detail-field full">
+            <div class="detail-label">Date</div>
+            <input class="detail-input" id="estDate">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Configuration</div></div>
+      <div class="panel-body">
+        <div class="slider-group">
+          <div class="slider-row"><span class="slider-label">Monthly Requests</span><span class="slider-val" id="reqDisplay">15K</span></div>
+          <input type="range" id="reqSlider" min="5000" max="100000" step="500" value="15000" oninput="update()">
+          <div class="slider-ends"><span>5K</span><span>100K</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-row"><span class="slider-label">Avg Tokens / Request</span><span class="slider-val" id="tokDisplay">15,000</span></div>
+          <input type="range" id="tokSlider" min="10000" max="50000" step="1000" value="15000" oninput="update()">
+          <div class="slider-ends"><span>10K</span><span>50K</span></div>
+          <p class="slider-hint">95% input / 5% output</p>
+        </div>
+        <div class="slider-group">
+          <div class="slider-row"><span class="slider-label">Storage (GB)</span><span class="slider-val" id="storDisplay">100 GB</span></div>
+          <input type="range" id="storSlider" min="10" max="1000" step="10" value="100" oninput="update()">
+          <div class="slider-ends"><span>10 GB</span><span>1 TB</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Notes</div></div>
+      <div class="panel-body">
+        <textarea class="notes-ta" id="notesInput" placeholder="Add notes..."></textarea>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RESULTS -->
+  <div class="results">
+    <div class="summary-card">
+      <div class="sum-left">
+        <div class="sum-icon sum-icon-aws" id="sumIcon"><img src="assets/cloud/aws.png" alt="Amazon Web Services" width="24" height="24" /></div>
+        <div>
+          <div class="sum-card-title" id="sumTitle">AWS · Monthly Estimate</div>
+        </div>
+      </div>
+      <div class="sum-right">
+        <div class="sum-total">$<span id="totalCost">0</span></div>
+        <div class="sum-total-sub">/ month · per environment</div>
+      </div>
+    </div>
+
+    <div class="sec-panel">
+      <div class="sec-header">
+        <div class="sec-title">Infrastructure</div>
+        <span class="pill pill-aws" id="infraTotalPill">$0 / mo</span>
+      </div>
+      <div class="infra-grid" id="infraGrid"></div>
+    </div>
+
+    <div class="sec-panel llm-panel">
+      <div class="sec-header">
+        <div class="sec-header-left">
+          <div class="sec-title">LLM Costs</div>
+          <div class="panel-chip" id="selCount">1 selected</div>
+        </div>
+        <span class="pill pill-llm" id="llmTotalPill">$0 / mo</span>
+      </div>
+      <div class="llm-body">
+        <div class="model-list" id="modelList"></div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <strong>⚠ Estimates only.</strong> Infrastructure is based on Sligo's Terraform modules and Helm charts. Actual costs vary by region, reserved capacity, data transfer, and usage patterns. Always verify with:
+      <a href="https://calculator.aws/#/" target="_blank">AWS Calculator</a> ·
+      <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank">Azure Calculator</a> ·
+      <a href="https://cloud.google.com/products/calculator" target="_blank">GCP Calculator</a><br><br>
+      <strong>Per environment.</strong> Most clients run separate staging and production environments—use this figure for one environment, then multiply for your total footprint.<br><br>
+      <strong>Sligo Infrastructure:</strong>
+      <a href="https://sligo-ai.github.io/sligo-terraform/" target="_blank">Terraform Modules</a> ·
+      <a href="https://sligo-ai.github.io/sligo-helm-charts/" target="_blank">Helm Charts</a>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT-ONLY LAYOUT (populated by JS; hidden on screen) -->
+<div class="print-sheet" id="printSheet" aria-hidden="true"></div>
+
+<!-- STICKY FOOTER -->
+<div class="footer-bar no-print">
+  <div class="footer-left">
+    <span class="footer-label">Est. Total</span>
+    <span class="pill pill-aws" id="footerProv">AWS</span>
+    <div class="footer-pills">
+      <span class="pill pill-llm"><span id="footerModelCount">1 model</span> · LLM: $<span id="footerLlm">0</span></span>
+      <span class="pill pill-aws" id="footerInfraPill">Infra: $<span id="footerInfra">0</span></span>
+    </div>
+  </div>
+  <div class="footer-right">
+    <div class="footer-total">$<span id="footerTotal">0</span> <span class="footer-est">est.</span></div>
+    <div class="footer-sub">per environment / month</div>
+  </div>
+</div>
+
+<script>
+let cloudProvider = 'aws';
+// All LLMs selected by default
+let selectedModels = new Set([
+  'google-gemini-3-flash',
+  'openai-gpt-5-5',
+  'anthropic-claude-sonnet-4-6',
+  'anthropic-claude-opus-4-7',
+  'together-gemma-4-31b'
+]);
+
+// Popular picks (Sligo model picker). Token prices from https://models.dev/ (anthropic, google, openai, togetherai).
+const POPULAR_MODELS = [
+  {id:'google-gemini-3-flash', name:'Gemini 3 Flash', variation:'Fast', provider:'Google', logo:'https://storage.googleapis.com/mcp_logos/gemini.svg', price:'$0.50/$3.00 per 1M in/out', in:0.5, out:3},
+  {id:'openai-gpt-5-5', name:'GPT 5.5', variation:'Standard', provider:'OpenAI', logo:'https://storage.googleapis.com/mcp_logos/openai.svg', price:'$5/$30 per 1M in/out', in:5, out:30},
+  {id:'anthropic-claude-sonnet-4-6', name:'Claude Sonnet 4.6', variation:null, provider:'Anthropic', logo:'https://storage.googleapis.com/mcp_logos/claude.svg', price:'$3/$15 per 1M in/out', in:3, out:15},
+  {id:'anthropic-claude-opus-4-7', name:'Claude Opus 4.7', variation:null, provider:'Anthropic', logo:'https://storage.googleapis.com/mcp_logos/claude.svg', price:'$5/$25 per 1M in/out', in:5, out:25},
+  {id:'together-gemma-4-31b', name:'Gemma 4 31B', variation:null, provider:'Together AI', logo:'https://storage.googleapis.com/mcp_logos/gemini.svg', price:'$0.20/$0.50 per 1M in/out', in:0.2, out:0.5},
+];
+
+function modelLabel(m) { return m.variation ? m.name + ' (' + m.variation + ')' : m.name; }
+
+const CLOUD_LOGOS = {
+  aws: 'assets/cloud/aws.png',
+  azure: 'assets/cloud/azure.png',
+  gcp: 'assets/cloud/gcp.png',
+};
+const CLOUD_LOGO_ALT = {
+  aws: 'Amazon Web Services',
+  azure: 'Microsoft Azure',
+  gcp: 'Google Cloud',
+};
+
+// Per-cloud rate cards. Storage / egress are usage-driven; everything else is a flat monthly base.
+// Prices anchored to retail / on-demand US-region rates verified May 2026.
+const RATES = {
+  aws:   { storPerGB: 0.023, egressPerGB: 0.09  },
+  azure: { storPerGB: 0.018, egressPerGB: 0.087 },
+  gcp:   { storPerGB: 0.020, egressPerGB: 0.12  },
+};
+
+// Returns the unified infrastructure line items for the given cloud + sliders.
+// One section, six rows per cloud — matches what `terraform apply` actually creates.
+function buildInfra(cloud, stor, reqs) {
+  const storGB = stor;
+  const storLabel = storGB >= 1000 ? (storGB/1000).toFixed(1) + ' TB' : storGB + ' GB';
+  const gbOut = (reqs * 0.1 * 50000) / 1e9;
+  const r = RATES[cloud];
+
+  const storCost   = storGB * r.storPerGB;
+  const egressCost = gbOut * r.egressPerGB;
+  const cloudLogo  = CLOUD_LOGOS[cloud];
+
+  if (cloud === 'aws') return [
+    {logo:'https://cdn.simpleicons.org/kubernetes/326CE5', name:'Kubernetes Cluster', base:213,
+     desc:'Amazon EKS · 2× m5.xlarge nodes',
+     details:{Region:'us-east-1', Nodes:'2× m5.xlarge', 'Control plane':'$73/mo'}},
+    {logo:'https://cdn.simpleicons.org/postgresql/4169E1', name:'Database', base:110,
+     desc:'Aurora PostgreSQL · db.t3.medium',
+     details:{Engine:'Aurora PostgreSQL 15', Instance:'db.t3.medium', Storage:'100 GB · Aurora Standard'}},
+    {logo:'https://cdn.simpleicons.org/redis/DC382D', name:'Cache', base:28,
+     desc:'Amazon ElastiCache (Redis)',
+     details:{Instance:'cache.t3.small', Engine:'Redis 7.x', Replicas:'1'}},
+    {logo:cloudLogo, name:'Object Storage', base:storCost,
+     desc:'2× Amazon S3 buckets (Standard)',
+     details:{Capacity:storLabel, Class:'S3 Standard', Rate:'$0.023 / GB-mo'}},
+    {logo:cloudLogo, name:'Load Balancer & Network', base:88,
+     desc:'Application Load Balancer + NAT',
+     details:{'Load balancer':'ALB ($22/mo)', NAT:'NAT Gateway, Multi-AZ ($66/mo)', VPC:'included'}},
+    {logo:cloudLogo, name:'Data Egress', base:egressCost,
+     desc:'Outbound internet traffic',
+     details:{Estimated:`~${gbOut.toFixed(2)} GB / mo`, Rate:'$0.09 / GB', Source:'request volume'}},
+  ];
+
+  if (cloud === 'azure') return [
+    {logo:'https://cdn.simpleicons.org/kubernetes/326CE5', name:'Kubernetes Cluster', base:353,
+     desc:'Azure AKS · 2× D4s v3 nodes',
+     details:{Region:'East US', Nodes:'2× Standard_D4s_v3', 'Control plane':'$73/mo (Standard tier)'}},
+    {logo:'https://cdn.simpleicons.org/postgresql/4169E1', name:'Database', base:190,
+     desc:'Azure Database for PostgreSQL',
+     details:{Tier:'Flexible · General Purpose', vCores:'4', Storage:'100 GB'}},
+    {logo:'https://cdn.simpleicons.org/redis/DC382D', name:'Cache', base:55,
+     desc:'Azure Cache for Redis',
+     details:{Tier:'Standard C1', Memory:'1 GB', Replicas:'1'}},
+    {logo:cloudLogo, name:'Object Storage', base:storCost,
+     desc:'2× Azure Blob containers',
+     details:{Capacity:storLabel, Tier:'Hot · LRS', Rate:'$0.018 / GB-mo'}},
+    {logo:cloudLogo, name:'Load Balancer & Network', base:50,
+     desc:'Standard Load Balancer + NAT',
+     details:{'Load balancer':'Standard LB ($18/mo)', NAT:'NAT Gateway ($32/mo)', VNet:'included'}},
+    {logo:cloudLogo, name:'Data Egress', base:egressCost,
+     desc:'Outbound internet traffic',
+     details:{Estimated:`~${gbOut.toFixed(2)} GB / mo`, Rate:'$0.087 / GB', Source:'request volume'}},
+  ];
+
+  // gcp
+  return [
+    {logo:'https://cdn.simpleicons.org/kubernetes/326CE5', name:'Kubernetes Cluster', base:401,
+     desc:'Google GKE · 2× n2-standard-4 nodes',
+     details:{Region:'us-central1', Nodes:'2× n2-standard-4', 'Control plane':'$73/mo'}},
+    {logo:'https://cdn.simpleicons.org/postgresql/4169E1', name:'Database', base:175,
+     desc:'Cloud SQL for PostgreSQL',
+     details:{Tier:'db-custom-2-7680', Storage:'100 GB SSD', HA:'Regional'}},
+    {logo:'https://cdn.simpleicons.org/redis/DC382D', name:'Cache', base:0,
+     desc:'In-cluster Redis Stack',
+     details:{Deployment:'Runs on GKE nodes', Storage:'1 GB PVC', Cost:'Included in cluster'}},
+    {logo:cloudLogo, name:'Object Storage', base:storCost,
+     desc:'2× Cloud Storage buckets',
+     details:{Capacity:storLabel, Class:'Standard · Regional', Rate:'$0.020 / GB-mo'}},
+    {logo:cloudLogo, name:'Load Balancer & Network', base:50,
+     desc:'HTTP(S) Load Balancer + Cloud NAT',
+     details:{'Load balancer':'Global HTTP(S) LB ($18/mo)', NAT:'Cloud NAT ($32/mo)', VPC:'included'}},
+    {logo:cloudLogo, name:'Data Egress', base:egressCost,
+     desc:'Outbound internet traffic',
+     details:{Estimated:`~${gbOut.toFixed(2)} GB / mo`, Rate:'$0.12 / GB', Source:'request volume'}},
+  ];
+}
+
+const PMETA = {
+  aws:   {label:'AWS',   sumTitle:'AWS Deployment',   infPill:'pill-aws',   provPill:'pill-aws'},
+  azure: {label:'Azure', sumTitle:'Azure Deployment', infPill:'pill-azure', provPill:'pill-azure'},
+  gcp:   {label:'GCP',   sumTitle:'GCP Deployment',  infPill:'pill-gcp',   provPill:'pill-gcp'},
+};
+
+const fmt  = n => Math.round(n).toLocaleString('en-US');
+const fmtK = n => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1000?(n/1000).toFixed(1)+'K':String(n);
+const TOKEN_IN_RATIO = 0.95;
+const TOKEN_OUT_RATIO = 0.05;
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function printLineHtml(logo, name, desc, cost, alt) {
+  return `<div class="print-line">
+    <img class="print-line-logo" src="${logo}" alt="${escapeHtml(alt || name)}" width="22" height="22" />
+    <div class="print-line-body">
+      <div class="print-line-top">
+        <span class="print-line-name">${escapeHtml(name)}</span>
+        <span class="print-line-cost">$${fmt(cost)} / mo</span>
+      </div>
+      ${desc ? `<div class="print-line-desc">${escapeHtml(desc)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderPrintSheet(reqs, toks, stor, infItems, llmTotal, infraTotal, total) {
+  const sheet = document.getElementById('printSheet');
+  if (!sheet) return;
+  const m = PMETA[cloudProvider];
+  const client = document.getElementById('clientName').value.trim() || '—';
+  const prepared = document.getElementById('preparedBy').value.trim() || '—';
+  const date = document.getElementById('estDate').value.trim() || '—';
+  const notes = document.getElementById('notesInput').value.trim();
+  const storDisp = stor >= 1000 ? (stor / 1000).toFixed(1) + ' TB' : stor + ' GB';
+  const tokM = reqs * toks / 1e6;
+  const sels = POPULAR_MODELS.filter(x => selectedModels.has(x.id));
+  const share = sels.length ? 1 / sels.length : 0;
+
+  const infraLines = infItems
+    .map(item => printLineHtml(item.logo, item.name, item.desc, item.base))
+    .join('');
+
+  let llmLines = '';
+  POPULAR_MODELS.forEach(mod => {
+    if (!selectedModels.has(mod.id)) return;
+    const cost = tokM * share * (TOKEN_IN_RATIO * mod.in + TOKEN_OUT_RATIO * mod.out);
+    const desc = `${fmtK(Math.round(reqs * share))} reqs · ${(tokM * share).toFixed(2)}M tokens · ${mod.price}`;
+    llmLines += printLineHtml(mod.logo, modelLabel(mod), desc, cost, mod.provider);
+  });
+
+  const notesBlock = notes
+    ? `<div class="print-section">
+        <div class="print-section-head"><span class="print-section-title">Notes</span></div>
+        <div class="print-notes-block">${escapeHtml(notes)}</div>
+      </div>`
+    : '';
+
+  sheet.innerHTML = `
+    <header class="print-header">
+      <div class="print-header-left">
+        <h1 class="print-title">Cost Calculator</h1>
+        <div class="print-subtitle">${escapeHtml(m.sumTitle)}</div>
+      </div>
+      <div class="print-header-right">
+        <div class="print-logo"><span class="spend">Spend</span><span class="hq">HQ</span></div>
+        <div class="print-eyebrow">Deploying Agentic Procurement</div>
+      </div>
+    </header>
+
+    <div class="print-meta">
+      <div class="print-meta-item"><label>Client</label><span>${escapeHtml(client)}</span></div>
+      <div class="print-meta-item"><label>Prepared By</label><span>${escapeHtml(prepared)}</span></div>
+      <div class="print-meta-item"><label>Date</label><span>${escapeHtml(date)}</span></div>
+      <div class="print-config">
+        <span><strong>Monthly requests:</strong> ${fmtK(reqs)}</span>
+        <span><strong>Avg tokens / request:</strong> ${toks.toLocaleString()}</span>
+        <span><strong>Storage:</strong> ${storDisp}</span>
+        <span><strong>LLM models:</strong> ${sels.length} selected</span>
+      </div>
+    </div>
+
+    <section class="print-section">
+      <div class="print-section-head">
+        <span class="print-section-title">Infrastructure</span>
+        <span class="print-section-total">$${fmt(infraTotal)} / mo</span>
+      </div>
+      ${infraLines}
+    </section>
+
+    <section class="print-section">
+      <div class="print-section-head">
+        <span class="print-section-title">LLM Costs</span>
+        <span class="print-section-total">$${fmt(llmTotal)} / mo</span>
+      </div>
+      ${llmLines}
+    </section>
+
+    ${notesBlock}
+
+    <div class="print-grand">
+      <div>
+        <div class="print-grand-label">Total Monthly Estimate</div>
+        <div class="print-grand-sub">per environment</div>
+      </div>
+      <div class="print-grand-amount">$${fmt(total)} <span>/ mo</span></div>
+    </div>
+
+    <p class="print-disclaimer">
+      <strong>Estimates only.</strong> Infrastructure based on Sligo Terraform modules and Helm charts.
+      Actual costs vary by region, capacity, and usage.
+      Verify with your cloud provider's pricing calculator.
+    </p>`;
+}
+
+function setProvider(p) {
+  cloudProvider = p;
+  ['aws','azure','gcp'].forEach(x => {
+    document.getElementById('tab-'+x).className = 'nav-tab'+(x===p?' active-'+p:'');
+  });
+  update();
+}
+
+function toggleModel(id) {
+  if (selectedModels.has(id)) { if (selectedModels.size>1) selectedModels.delete(id); }
+  else selectedModels.add(id);
+  update();
+}
+
+function renderLlmSection(reqs, toks) {
+  const list = document.getElementById('modelList');
+  if (!list) return { sels: [], llmTotal: 0 };
+  const tokM = reqs * toks / 1e6;
+  const sels = POPULAR_MODELS.filter(x => selectedModels.has(x.id));
+  const share = sels.length ? 1 / sels.length : 0;
+  let llmTotal = 0;
+  list.innerHTML = '';
+  POPULAR_MODELS.forEach(m => {
+    const sel = selectedModels.has(m.id);
+    const cost = sel ? tokM * share * (TOKEN_IN_RATIO * m.in + TOKEN_OUT_RATIO * m.out) : 0;
+    if (sel) llmTotal += cost;
+    const d = document.createElement('div');
+    d.className = 'model-item' + (sel ? ' selected' : '');
+    d.onclick = () => toggleModel(m.id);
+    const shareReqs = sel ? fmtK(Math.round(reqs * share)) : '—';
+    const shareTokM = sel ? (tokM * share).toFixed(2) : '—';
+    d.innerHTML = `<div class="mchk">${sel ? '✓' : ''}</div>
+      <img class="model-logo" src="${m.logo}" alt="" width="22" height="22" loading="lazy" />
+      <div class="model-info">
+        <div class="model-name">${modelLabel(m)}</div>
+        <div class="model-vendor">${m.provider}</div>
+        <div class="model-price">${sel ? shareReqs + ' reqs · ' + shareTokM + 'M tokens · 95% in / 5% out · ' + m.price : m.price}</div>
+      </div>
+      <div class="model-cost">$${fmt(cost)}<span class="model-cost-sub">/ mo</span></div>`;
+    list.appendChild(d);
+  });
+  const sc = document.getElementById('selCount');
+  if (sc) sc.textContent = sels.length + ' selected';
+  const pill = document.getElementById('llmTotalPill');
+  if (pill) pill.textContent = `$${fmt(llmTotal)} / mo · per env`;
+  return { sels, llmTotal };
+}
+
+
+function update() {
+  const reqs = +document.getElementById('reqSlider').value;
+  const toks = +document.getElementById('tokSlider').value;
+  const stor = +document.getElementById('storSlider').value;
+  document.getElementById('reqDisplay').textContent  = fmtK(reqs);
+  document.getElementById('tokDisplay').textContent  = toks.toLocaleString();
+  document.getElementById('storDisplay').textContent = stor>=1000?(stor/1000).toFixed(1)+' TB':stor+' GB';
+  const m = PMETA[cloudProvider];
+  const sumIconEl = document.getElementById('sumIcon');
+  sumIconEl.className = `sum-icon sum-icon-${cloudProvider}`;
+  sumIconEl.innerHTML = `<img src="${CLOUD_LOGOS[cloudProvider]}" alt="${CLOUD_LOGO_ALT[cloudProvider]}" width="24" height="24" />`;
+  document.getElementById('sumTitle').textContent = m.sumTitle;
+
+  const { sels, llmTotal } = renderLlmSection(reqs, toks);
+
+  // INFRA (unified — includes storage & egress)
+  const infItems = buildInfra(cloudProvider, stor, reqs);
+  let infraTotal=0;
+  const igEl=document.getElementById('infraGrid'); igEl.innerHTML='';
+  infItems.forEach(item=>{
+    const cost=item.base;
+    infraTotal+=cost;
+    const c=document.createElement('div'); c.className='infra-card';
+    const dets=Object.entries(item.details).map(([k,v])=>`<div class="ic-detail"><strong>${k}:</strong> ${v}</div>`).join('');
+    c.innerHTML=`<div class="ic-head">
+      <div class="ic-icon"><img src="${item.logo}" alt="${item.name}" width="18" height="18" loading="lazy" /></div>
+      <div class="ic-name">${item.name}</div></div>
+      <div class="ic-price">$${fmt(cost)}<span> / mo</span></div>
+      <div class="ic-desc">${item.desc}</div>${dets}`;
+    igEl.appendChild(c);
+  });
+
+  const total=llmTotal+infraTotal;
+
+  // Summary
+  document.getElementById('totalCost').textContent=fmt(total);
+  document.getElementById('infraTotalPill').className=`pill ${m.infPill}`;
+  document.getElementById('infraTotalPill').textContent=`$${fmt(infraTotal)} / mo · per env`;
+
+  // Footer
+  document.getElementById('footerProv').className=`pill ${m.provPill}`;
+  document.getElementById('footerProv').textContent=m.label;
+  const fc = document.getElementById('footerModelCount');
+  if (fc) fc.textContent = sels.length === 1 ? '1 model' : sels.length + ' models';
+  document.getElementById('footerLlm').textContent=fmt(llmTotal);
+  const fip=document.getElementById('footerInfraPill');
+  fip.className=`pill ${m.infPill}`;
+  fip.innerHTML=`Infra: $<span>${fmt(infraTotal)}</span>`;
+  document.getElementById('footerTotal').textContent=fmt(total);
+
+  renderPrintSheet(reqs, toks, stor, infItems, llmTotal, infraTotal, total);
+}
+
+document.getElementById('estDate').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+['clientName','preparedBy','notesInput'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+});
+window.addEventListener('beforeprint', update);
+update();
+</script>
+</body>
+</html>

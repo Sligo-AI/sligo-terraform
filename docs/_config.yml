@@ -84,6 +84,9 @@ navigation:
         icon: "server"
   - title: "Reference"
     items:
+      - title: "Cost Calculator"
+        url: "/cost-estimator/"
+        icon: "calculator"
       - title: "Troubleshooting"
         url: "/troubleshooting/"
         icon: "wrench"
