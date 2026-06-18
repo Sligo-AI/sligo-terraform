@@ -814,6 +814,7 @@ resource "helm_release" "sligo_cloud" {
         }
       }
     })],
+    [yamlencode(local.temporal_helm_values)],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
   )
 
@@ -825,6 +826,8 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.backend_secrets,
     kubernetes_secret.mcp_gateway_secrets,
     kubernetes_secret.database_secret,
+    kubernetes_secret.temporal_db_credentials,
+    kubernetes_secret.temporal_visibility_db_credentials,
     kubernetes_secret.redis_secret,
     kubernetes_manifest.external_secret_nextjs,
     kubernetes_manifest.external_secret_backend,

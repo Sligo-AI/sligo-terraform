@@ -1,0 +1,16 @@
+# Temporal-enabled deployment (AWS EKS example)
+# Merge these settings into terraform.tfvars or export as TF_VAR_*.
+
+enable_temporal              = true
+temporal_namespace           = "sligo-prod"
+temporal_task_queue          = "sligo-workflows"
+temporal_history_shard_count = 512
+temporal_db_name             = "temporal"
+temporal_visibility_db_name  = "temporal_visibility"
+temporal_web_enabled         = true
+
+# Terraform creates temporal + temporal_visibility databases on the Aurora cluster via the postgresql provider.
+# The Terraform runner must reach the Aurora endpoint during apply.
+
+# temporal_db_username = "sligo"
+# temporal_db_password = "CHANGE_ME"

@@ -108,6 +108,8 @@ Deployment typically takes 15–25 minutes (EKS + Aurora + ElastiCache + S3).
 - **AWS Load Balancer Controller** + ALB ingress
 - **Sligo Enterprise Helm chart** deployment
 
+Optional **`enable_temporal = true`** adds Temporal databases on Aurora (via the `postgresql` Terraform provider), Temporal DB credential secrets, and Helm values for the self-hosted stack. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/aws-eks/terraform.tfvars.temporal.example).
+
 ---
 
 ## Manual Setup (Without create-environment)

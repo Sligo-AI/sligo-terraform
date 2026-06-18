@@ -1,3 +1,16 @@
+output "temporal_enabled" {
+  description = "Whether self-hosted Temporal infrastructure is provisioned."
+  value       = var.enable_temporal
+}
+
+output "temporal_database_names" {
+  description = "Postgres database names used by Temporal when enable_temporal is true."
+  value = var.enable_temporal ? {
+    default    = var.temporal_db_name
+    visibility = var.temporal_visibility_db_name
+  } : null
+}
+
 output "cluster_endpoint" {
   description = "AKS cluster endpoint"
   value       = azurerm_kubernetes_cluster.main.kube_config[0].host

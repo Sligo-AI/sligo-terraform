@@ -1,0 +1,13 @@
+# Temporal-enabled deployment (Azure AKS example)
+# Merge these settings into terraform.tfvars or export as TF_VAR_*.
+
+enable_temporal              = true
+temporal_namespace           = "sligo-prod"
+temporal_task_queue          = "sligo-workflows"
+temporal_history_shard_count = 512
+temporal_db_name             = "temporal"
+temporal_visibility_db_name  = "temporal_visibility"
+temporal_web_enabled         = true
+
+# temporal_db_username = "sligo"
+# temporal_db_password = "CHANGE_ME"

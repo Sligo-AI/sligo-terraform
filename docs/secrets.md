@@ -98,8 +98,31 @@ variable "db_password" {
 | `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `openai_api_key`, SpendHQ/Perplexity/Tavily, storage, Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
 | `redis-secret` | redis (external) | From ElastiCache (host, port) |
+| `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true`; host/port/database/username/password from managed Postgres |
+| `temporal-visibility-db-credentials` | Temporal subchart (visibility store) | When `enable_temporal = true` |
 
-### Core Terraform variables (required or common)
+When **`enable_temporal = true`**, Terraform also:
+
+- Creates Postgres databases `temporal` and `temporal_visibility` on the existing managed instance
+- Passes Helm values for `temporal`, `temporalWorker`, and `temporal-server` (official subchart)
+- Injects `TEMPORAL_*` client env via Helm (not separate GSM keys)
+
+See [examples/gcp-gke/terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example) and the Helm chart [TEMPORAL.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/TEMPORAL.md).
+
+### Temporal Terraform variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `enable_temporal` | `false` | Provision Temporal DBs, secrets, and Helm stack |
+| `temporal_namespace` | `sligo-prod` | Temporal logical namespace |
+| `temporal_task_queue` | `sligo-workflows` | Worker task queue |
+| `temporal_history_shard_count` | `512` | History shards (immutable after first deploy) |
+| `temporal_db_name` | `temporal` | Default store database name |
+| `temporal_visibility_db_name` | `temporal_visibility` | Visibility store database name |
+| `temporal_db_username` | *(empty → `db_username`)* | Optional dedicated DB user |
+| `temporal_db_password` | *(empty → `db_password`)* | Optional dedicated DB password |
+| `temporal_web_enabled` | `true` | Deploy Temporal Web UI (ClusterIP; Super Admin proxy in app) |
+
 
 | Variable | Description |
 |----------|-------------|

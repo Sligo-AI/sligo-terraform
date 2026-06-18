@@ -3,6 +3,19 @@ output "cluster_endpoint" {
   value       = google_container_cluster.primary.endpoint
 }
 
+output "temporal_enabled" {
+  description = "Whether self-hosted Temporal infrastructure is provisioned."
+  value       = var.enable_temporal
+}
+
+output "temporal_database_names" {
+  description = "Postgres database names used by Temporal when enable_temporal is true."
+  value = var.enable_temporal ? {
+    default    = var.temporal_db_name
+    visibility = var.temporal_visibility_db_name
+  } : null
+}
+
 output "cluster_name" {
   description = "GKE cluster name"
   value       = google_container_cluster.primary.name

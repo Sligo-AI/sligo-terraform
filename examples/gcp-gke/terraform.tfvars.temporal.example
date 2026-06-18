@@ -1,0 +1,17 @@
+# Temporal-enabled deployment (GCP GKE example)
+# Merge these settings into terraform.tfvars or export as TF_VAR_*.
+
+enable_temporal              = true
+temporal_namespace           = "sligo-prod"
+temporal_task_queue          = "sligo-workflows"
+temporal_history_shard_count = 512
+temporal_db_name             = "temporal"
+temporal_visibility_db_name  = "temporal_visibility"
+temporal_web_enabled         = true
+
+# Optional: dedicated Postgres user for Temporal (defaults to db_username / db_password)
+# temporal_db_username = "sligo"
+# temporal_db_password = "CHANGE_ME"
+
+# Requires sligo-cloud Helm chart with official Temporal subchart (temporal.selfHosted).
+# chart_path = "../../path/to/sligo-cloud"  # local chart during development

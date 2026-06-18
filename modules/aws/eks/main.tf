@@ -3,6 +3,17 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "postgresql" {
+  host            = aws_rds_cluster.postgres.endpoint
+  port            = aws_rds_cluster.postgres.port
+  database        = aws_rds_cluster.postgres.database_name
+  username        = aws_rds_cluster.postgres.master_username
+  password        = aws_rds_cluster.postgres.master_password
+  sslmode         = "require"
+  superuser       = false
+  connect_timeout = 15
+}
+
 locals {
   client_name            = replace(var.client_repository_name, "-containers", "")
   cp_exporter_gcs_bucket = "sligo-tfstate-${local.client_name}"
@@ -1777,6 +1788,7 @@ resource "helm_release" "sligo_cloud" {
         }
       }
     })],
+    [yamlencode(local.temporal_helm_values)],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
   )
 
@@ -1788,6 +1800,8 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.backend_secrets,
     kubernetes_secret.mcp_gateway_secrets,
     kubernetes_secret.database_secret,
+    kubernetes_secret.temporal_db_credentials,
+    kubernetes_secret.temporal_visibility_db_credentials,
     kubernetes_service_account.s3_access,
     kubernetes_secret.redis_secret,
     kubernetes_secret.gcp_credentials,

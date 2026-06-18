@@ -206,6 +206,62 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "enable_temporal" {
+  description = "Provision Temporal Postgres databases, secrets, and Helm values for self-hosted Temporal."
+  type        = bool
+  default     = false
+}
+
+variable "temporal_namespace" {
+  description = "Temporal namespace name (logical, not Kubernetes)."
+  type        = string
+  default     = "sligo-prod"
+}
+
+variable "temporal_task_queue" {
+  description = "Temporal task queue polled by sligo-temporal-worker."
+  type        = string
+  default     = "sligo-workflows"
+}
+
+variable "temporal_history_shard_count" {
+  description = "Temporal history shard count. Immutable after first deploy."
+  type        = number
+  default     = 512
+}
+
+variable "temporal_db_name" {
+  description = "Postgres database name for Temporal default store."
+  type        = string
+  default     = "temporal"
+}
+
+variable "temporal_visibility_db_name" {
+  description = "Postgres database name for Temporal visibility store."
+  type        = string
+  default     = "temporal_visibility"
+}
+
+variable "temporal_db_username" {
+  description = "Postgres user for Temporal databases. Empty reuses db_username."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "temporal_db_password" {
+  description = "Postgres password for Temporal databases. Empty reuses db_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "temporal_web_enabled" {
+  description = "Deploy Temporal Web UI (ClusterIP; Super Admin access via sligo-app proxy)."
+  type        = bool
+  default     = true
+}
+
 variable "aurora_min_capacity" {
   description = "Aurora Serverless v2 minimum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
   type        = number

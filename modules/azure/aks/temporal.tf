@@ -1,0 +1,127 @@
+locals {
+  temporal_enabled     = var.enable_temporal
+  temporal_db_user     = var.temporal_db_username != "" ? var.temporal_db_username : var.db_username
+  temporal_db_password = var.temporal_db_password != "" ? var.temporal_db_password : var.db_password
+  temporal_db_host     = azurerm_postgresql_flexible_server.postgres.fqdn
+
+  temporal_db_secret_data = {
+    host     = local.temporal_db_host
+    port     = "5432"
+    database = var.temporal_db_name
+    username = local.temporal_db_user
+    password = local.temporal_db_password
+  }
+
+  temporal_visibility_db_secret_data = {
+    host     = local.temporal_db_host
+    port     = "5432"
+    database = var.temporal_visibility_db_name
+    username = local.temporal_db_user
+    password = local.temporal_db_password
+  }
+
+  temporal_helm_values = local.temporal_enabled ? {
+    temporal = {
+      enabled    = true
+      selfHosted = true
+      namespace  = var.temporal_namespace
+      taskQueue  = var.temporal_task_queue
+      webAddress = "http://temporal-web:8080"
+      web = {
+        enabled = var.temporal_web_enabled
+      }
+      persistence = {
+        host = local.temporal_db_host
+        port = 5432
+        user = local.temporal_db_user
+      }
+    }
+    temporalWorker = {
+      enabled      = true
+      replicaCount = 2
+      image = {
+        repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-temporal-worker"
+        tag        = var.app_version
+        pullPolicy = "Always"
+      }
+      secretName = local.backend_secret_name
+    }
+    temporal-server = {
+      server = {
+        config = {
+          persistence = {
+            numHistoryShards = var.temporal_history_shard_count
+            datastores = {
+              default = {
+                sql = {
+                  host = local.temporal_db_host
+                  user = local.temporal_db_user
+                }
+              }
+              visibility = {
+                sql = {
+                  host = local.temporal_db_host
+                  user = local.temporal_db_user
+                }
+              }
+            }
+          }
+        }
+        namespaces = {
+          create = true
+          namespace = [
+            {
+              name      = var.temporal_namespace
+              retention = "720h"
+            }
+          ]
+        }
+      }
+      web = {
+        enabled = var.temporal_web_enabled
+      }
+    }
+    } : {
+    temporalWorker = {
+      enabled = false
+    }
+  }
+}
+
+resource "azurerm_postgresql_flexible_server_database" "temporal" {
+  count     = local.temporal_enabled ? 1 : 0
+  name      = var.temporal_db_name
+  server_id = azurerm_postgresql_flexible_server.postgres.id
+  charset   = "UTF8"
+  collation = "en_US.utf8"
+}
+
+resource "azurerm_postgresql_flexible_server_database" "temporal_visibility" {
+  count     = local.temporal_enabled ? 1 : 0
+  name      = var.temporal_visibility_db_name
+  server_id = azurerm_postgresql_flexible_server.postgres.id
+  charset   = "UTF8"
+  collation = "en_US.utf8"
+}
+
+resource "kubernetes_secret" "temporal_db_credentials" {
+  count = local.temporal_enabled ? 1 : 0
+
+  metadata {
+    name      = "temporal-db-credentials"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+
+  data = local.temporal_db_secret_data
+}
+
+resource "kubernetes_secret" "temporal_visibility_db_credentials" {
+  count = local.temporal_enabled ? 1 : 0
+
+  metadata {
+    name      = "temporal-visibility-db-credentials"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+
+  data = local.temporal_visibility_db_secret_data
+}
