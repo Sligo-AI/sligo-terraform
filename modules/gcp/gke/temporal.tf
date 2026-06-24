@@ -20,15 +20,15 @@ locals {
     password = local.temporal_db_password
   }
 
-  temporal_helm_values = local.temporal_enabled ? {
+  temporal_helm_values = {
     temporal = {
-      enabled    = true
-      selfHosted = true
+      enabled    = local.temporal_enabled
+      selfHosted = local.temporal_enabled
       namespace  = var.temporal_namespace
       taskQueue  = var.temporal_task_queue
       webAddress = "http://temporal-web:8080"
       web = {
-        enabled = var.temporal_web_enabled
+        enabled = local.temporal_enabled && var.temporal_web_enabled
       }
       persistence = {
         host = local.temporal_db_host
@@ -37,8 +37,8 @@ locals {
       }
     }
     temporalWorker = {
-      enabled      = true
-      replicaCount = 2
+      enabled      = local.temporal_enabled
+      replicaCount = local.temporal_enabled ? 2 : 0
       image = {
         repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-temporal-worker"
         tag        = var.app_version
@@ -68,22 +68,18 @@ locals {
           }
         }
         namespaces = {
-          create = true
-          namespace = [
+          create = local.temporal_enabled
+          namespace = local.temporal_enabled ? [
             {
               name      = var.temporal_namespace
               retention = "720h"
             }
-          ]
+          ] : []
         }
       }
       web = {
-        enabled = var.temporal_web_enabled
+        enabled = local.temporal_enabled && var.temporal_web_enabled
       }
-    }
-    } : {
-    temporalWorker = {
-      enabled = false
     }
   }
 }
