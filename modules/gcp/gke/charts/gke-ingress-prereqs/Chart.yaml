@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gke-ingress-prereqs
+description: GKE ingress prerequisites (ManagedCertificate, BackendConfig) for sligo-cloud
+type: application
+version: 0.1.0
+appVersion: "1.0"

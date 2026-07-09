@@ -1,0 +1,8 @@
+managedSslCertificate:
+  enabled: true
+  name: sligo-managed-cert-app
+  domains: []
+
+backendConfig:
+  name: sligo-app-backendconfig
+  timeoutSec: 60

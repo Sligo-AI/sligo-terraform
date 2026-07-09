@@ -335,36 +335,31 @@ resource "kubernetes_namespace" "sligo" {
   depends_on = [time_sleep.wait_for_cluster]
 }
 
-# Google-managed SSL certificate for GCE Ingress (main domain only; GKE allows max 1 domain per ManagedCertificate)
-resource "kubernetes_manifest" "managed_cert_app" {
-  count = var.use_managed_ssl_certificate ? 1 : 0
+# GKE ingress prerequisites (ManagedCertificate, BackendConfig).
+# Use Helm instead of kubernetes_manifest so first-time bootstraps can plan without
+# a live Kubernetes API / CRD schema discovery (kubernetes_manifest fails at plan).
+resource "helm_release" "gke_ingress_prereqs" {
+  name      = "gke-ingress-prereqs"
+  chart     = "${path.module}/charts/gke-ingress-prereqs"
+  namespace = kubernetes_namespace.sligo.metadata[0].name
+  timeout   = 600
 
-  manifest = {
-    apiVersion = "networking.gke.io/v1beta1"
-    kind       = "ManagedCertificate"
-    metadata = {
-      name      = "sligo-managed-cert-app"
-      namespace = kubernetes_namespace.sligo.metadata[0].name
-    }
-    spec = {
+  values = [yamlencode({
+    managedSslCertificate = {
+      enabled = var.use_managed_ssl_certificate
+      name    = "sligo-managed-cert-app"
       domains = [var.domain_name]
     }
-  }
-}
-
-# BackendConfig: 60s timeout for app backend so auth callback (WorkOS exchange + redirect) is not cut off by default 30s
-resource "kubernetes_manifest" "app_backend_config" {
-  manifest = {
-    apiVersion = "cloud.google.com/v1"
-    kind       = "BackendConfig"
-    metadata = {
-      name      = "sligo-app-backendconfig"
-      namespace = kubernetes_namespace.sligo.metadata[0].name
-    }
-    spec = {
+    backendConfig = {
+      name       = "sligo-app-backendconfig"
       timeoutSec = 60
     }
-  }
+  })]
+
+  depends_on = [
+    time_sleep.wait_for_cluster,
+    kubernetes_namespace.sligo,
+  ]
 }
 
 # Image Pull Secret for GAR
@@ -1211,7 +1206,7 @@ resource "helm_release" "sligo_cloud" {
 
   depends_on = [
     time_sleep.wait_for_cluster,
-    kubernetes_manifest.managed_cert_app,
+    helm_release.gke_ingress_prereqs,
     kubernetes_secret.gar_pull_secret,
     kubernetes_secret.nextjs_secrets,
     kubernetes_secret.backend_secrets,
