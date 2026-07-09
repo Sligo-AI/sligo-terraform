@@ -27,8 +27,8 @@ output "database_endpoint" {
 }
 
 output "redis_endpoint" {
-  description = "Azure Cache for Redis endpoint"
-  value       = azurerm_redis_cache.redis.hostname
+  description = "Redis endpoint (external redis_url when set, otherwise Azure Cache hostname)"
+  value       = local.use_external_redis ? "(external — see redis_url / REDIS_URL in app secrets)" : try(azurerm_redis_cache.redis[0].hostname, "")
 }
 
 output "ingress_hostname" {

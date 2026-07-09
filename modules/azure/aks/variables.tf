@@ -216,7 +216,16 @@ variable "postgres_storage_mb" {
   default     = 32768
 }
 
-# Redis Configuration (Azure Cache for Redis)
+# Redis Configuration
+# When redis_url is set (e.g. Redis Cloud), Azure Cache for Redis is not provisioned.
+variable "redis_url" {
+  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; Azure Cache for Redis is not created."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# Azure Cache for Redis (only when redis_url is empty)
 variable "redis_sku_name" {
   description = "Azure Cache for Redis SKU (Basic, Standard, or Premium)"
   type        = string

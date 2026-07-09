@@ -107,9 +107,16 @@ resource "azurerm_postgresql_flexible_server_database" "sligo" {
   collation = "en_US.utf8"
 }
 
+# External Redis (e.g. Redis Cloud) skips Azure Cache for Redis.
+locals {
+  use_external_redis = trimspace(var.redis_url) != ""
+  redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "rediss://:${azurerm_redis_cache.redis[0].primary_access_key}@${azurerm_redis_cache.redis[0].hostname}:${azurerm_redis_cache.redis[0].ssl_port}"
+}
+
 # Azure Cache for Redis
 # Private endpoint: accessible only from VNet, no public exposure
 resource "azurerm_redis_cache" "redis" {
+  count                         = local.use_external_redis ? 0 : 1
   name                          = "${replace(var.cluster_name, "-", "")}-redis"
   location                      = local.rg_location
   resource_group_name           = local.rg_name
@@ -123,18 +130,21 @@ resource "azurerm_redis_cache" "redis" {
 
 # Private DNS zone for Redis name resolution within VNet
 resource "azurerm_private_dns_zone" "redis" {
+  count               = local.use_external_redis ? 0 : 1
   name                = "privatelink.redis.cache.windows.net"
   resource_group_name = local.rg_name
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
+  count                 = local.use_external_redis ? 0 : 1
   name                  = "${var.cluster_name}-redis-dns-link"
   resource_group_name   = local.rg_name
-  private_dns_zone_name = azurerm_private_dns_zone.redis.name
+  private_dns_zone_name = azurerm_private_dns_zone.redis[0].name
   virtual_network_id    = azurerm_virtual_network.main.id
 }
 
 resource "azurerm_private_endpoint" "redis" {
+  count               = local.use_external_redis ? 0 : 1
   name                = "${var.cluster_name}-redis-pe"
   location            = local.rg_location
   resource_group_name = local.rg_name
@@ -142,14 +152,14 @@ resource "azurerm_private_endpoint" "redis" {
 
   private_service_connection {
     name                           = "${var.cluster_name}-redis-psc"
-    private_connection_resource_id = azurerm_redis_cache.redis.id
+    private_connection_resource_id = azurerm_redis_cache.redis[0].id
     subresource_names              = ["redisCache"]
     is_manual_connection           = false
   }
 
   private_dns_zone_group {
     name                 = "default"
-    private_dns_zone_ids = [azurerm_private_dns_zone.redis.id]
+    private_dns_zone_ids = [azurerm_private_dns_zone.redis[0].id]
   }
 }
 
@@ -493,7 +503,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     FRONTEND_URL                   = var.frontend_url
     NEXTAUTH_SECRET                = var.nextauth_secret
     PORT                           = "3000"
-    REDIS_URL                      = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
@@ -571,7 +581,7 @@ resource "kubernetes_secret" "backend_secrets" {
     API_KEY                                            = var.api_key
     PORT                                               = "3001"
     DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    REDIS_URL                                          = local.redis_url
     MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
     SQL_CONNECTION_STRING_DECRYPTION_IV                = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY               = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
@@ -613,8 +623,8 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     PORT                                               = "3002"
     FRONTEND_URL                                       = var.frontend_url
     BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
-    REDIS_URL                                          = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
-    REDIS_URL_STRUCTURED_OUTPUTS                       = "rediss://:${azurerm_redis_cache.redis.primary_access_key}@${azurerm_redis_cache.redis.hostname}:${azurerm_redis_cache.redis.ssl_port}"
+    REDIS_URL                                          = local.redis_url
+    REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url
     PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
     PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
     OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
@@ -662,14 +672,16 @@ resource "kubernetes_secret" "database_secret" {
 }
 
 resource "kubernetes_secret" "redis_secret" {
+  count = local.use_external_redis ? 0 : 1
+
   metadata {
     name      = "redis-secret"
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = {
-    host     = azurerm_redis_cache.redis.hostname
-    port     = tostring(azurerm_redis_cache.redis.ssl_port)
-    password = azurerm_redis_cache.redis.primary_access_key
+    host     = azurerm_redis_cache.redis[0].hostname
+    port     = tostring(azurerm_redis_cache.redis[0].ssl_port)
+    password = azurerm_redis_cache.redis[0].primary_access_key
   }
 }
 
@@ -804,13 +816,15 @@ resource "helm_release" "sligo_cloud" {
           secretName = kubernetes_secret.database_secret.metadata[0].name
         }
       }
-      redis = {
+      redis = local.use_external_redis ? {
+        enabled = false
+        } : {
         enabled = true
         type    = "external"
         external = {
-          host       = azurerm_redis_cache.redis.hostname
-          port       = azurerm_redis_cache.redis.ssl_port
-          secretName = kubernetes_secret.redis_secret.metadata[0].name
+          host       = azurerm_redis_cache.redis[0].hostname
+          port       = azurerm_redis_cache.redis[0].ssl_port
+          secretName = kubernetes_secret.redis_secret[0].metadata[0].name
         }
       }
     })],

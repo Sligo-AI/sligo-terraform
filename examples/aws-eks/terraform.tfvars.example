@@ -26,6 +26,8 @@ aurora_max_capacity  = 16    # Maximum ACU (16 = 32 GB RAM, 64 vCPU)
 aurora_instance_class = "db.r6g.large"  # Instance class for cluster instance
 
 # Redis Configuration
+# Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip ElastiCache.
+# redis_url = ""  # GSM / secrets manager in production
 redis_node_type = "cache.t3.micro"
 
 # S3 Storage Configuration (optional)

@@ -723,8 +723,9 @@ locals {
   gcs_bucket_logos_id         = var.use_existing_gcs_bucket ? var.gcs_bucket_logos_name : google_storage_bucket.logos[0].name
   gcs_bucket_rag_id           = var.use_existing_gcs_bucket ? var.gcs_bucket_rag_name : google_storage_bucket.rag[0].name
 
-  # Redis URL: in-cluster Redis Stack (Helm), always persistent
-  redis_url = "redis://redis.${kubernetes_namespace.sligo.metadata[0].name}.svc.cluster.local:6379"
+  # Redis URL: external (Redis Cloud, etc.) or in-cluster Redis Stack (Helm)
+  use_external_redis = trimspace(var.redis_url) != ""
+  redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "redis://redis.${kubernetes_namespace.sligo.metadata[0].name}.svc.cluster.local:6379"
 }
 
 # Service Account for GCS Access (for use by pods)
@@ -1189,7 +1190,9 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
-      redis = {
+      redis = local.use_external_redis ? {
+        enabled = false
+        } : {
         enabled = true
         type    = "internal"
         internal = {

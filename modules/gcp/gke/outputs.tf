@@ -27,8 +27,8 @@ output "database_endpoint" {
 }
 
 output "redis_endpoint" {
-  description = "In-cluster Redis Stack service endpoint"
-  value       = "redis.sligo.svc.cluster.local:6379"
+  description = "Redis endpoint (external redis_url when set, otherwise in-cluster Redis Stack service)"
+  value       = local.use_external_redis ? "(external — see redis_url / REDIS_URL in app secrets)" : "redis.sligo.svc.cluster.local:6379"
 }
 
 output "ingress_hostname" {

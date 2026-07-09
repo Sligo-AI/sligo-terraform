@@ -281,6 +281,14 @@ variable "aurora_instance_class" {
 }
 
 # Redis Configuration
+# When redis_url is set (e.g. Redis Cloud), cloud-managed / in-cluster Redis is not provisioned.
+variable "redis_url" {
+  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; ElastiCache is not created."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "redis_node_type" {
   description = "ElastiCache node type"
   type        = string

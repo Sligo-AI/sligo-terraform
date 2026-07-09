@@ -268,7 +268,16 @@ variable "temporal_web_enabled" {
   default     = true
 }
 
-# Redis Configuration (in-cluster Redis Stack, always persistent)
+# Redis Configuration
+# When redis_url is set (e.g. Redis Cloud), in-cluster Redis Stack is not deployed.
+variable "redis_url" {
+  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; in-cluster Redis Stack is not created."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# In-cluster Redis Stack (only when redis_url is empty)
 variable "redis_persistence_size" {
   description = "PersistentVolumeClaim size for Redis Stack data"
   type        = string

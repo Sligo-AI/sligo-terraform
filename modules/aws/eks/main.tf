@@ -312,8 +312,14 @@ resource "aws_rds_cluster_instance" "postgres" {
   }
 }
 
+# External Redis (e.g. Redis Cloud) skips ElastiCache; otherwise provision ElastiCache in the VPC.
+locals {
+  use_external_redis = trimspace(var.redis_url) != ""
+}
+
 # ElastiCache Redis
 resource "aws_elasticache_subnet_group" "redis" {
+  count      = local.use_external_redis ? 0 : 1
   name       = "${var.cluster_name}-redis-subnet-group"
   subnet_ids = length(var.subnet_ids) > 0 ? var.subnet_ids : aws_subnet.private[*].id
 
@@ -324,6 +330,7 @@ resource "aws_elasticache_subnet_group" "redis" {
 }
 
 resource "aws_security_group" "redis" {
+  count       = local.use_external_redis ? 0 : 1
   name        = "${var.cluster_name}-redis-sg"
   description = "Security group for ElastiCache Redis"
   vpc_id      = var.vpc_id != "" ? var.vpc_id : aws_vpc.main[0].id
@@ -348,14 +355,15 @@ resource "aws_security_group" "redis" {
 }
 
 resource "aws_elasticache_replication_group" "redis" {
+  count                      = local.use_external_redis ? 0 : 1
   replication_group_id       = "${var.cluster_name}-redis"
   description                = "Redis cluster for ${var.cluster_name}"
   node_type                  = var.redis_node_type
   port                       = 6379
   parameter_group_name       = "default.redis7"
   num_cache_clusters         = 1
-  subnet_group_name          = aws_elasticache_subnet_group.redis.name
-  security_group_ids         = [aws_security_group.redis.id]
+  subnet_group_name          = aws_elasticache_subnet_group.redis[0].name
+  security_group_ids         = [aws_security_group.redis[0].id]
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
 
@@ -383,6 +391,7 @@ locals {
   route53_zone_configured        = trimspace(local.route53_zone_id_plain) != ""
   create_managed_acm_certificate = trimspace(local.acm_certificate_arn_plain) == ""
   alb_hostname_configured        = trimspace(local.alb_hostname_plain) != ""
+  redis_url                      = local.use_external_redis ? trimspace(var.redis_url) : "rediss://${aws_elasticache_replication_group.redis[0].primary_endpoint_address}:${aws_elasticache_replication_group.redis[0].port}"
 }
 
 # ACM Certificate for HTTPS (optional - create if acm_certificate_arn is not provided)
@@ -1075,7 +1084,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     FRONTEND_URL                   = local.eff_strings["frontend_url"]
     NEXTAUTH_SECRET                = local.eff_strings["nextauth_secret"]
     PORT                           = "3000"
-    REDIS_URL                      = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = local.eff_strings["backend_api_key"]
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
@@ -1158,7 +1167,7 @@ resource "kubernetes_secret" "backend_secrets" {
     BACKEND_API_KEY                                                     = local.eff_strings["backend_api_key"]
     PORT                                                                = "3001"
     DATABASE_URL                                                        = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
-    REDIS_URL                                                           = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    REDIS_URL                                                           = local.redis_url
     MCP_GATEWAY_URL                                                     = "http://mcp-gateway:3002"
     SQL_CONNECTION_STRING_DECRYPTION_IV                                 = local.eff_strings["sql_connection_string_decryption_iv"] != "" ? local.eff_strings["sql_connection_string_decryption_iv"] : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY                                = local.eff_strings["sql_connection_string_decryption_key"] != "" ? local.eff_strings["sql_connection_string_decryption_key"] : "placeholder"
@@ -1219,8 +1228,8 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     PORT                                                                = "3002"
     FRONTEND_URL                                                        = local.eff_strings["frontend_url"]
     BUCKET_NAME_FILE_MANAGER                                            = local.s3_bucket_file_manager_id
-    REDIS_URL                                                           = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
-    REDIS_URL_STRUCTURED_OUTPUTS                                        = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
+    REDIS_URL                                                           = local.redis_url
+    REDIS_URL_STRUCTURED_OUTPUTS                                        = local.redis_url
     PINECONE_API_KEY                                                    = local.eff_strings["pinecone_api_key"] != "" ? local.eff_strings["pinecone_api_key"] : "placeholder"
     PINECONE_INDEX                                                      = local.eff_strings["pinecone_index"] != "" ? local.eff_strings["pinecone_index"] : "placeholder"
     OPENAI_API_KEY                                                      = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
@@ -1272,16 +1281,18 @@ resource "kubernetes_secret" "database_secret" {
   }
 }
 
-# Redis Secret
+# Redis Secret (managed ElastiCache only; external redis_url uses REDIS_URL in app secrets)
 resource "kubernetes_secret" "redis_secret" {
+  count = local.use_external_redis ? 0 : 1
+
   metadata {
     name      = "redis-secret"
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
 
   data = {
-    host = aws_elasticache_replication_group.redis.primary_endpoint_address
-    port = tostring(aws_elasticache_replication_group.redis.port)
+    host = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+    port = tostring(aws_elasticache_replication_group.redis[0].port)
   }
 }
 
@@ -1778,13 +1789,15 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
-      redis = {
+      redis = local.use_external_redis ? {
+        enabled = false
+        } : {
         enabled = true
         type    = "external"
         external = {
-          host       = aws_elasticache_replication_group.redis.primary_endpoint_address
-          port       = aws_elasticache_replication_group.redis.port
-          secretName = kubernetes_secret.redis_secret.metadata[0].name
+          host       = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+          port       = aws_elasticache_replication_group.redis[0].port
+          secretName = kubernetes_secret.redis_secret[0].metadata[0].name
         }
       }
     })],

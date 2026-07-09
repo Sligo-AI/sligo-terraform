@@ -27,8 +27,8 @@ output "database_endpoint" {
 }
 
 output "redis_endpoint" {
-  description = "ElastiCache Redis endpoint"
-  value       = try(aws_elasticache_replication_group.redis.primary_endpoint_address, "")
+  description = "Redis endpoint (external redis_url when set, otherwise ElastiCache primary endpoint)"
+  value       = local.use_external_redis ? "(external — see redis_url / REDIS_URL in app secrets)" : try(aws_elasticache_replication_group.redis[0].primary_endpoint_address, "")
 }
 
 output "ingress_hostname" {
