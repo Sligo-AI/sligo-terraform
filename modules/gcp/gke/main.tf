@@ -726,6 +726,19 @@ locals {
   # Redis URL: external (Redis Cloud, etc.) or in-cluster Redis Stack (Helm)
   use_external_redis = trimspace(var.redis_url) != ""
   redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "redis://redis.${kubernetes_namespace.sligo.metadata[0].name}.svc.cluster.local:6379"
+
+  # Single object shape for Helm (Terraform rejects mismatched conditional branch types).
+  redis_helm_values = {
+    enabled = !local.use_external_redis
+    type    = "internal"
+    internal = {
+      persistence = {
+        enabled      = !local.use_external_redis
+        size         = var.redis_persistence_size
+        storageClass = var.redis_persistence_storage_class
+      }
+    }
+  }
 }
 
 # Service Account for GCS Access (for use by pods)
@@ -1190,19 +1203,7 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
-      redis = local.use_external_redis ? {
-        enabled = false
-        } : {
-        enabled = true
-        type    = "internal"
-        internal = {
-          persistence = {
-            enabled      = true
-            size         = var.redis_persistence_size
-            storageClass = var.redis_persistence_storage_class
-          }
-        }
-      }
+      redis = local.redis_helm_values
     })],
     [yamlencode(local.temporal_helm_values)],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []

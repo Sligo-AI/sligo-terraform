@@ -315,6 +315,24 @@ resource "aws_rds_cluster_instance" "postgres" {
 # External Redis (e.g. Redis Cloud) skips ElastiCache; otherwise provision ElastiCache in the VPC.
 locals {
   use_external_redis = trimspace(var.redis_url) != ""
+
+  redis_helm_values = local.use_external_redis ? {
+    enabled = false
+    type    = "external"
+    external = {
+      host       = ""
+      port       = 0
+      secretName = ""
+    }
+    } : {
+    enabled = true
+    type    = "external"
+    external = {
+      host       = aws_elasticache_replication_group.redis[0].primary_endpoint_address
+      port       = aws_elasticache_replication_group.redis[0].port
+      secretName = kubernetes_secret.redis_secret[0].metadata[0].name
+    }
+  }
 }
 
 # ElastiCache Redis
@@ -1789,17 +1807,7 @@ resource "helm_release" "sligo_cloud" {
         }
       }
 
-      redis = local.use_external_redis ? {
-        enabled = false
-        } : {
-        enabled = true
-        type    = "external"
-        external = {
-          host       = aws_elasticache_replication_group.redis[0].primary_endpoint_address
-          port       = aws_elasticache_replication_group.redis[0].port
-          secretName = kubernetes_secret.redis_secret[0].metadata[0].name
-        }
-      }
+      redis = local.redis_helm_values
     })],
     [yamlencode(local.temporal_helm_values)],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []

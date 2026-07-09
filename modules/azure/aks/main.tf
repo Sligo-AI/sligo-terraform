@@ -111,6 +111,24 @@ resource "azurerm_postgresql_flexible_server_database" "sligo" {
 locals {
   use_external_redis = trimspace(var.redis_url) != ""
   redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "rediss://:${azurerm_redis_cache.redis[0].primary_access_key}@${azurerm_redis_cache.redis[0].hostname}:${azurerm_redis_cache.redis[0].ssl_port}"
+
+  redis_helm_values = local.use_external_redis ? {
+    enabled = false
+    type    = "external"
+    external = {
+      host       = ""
+      port       = 0
+      secretName = ""
+    }
+    } : {
+    enabled = true
+    type    = "external"
+    external = {
+      host       = azurerm_redis_cache.redis[0].hostname
+      port       = azurerm_redis_cache.redis[0].ssl_port
+      secretName = kubernetes_secret.redis_secret[0].metadata[0].name
+    }
+  }
 }
 
 # Azure Cache for Redis
@@ -816,17 +834,7 @@ resource "helm_release" "sligo_cloud" {
           secretName = kubernetes_secret.database_secret.metadata[0].name
         }
       }
-      redis = local.use_external_redis ? {
-        enabled = false
-        } : {
-        enabled = true
-        type    = "external"
-        external = {
-          host       = azurerm_redis_cache.redis[0].hostname
-          port       = azurerm_redis_cache.redis[0].ssl_port
-          secretName = kubernetes_secret.redis_secret[0].metadata[0].name
-        }
-      }
+      redis = local.redis_helm_values
     })],
     [yamlencode(local.temporal_helm_values)],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
