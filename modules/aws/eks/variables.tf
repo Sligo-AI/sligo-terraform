@@ -912,3 +912,53 @@ variable "aws_secret_access_key" {
   default     = ""
   sensitive   = true
 }
+
+# Email provider (optional; email env is only injected once credentials are set)
+variable "email_provider" {
+  description = "Email provider: postmark or ses"
+  type        = string
+  default     = "postmark"
+
+  validation {
+    condition     = contains(["postmark", "ses"], var.email_provider)
+    error_message = "email_provider must be postmark or ses."
+  }
+}
+
+variable "email_from" {
+  description = "Default sending identity, e.g. noreply@mail.example.com"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_domain" {
+  description = "Domain for inbound reply addresses (reply+<threadId>@inbound.<domain>)"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_webhook_secret" {
+  description = "Shared secret for the backend inbound email webhook"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "postmark_server_token" {
+  description = "Postmark server token (required when email_provider is postmark)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "create_ses_resources" {
+  description = "When email_provider is ses, provision the SES domain identity, DKIM, and a scoped sending IAM user, and inject its credentials as AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in app secrets. Leave false to pass existing credentials via aws_access_key_id / aws_secret_access_key."
+  type        = bool
+  default     = false
+}
+
+variable "ses_domain" {
+  description = "Domain for the SES identity (defaults to the domain of email_from)"
+  type        = string
+  default     = ""
+}

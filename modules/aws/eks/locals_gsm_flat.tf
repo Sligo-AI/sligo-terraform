@@ -88,6 +88,12 @@ locals {
     azure_aisearch_key                   = var.azure_aisearch_key
     azure_aisearch_index                 = var.azure_aisearch_index
     azure_aisearch_query_type            = var.azure_aisearch_query_type
+    email_provider                       = var.email_provider
+    email_from                           = var.email_from
+    email_inbound_domain                 = var.email_inbound_domain
+    email_inbound_webhook_secret         = var.email_inbound_webhook_secret
+    postmark_server_token                = var.postmark_server_token
+    ses_domain                           = var.ses_domain
     domain_name                          = var.domain_name
   }
 

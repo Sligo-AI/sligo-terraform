@@ -108,4 +108,13 @@ module "sligo_aws" {
   azure_openai_api_instance_name = var.azure_openai_api_instance_name
   azure_openai_api_version       = var.azure_openai_api_version
   azure_openai_base_path         = var.azure_openai_base_path
+
+  # Email provider (optional)
+  email_provider               = var.email_provider
+  email_from                   = var.email_from
+  email_inbound_domain         = var.email_inbound_domain
+  email_inbound_webhook_secret = var.email_inbound_webhook_secret
+  postmark_server_token        = var.postmark_server_token
+  create_ses_resources         = var.create_ses_resources
+  ses_domain                   = var.ses_domain
 }

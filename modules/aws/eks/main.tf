@@ -1215,7 +1215,7 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                                      = local.eff_strings["azure_openai_api_instance_name"]
     AZURE_OPENAI_API_VERSION                                            = local.eff_strings["azure_openai_api_version"]
     AZURE_OPENAI_BASE_PATH                                              = local.eff_strings["azure_openai_base_path"]
-  } : {})
+  } : {}, local.email_env_backend)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - required on EKS where
@@ -1280,7 +1280,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = local.eff_strings["azure_aisearch_key"] != "" ? local.eff_strings["azure_aisearch_key"] : "placeholder"
     AZURE_AISEARCH_INDEX      = local.eff_strings["azure_aisearch_index"]
     AZURE_AISEARCH_QUERY_TYPE = local.eff_strings["azure_aisearch_query_type"]
-  } : {})
+  } : {}, local.email_env)
 }
 
 # Database Secret

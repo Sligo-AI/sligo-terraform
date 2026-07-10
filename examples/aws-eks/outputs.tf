@@ -27,3 +27,13 @@ output "acm_certificate_validation_records" {
   description = "DNS validation records for ACM certificate"
   value       = module.sligo_aws.acm_certificate_validation_records
 }
+
+output "ses_verification_token" {
+  description = "TXT record value for _amazonses.<domain> when create_ses_resources is true"
+  value       = module.sligo_aws.ses_verification_token
+}
+
+output "ses_dkim_tokens" {
+  description = "DKIM tokens; publish each as <token>._domainkey.<domain> CNAME to <token>.dkim.amazonses.com"
+  value       = module.sligo_aws.ses_dkim_tokens
+}

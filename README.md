@@ -53,6 +53,17 @@ Defaults keep current behavior (`false`) so existing environments do not change 
 
 Sligo's enterprise model uses centralized secret governance in `sligo-ai-platform` with prefix isolation per client/environment.
 
+### Email provider (GKE, EKS, AKS)
+
+All three cluster modules accept an email provider configuration, **Postmark** by default:
+
+- `email_provider` — `postmark` (default) or `ses`
+- `email_from`, `email_inbound_domain`, `email_inbound_webhook_secret`, `postmark_server_token`
+- **SES on GCP/Azure** — pass `ses_access_key_id` / `ses_secret_access_key` / `ses_region`
+- **SES on AWS** — set `create_ses_resources = true` to have Terraform provision the SES domain identity, DKIM, and a scoped sending IAM user (verification and DKIM tokens are returned as outputs for DNS), or leave it `false` and pass existing credentials via `aws_access_key_id` / `aws_secret_access_key`
+
+No email environment variables are injected until credentials are configured, so existing environments do not change.
+
 ---
 
 ## Prerequisites

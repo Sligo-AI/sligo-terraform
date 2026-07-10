@@ -626,7 +626,7 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
     AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
     AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
-  } : {})
+  } : {}, local.email_env_backend)
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -672,7 +672,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {})
+  } : {}, local.email_env)
 }
 
 resource "kubernetes_secret" "database_secret" {

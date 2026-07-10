@@ -101,3 +101,15 @@ encryption_key = "CHANGE_ME"
 # Networking (Optional - can use existing VPC)
 # vpc_id = "vpc-..."
 # subnet_ids = ["subnet-...", "subnet-..."]
+
+# Email Provider (optional; Postmark by default)
+# email_provider               = "postmark"  # or "ses"
+# email_from                   = "noreply@mail.example.com"
+# email_inbound_domain         = "example.com"
+# postmark_server_token        = "CHANGE_ME"
+# email_inbound_webhook_secret = "CHANGE_ME"
+# Amazon SES: set email_provider = "ses" and either let Terraform build the SES
+# identity + sending user (DNS records come back as outputs) ...
+# create_ses_resources = true
+# ses_domain           = "mail.example.com"  # defaults to email_from domain
+# ... or pass existing credentials via aws_access_key_id / aws_secret_access_key.

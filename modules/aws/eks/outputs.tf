@@ -150,3 +150,18 @@ output "dns_next_steps" {
   description = "Post-apply DNS and SSL steps. Run 'terraform output dns_next_steps' for copy-paste instructions."
   value       = join("\n", local.dns_next_steps_lines)
 }
+
+output "ses_domain_identity_arn" {
+  description = "ARN of the SES domain identity when create_ses_resources is true."
+  value       = try(aws_ses_domain_identity.email[0].arn, null)
+}
+
+output "ses_verification_token" {
+  description = "TXT record value for _amazonses.<domain> to verify the SES identity."
+  value       = try(aws_ses_domain_identity.email[0].verification_token, null)
+}
+
+output "ses_dkim_tokens" {
+  description = "DKIM tokens; publish each as <token>._domainkey.<domain> CNAME to <token>.dkim.amazonses.com."
+  value       = try(aws_ses_domain_dkim.email[0].dkim_tokens, null)
+}

@@ -680,3 +680,61 @@ variable "spendhq_ss_port" {
   type    = string
   default = "3306"
 }
+
+# Email provider (optional; email env is only injected once credentials are set)
+variable "email_provider" {
+  description = "Email provider: postmark or ses"
+  type        = string
+  default     = "postmark"
+
+  validation {
+    condition     = contains(["postmark", "ses"], var.email_provider)
+    error_message = "email_provider must be postmark or ses."
+  }
+}
+
+variable "email_from" {
+  description = "Default sending identity, e.g. noreply@mail.example.com"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_domain" {
+  description = "Domain for inbound reply addresses (reply+<threadId>@inbound.<domain>)"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_webhook_secret" {
+  description = "Shared secret for the backend inbound email webhook"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "postmark_server_token" {
+  description = "Postmark server token (required when email_provider is postmark)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_access_key_id" {
+  description = "AWS access key for Amazon SES (required when email_provider is ses)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_secret_access_key" {
+  description = "AWS secret key for Amazon SES (required when email_provider is ses)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_region" {
+  description = "AWS region for Amazon SES, e.g. us-east-1"
+  type        = string
+  default     = ""
+}

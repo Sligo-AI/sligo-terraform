@@ -467,3 +467,56 @@ variable "azure_openai_base_path" {
   type    = string
   default = ""
 }
+
+# Email provider (optional)
+variable "email_provider" {
+  description = "Email provider: postmark or ses"
+  type        = string
+  default     = "postmark"
+}
+
+variable "email_from" {
+  description = "Default sending identity, e.g. noreply@mail.example.com"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_domain" {
+  description = "Domain for inbound reply addresses (reply+<threadId>@inbound.<domain>)"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_webhook_secret" {
+  description = "Shared secret for the backend inbound email webhook"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "postmark_server_token" {
+  description = "Postmark server token (required when email_provider is postmark)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_access_key_id" {
+  description = "AWS access key for Amazon SES (required when email_provider is ses)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_secret_access_key" {
+  description = "AWS secret key for Amazon SES (required when email_provider is ses)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ses_region" {
+  description = "AWS region for Amazon SES, e.g. us-east-1"
+  type        = string
+  default     = ""
+}
