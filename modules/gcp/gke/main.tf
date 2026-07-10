@@ -253,7 +253,7 @@ resource "google_service_account" "gke_node" {
 # Cloud SQL PostgreSQL Database
 resource "google_sql_database_instance" "postgres" {
   name                = "${var.cluster_name}-postgres"
-  database_version    = "POSTGRES_15"
+  database_version    = var.database_version
   region              = var.gcp_region
   project             = var.gcp_project_id
   deletion_protection = var.cloud_sql_deletion_protection

@@ -193,6 +193,12 @@ variable "sligo_service_account_key_path" {
 }
 
 # Database Configuration
+variable "database_version" {
+  description = "Cloud SQL PostgreSQL version (for example POSTGRES_15 or POSTGRES_17)."
+  type        = string
+  default     = "POSTGRES_15"
+}
+
 variable "db_tier" {
   description = "Cloud SQL instance tier"
   type        = string
