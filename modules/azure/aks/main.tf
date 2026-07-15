@@ -107,10 +107,15 @@ resource "azurerm_postgresql_flexible_server_database" "sligo" {
   collation = "en_US.utf8"
 }
 
-# External Redis (e.g. Redis Cloud) skips Azure Cache for Redis.
+# External Redis (e.g. Redis Cloud) skips Azure Managed Redis.
 locals {
   use_external_redis = trimspace(var.redis_url) != ""
-  redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "rediss://:${azurerm_redis_cache.redis[0].primary_access_key}@${azurerm_redis_cache.redis[0].hostname}:${azurerm_redis_cache.redis[0].ssl_port}"
+  redis_url = local.use_external_redis ? trimspace(var.redis_url) : format(
+    "rediss://:%s@%s:%d",
+    azurerm_managed_redis.redis[0].default_database[0].primary_access_key,
+    azurerm_managed_redis.redis[0].hostname,
+    azurerm_managed_redis.redis[0].default_database[0].port,
+  )
 
   redis_helm_values = local.use_external_redis ? {
     enabled = false
@@ -124,32 +129,36 @@ locals {
     enabled = true
     type    = "external"
     external = {
-      host       = azurerm_redis_cache.redis[0].hostname
-      port       = azurerm_redis_cache.redis[0].ssl_port
+      host       = azurerm_managed_redis.redis[0].hostname
+      port       = azurerm_managed_redis.redis[0].default_database[0].port
       secretName = kubernetes_secret.redis_secret[0].metadata[0].name
     }
   }
 }
 
-# Azure Cache for Redis
+# Azure Managed Redis
 # Private endpoint: accessible only from VNet, no public exposure
-resource "azurerm_redis_cache" "redis" {
-  count                         = local.use_external_redis ? 0 : 1
-  name                          = "${replace(var.cluster_name, "-", "")}-redis"
-  location                      = local.rg_location
-  resource_group_name           = local.rg_name
-  capacity                      = var.redis_capacity
-  family                        = var.redis_family
-  sku_name                      = var.redis_sku_name
-  non_ssl_port_enabled          = false
-  minimum_tls_version           = "1.2"
-  public_network_access_enabled = false
+resource "azurerm_managed_redis" "redis" {
+  count               = local.use_external_redis ? 0 : 1
+  name                = "${replace(var.cluster_name, "-", "")}-redis"
+  location            = local.rg_location
+  resource_group_name = local.rg_name
+  sku_name            = var.redis_sku_name
+
+  high_availability_enabled = var.redis_high_availability_enabled
+  public_network_access     = "Disabled"
+
+  default_database {
+    access_keys_authentication_enabled = true
+    client_protocol                    = "Encrypted"
+    clustering_policy                  = "EnterpriseCluster"
+  }
 }
 
 # Private DNS zone for Redis name resolution within VNet
 resource "azurerm_private_dns_zone" "redis" {
   count               = local.use_external_redis ? 0 : 1
-  name                = "privatelink.redis.cache.windows.net"
+  name                = "privatelink.redis.azure.net"
   resource_group_name = local.rg_name
 }
 
@@ -170,8 +179,8 @@ resource "azurerm_private_endpoint" "redis" {
 
   private_service_connection {
     name                           = "${var.cluster_name}-redis-psc"
-    private_connection_resource_id = azurerm_redis_cache.redis[0].id
-    subresource_names              = ["redisCache"]
+    private_connection_resource_id = azurerm_managed_redis.redis[0].id
+    subresource_names              = ["redisEnterprise"]
     is_manual_connection           = false
   }
 
@@ -697,9 +706,9 @@ resource "kubernetes_secret" "redis_secret" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = {
-    host     = azurerm_redis_cache.redis[0].hostname
-    port     = tostring(azurerm_redis_cache.redis[0].ssl_port)
-    password = azurerm_redis_cache.redis[0].primary_access_key
+    host     = azurerm_managed_redis.redis[0].hostname
+    port     = tostring(azurerm_managed_redis.redis[0].default_database[0].port)
+    password = azurerm_managed_redis.redis[0].default_database[0].primary_access_key
   }
 }
 

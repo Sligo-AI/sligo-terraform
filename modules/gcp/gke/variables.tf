@@ -821,9 +821,9 @@ variable "langsmith_api_base_url" {
 }
 
 variable "observability_provider" {
-  description = "Observability provider"
+  description = "Observability provider (langsmith or langfuse)"
   type        = string
-  default     = ""
+  default     = "langsmith"
 }
 
 variable "onedrive_client_secret" {

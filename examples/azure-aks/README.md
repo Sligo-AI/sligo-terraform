@@ -1,6 +1,6 @@
 # Azure AKS Example
 
-Deploy Sligo Cloud on Azure Kubernetes Service with Azure Database for PostgreSQL, Azure Cache for Redis, and Azure Blob Storage.
+Deploy Sligo Cloud on Azure Kubernetes Service with Azure Database for PostgreSQL, Azure Managed Redis, and Azure Blob Storage.
 
 ## Quick Start
 

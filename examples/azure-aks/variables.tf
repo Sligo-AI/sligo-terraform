@@ -96,18 +96,15 @@ variable "postgres_storage_mb" {
 
 # Redis Configuration
 variable "redis_sku_name" {
-  type    = string
-  default = "Standard"
+  description = "Azure Managed Redis SKU (e.g. Balanced_B0, Balanced_B1, Balanced_B3)"
+  type        = string
+  default     = "Balanced_B1"
 }
 
-variable "redis_family" {
-  type    = string
-  default = "C"
-}
-
-variable "redis_capacity" {
-  type    = number
-  default = 1
+variable "redis_high_availability_enabled" {
+  description = "Whether Azure Managed Redis is deployed with high availability"
+  type        = bool
+  default     = true
 }
 
 # Storage Configuration

@@ -35,7 +35,7 @@ Then configure your environment and run `terraform init && terraform apply`.
 
 - **Kubernetes cluster** (EKS, GKE, or AKS)
 - **Managed database** (Aurora / Cloud SQL / Azure Database for PostgreSQL)
-- **Managed cache** (ElastiCache / Memorystore / Azure Cache for Redis)
+- **Managed cache** (ElastiCache / Memorystore / Azure Managed Redis)
 - **Object storage** (S3 / GCS / Azure Blob)
 - **Helm chart deployment** with secrets and ingress
 - **Environment automation** via `make create-environment`

@@ -27,9 +27,8 @@ module "sligo_azure" {
   postgres_storage_mb = var.postgres_storage_mb
 
   # Redis configuration
-  redis_sku_name = var.redis_sku_name
-  redis_family   = var.redis_family
-  redis_capacity = var.redis_capacity
+  redis_sku_name                  = var.redis_sku_name
+  redis_high_availability_enabled = var.redis_high_availability_enabled
 
   # Storage configuration
   use_existing_storage_account = var.use_existing_storage_account

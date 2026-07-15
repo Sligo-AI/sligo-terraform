@@ -23,11 +23,10 @@ postgres_sku_name  = "B_Standard_B1ms"
 postgres_storage_mb = 32768
 
 # Redis Configuration
-# Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip Azure Cache for Redis.
+# Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip Azure Managed Redis.
 # redis_url = ""  # GSM / secrets manager in production
-redis_sku_name  = "Standard"
-redis_family    = "C"
-redis_capacity  = 1
+redis_sku_name                  = "Balanced_B1"
+redis_high_availability_enabled = true
 
 # Required Secrets
 jwt_secret          = "CHANGE_ME"

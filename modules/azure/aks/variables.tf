@@ -217,31 +217,25 @@ variable "postgres_storage_mb" {
 }
 
 # Redis Configuration
-# When redis_url is set (e.g. Redis Cloud), Azure Cache for Redis is not provisioned.
+# When redis_url is set (e.g. Redis Cloud), Azure Managed Redis is not provisioned.
 variable "redis_url" {
-  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; Azure Cache for Redis is not created."
+  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; Azure Managed Redis is not created."
   type        = string
   default     = ""
   sensitive   = true
 }
 
-# Azure Cache for Redis (only when redis_url is empty)
+# Azure Managed Redis (only when redis_url is empty)
 variable "redis_sku_name" {
-  description = "Azure Cache for Redis SKU (Basic, Standard, or Premium)"
+  description = "Azure Managed Redis SKU (e.g. Balanced_B0, Balanced_B1, Balanced_B3)"
   type        = string
-  default     = "Standard"
+  default     = "Balanced_B1"
 }
 
-variable "redis_family" {
-  description = "Redis SKU family (C or P)"
-  type        = string
-  default     = "C"
-}
-
-variable "redis_capacity" {
-  description = "Redis capacity (0-6 for C family, 1-5 for P family)"
-  type        = number
-  default     = 1
+variable "redis_high_availability_enabled" {
+  description = "Whether Azure Managed Redis is deployed with high availability (primary + replica). Disable only for cheap sandbox/dev."
+  type        = bool
+  default     = true
 }
 
 # Blob Storage Configuration
@@ -598,9 +592,9 @@ variable "langsmith_api_base_url" {
 }
 
 variable "observability_provider" {
-  description = "Observability provider"
+  description = "Observability provider (langsmith or langfuse)"
   type        = string
-  default     = ""
+  default     = "langsmith"
 }
 
 variable "onedrive_client_secret" {
