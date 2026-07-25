@@ -95,7 +95,7 @@ variable "db_password" {
 |-------------------|-----------------|---------------------------|
 | `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `encryption_key`, `auth_provider`, WorkOS/OIDC/SAML vars, `openai_api_key`, bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. |
 | `backend-secrets` | backend API | `jwt_secret`, `api_key`, `encryption_key`, `openai_api_key`, `anthropic_api_key`, `google_vertex_ai_web_credentials`, `langsmith_api_key`, storage, etc. |
-| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `openai_api_key`, SpendHQ/Perplexity/Tavily, storage, Pinecone/SingleStore, etc. |
+| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, storage, Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
 | `redis-secret` | redis (external) | From ElastiCache (host, port) |
 | `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true` **and** `temporal_self_hosted = true`; host/port/database/username/password from managed Postgres |
@@ -133,6 +133,8 @@ When **`enable_proactive_insights = true`**, Terraform:
 
 - Sets `proactiveInsights.enabled = true` in the Helm release (which sets `PROACTIVE_INSIGHTS_ENABLED` on the app pods)
 - Adds `SPENDHQ_SS_HOST` / `SPENDHQ_SS_USERNAME` / `SPENDHQ_SS_PASSWORD` / `SPENDHQ_SS_PORT` to `backend-secrets` (in addition to `mcp-gateway-secrets`)
+
+`mcp-gateway-secrets` always includes `DATABASE_URL` (same Postgres URL as backend) so SpendHQ Proactive Insights serving tools can read the Prisma store.
 
 Proactive Insights runs on the Temporal worker, so it requires `enable_temporal = true` and the `spendhq_ss_*` variables to be set. The org must also be enabled in Super Admin.
 

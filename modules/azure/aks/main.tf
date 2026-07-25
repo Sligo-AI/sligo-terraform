@@ -656,6 +656,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     SECRET                                             = var.gateway_secret
     PORT                                               = "3002"
     FRONTEND_URL                                       = var.frontend_url
+    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
     BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
     REDIS_URL                                          = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url

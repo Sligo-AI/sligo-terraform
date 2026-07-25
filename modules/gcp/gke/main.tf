@@ -530,6 +530,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     SECRET                                             = var.gateway_secret
     PORT                                               = "3002"
     FRONTEND_URL                                       = var.frontend_url
+    DATABASE_URL                                       = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
     REDIS_URL                                          = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url

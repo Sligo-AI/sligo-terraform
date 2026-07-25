@@ -1252,6 +1252,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     SECRET                                                              = local.eff_strings["gateway_secret"]
     PORT                                                                = "3002"
     FRONTEND_URL                                                        = local.eff_strings["frontend_url"]
+    DATABASE_URL                                                        = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
     BUCKET_NAME_FILE_MANAGER                                            = local.s3_bucket_file_manager_id
     REDIS_URL                                                           = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS                                        = local.redis_url
