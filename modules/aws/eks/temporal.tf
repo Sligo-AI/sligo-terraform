@@ -37,27 +37,17 @@ locals {
   }
 
   temporal_helm_values = {
-    temporal = merge(
-      {
-        enabled         = local.temporal_enabled
-        selfHosted      = local.temporal_self_hosted
-        type            = "external"
-        frontendAddress = local.temporal_frontend_address
-        namespace       = var.temporal_namespace
-        taskQueue       = var.temporal_task_queue
-        web = {
-          enabled = local.temporal_self_hosted && var.temporal_web_enabled
-        }
-      },
-      local.temporal_self_hosted ? {
-        webAddress = "http://temporal-web:8080"
-        persistence = {
-          host = local.temporal_db_host
-          port = aws_rds_cluster.postgres.port
-          user = local.temporal_db_user
-        }
-      } : {}
-    )
+    temporal = {
+      enabled         = local.temporal_enabled
+      selfHosted      = local.temporal_self_hosted
+      type            = "external"
+      frontendAddress = local.temporal_frontend_address
+      namespace       = var.temporal_namespace
+      taskQueue       = var.temporal_task_queue
+      web = {
+        enabled = local.temporal_self_hosted && var.temporal_web_enabled
+      }
+    }
     temporalWorker = {
       enabled      = local.temporal_enabled
       replicaCount = local.temporal_enabled ? 2 : 0
@@ -101,6 +91,20 @@ locals {
       }
       web = {
         enabled = local.temporal_self_hosted && var.temporal_web_enabled
+      }
+    }
+  }
+
+  # Applied as an extra Helm values document only when self-hosted, because a
+  # conditional object with attributes absent from the other branch fails
+  # Terraform type unification.
+  temporal_self_hosted_helm_values = {
+    temporal = {
+      webAddress = "http://temporal-web:8080"
+      persistence = {
+        host = local.temporal_db_host
+        port = aws_rds_cluster.postgres.port
+        user = local.temporal_db_user
       }
     }
   }

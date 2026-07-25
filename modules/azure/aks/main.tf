@@ -846,6 +846,7 @@ resource "helm_release" "sligo_cloud" {
       redis = local.redis_helm_values
     })],
     [yamlencode(local.temporal_helm_values)],
+    local.temporal_self_hosted ? [yamlencode(local.temporal_self_hosted_helm_values)] : [],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
   )
 
