@@ -1215,6 +1215,13 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                                      = local.eff_strings["azure_openai_api_instance_name"]
     AZURE_OPENAI_API_VERSION                                            = local.eff_strings["azure_openai_api_version"]
     AZURE_OPENAI_BASE_PATH                                              = local.eff_strings["azure_openai_base_path"]
+    } : {}, var.enable_proactive_insights ? {
+    # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
+    # SingleStore connection, not just the MCP gateway.
+    SPENDHQ_SS_HOST     = local.eff_strings["spendhq_ss_host"] != "" ? local.eff_strings["spendhq_ss_host"] : "placeholder"
+    SPENDHQ_SS_USERNAME = local.eff_strings["spendhq_ss_username"] != "" ? local.eff_strings["spendhq_ss_username"] : "placeholder"
+    SPENDHQ_SS_PASSWORD = local.eff_strings["spendhq_ss_password"] != "" ? local.eff_strings["spendhq_ss_password"] : "placeholder"
+    SPENDHQ_SS_PORT     = local.eff_strings["spendhq_ss_port"] != "" ? local.eff_strings["spendhq_ss_port"] : "3306"
   } : {}, local.temporal_client_env)
 }
 
@@ -1683,6 +1690,10 @@ resource "helm_release" "sligo_cloud" {
         enabled   = var.enable_control_plane_exporter
         gcsBucket = local.cp_exporter_gcs_bucket
         gcsPrefix = basename(path.cwd)
+      }
+
+      proactiveInsights = {
+        enabled = var.enable_proactive_insights
       }
 
       ingress = {

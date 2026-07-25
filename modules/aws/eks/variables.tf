@@ -287,6 +287,23 @@ variable "temporal_web_enabled" {
   default     = true
 }
 
+# Proactive Insights
+variable "enable_proactive_insights" {
+  description = "Enable Proactive Insights (sets PROACTIVE_INSIGHTS_ENABLED on app pods and adds SPENDHQ_SS_* to backend-secrets for the Temporal worker). Requires enable_temporal and the spendhq_ss_* SingleStore credentials."
+  type        = bool
+  default     = false
+}
+
+check "proactive_insights_config" {
+  assert {
+    condition = (
+      !var.enable_proactive_insights ||
+      (var.enable_temporal && local.eff_strings["spendhq_ss_host"] != "" && local.eff_strings["spendhq_ss_username"] != "" && local.eff_strings["spendhq_ss_password"] != "")
+    )
+    error_message = "When enable_proactive_insights=true, set enable_temporal=true (PI runs on the Temporal worker) and provide spendhq_ss_host, spendhq_ss_username, and spendhq_ss_password."
+  }
+}
+
 variable "aurora_min_capacity" {
   description = "Aurora Serverless v2 minimum capacity in ACU (Aurora Capacity Units). 0.5 ACU = 1 GB RAM, 2 vCPU"
   type        = number

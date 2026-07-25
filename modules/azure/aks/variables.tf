@@ -229,6 +229,23 @@ variable "temporal_web_enabled" {
   default     = true
 }
 
+# Proactive Insights
+variable "enable_proactive_insights" {
+  description = "Enable Proactive Insights (sets PROACTIVE_INSIGHTS_ENABLED on app pods and adds SPENDHQ_SS_* to backend-secrets for the Temporal worker). Requires enable_temporal and the spendhq_ss_* SingleStore credentials."
+  type        = bool
+  default     = false
+}
+
+check "proactive_insights_config" {
+  assert {
+    condition = (
+      !var.enable_proactive_insights ||
+      (var.enable_temporal && var.spendhq_ss_host != "" && var.spendhq_ss_username != "" && var.spendhq_ss_password != "")
+    )
+    error_message = "When enable_proactive_insights=true, set enable_temporal=true (PI runs on the Temporal worker) and provide spendhq_ss_host, spendhq_ss_username, and spendhq_ss_password."
+  }
+}
+
 variable "postgres_sku_name" {
   description = "Azure PostgreSQL Flexible Server SKU (e.g., B_Standard_B1ms, GP_Standard_D2s_v3)"
   type        = string

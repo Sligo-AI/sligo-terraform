@@ -127,6 +127,19 @@ See [examples/gcp-gke/terraform.tfvars.temporal.example](../examples/gcp-gke/ter
 | `temporal_db_password` | *(empty → `db_password`)* | Optional dedicated DB password |
 | `temporal_web_enabled` | `true` | Deploy Temporal Web UI (self-hosted only; ClusterIP; Super Admin proxy in app) |
 
+### Proactive Insights
+
+When **`enable_proactive_insights = true`**, Terraform:
+
+- Sets `proactiveInsights.enabled = true` in the Helm release (which sets `PROACTIVE_INSIGHTS_ENABLED` on the app pods)
+- Adds `SPENDHQ_SS_HOST` / `SPENDHQ_SS_USERNAME` / `SPENDHQ_SS_PASSWORD` / `SPENDHQ_SS_PORT` to `backend-secrets` (in addition to `mcp-gateway-secrets`)
+
+Proactive Insights runs on the Temporal worker, so it requires `enable_temporal = true` and the `spendhq_ss_*` variables to be set. The org must also be enabled in Super Admin.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `enable_proactive_insights` | `false` | Enable Proactive Insights (requires `enable_temporal` and `spendhq_ss_*`) |
+
 
 | Variable | Description |
 |----------|-------------|
