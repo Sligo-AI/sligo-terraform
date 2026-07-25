@@ -1168,7 +1168,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = local.eff_strings["azure_aisearch_key"] != "" ? local.eff_strings["azure_aisearch_key"] : "placeholder"
     AZURE_AISEARCH_INDEX      = local.eff_strings["azure_aisearch_index"]
     AZURE_AISEARCH_QUERY_TYPE = local.eff_strings["azure_aisearch_query_type"]
-  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {})
+  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, local.temporal_client_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -1215,7 +1215,7 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                                      = local.eff_strings["azure_openai_api_instance_name"]
     AZURE_OPENAI_API_VERSION                                            = local.eff_strings["azure_openai_api_version"]
     AZURE_OPENAI_BASE_PATH                                              = local.eff_strings["azure_openai_base_path"]
-  } : {})
+  } : {}, local.temporal_client_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - required on EKS where
@@ -1280,7 +1280,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = local.eff_strings["azure_aisearch_key"] != "" ? local.eff_strings["azure_aisearch_key"] : "placeholder"
     AZURE_AISEARCH_INDEX      = local.eff_strings["azure_aisearch_index"]
     AZURE_AISEARCH_QUERY_TYPE = local.eff_strings["azure_aisearch_query_type"]
-  } : {})
+  } : {}, local.temporal_client_env)
 }
 
 # Database Secret

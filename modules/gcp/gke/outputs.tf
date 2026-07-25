@@ -4,13 +4,18 @@ output "cluster_endpoint" {
 }
 
 output "temporal_enabled" {
-  description = "Whether self-hosted Temporal infrastructure is provisioned."
+  description = "Whether Temporal clients and the sligo-temporal-worker are enabled."
   value       = var.enable_temporal
 }
 
+output "temporal_self_hosted" {
+  description = "Whether the in-cluster Temporal server (and Postgres DBs) are provisioned."
+  value       = var.enable_temporal && var.temporal_self_hosted
+}
+
 output "temporal_database_names" {
-  description = "Postgres database names used by Temporal when enable_temporal is true."
-  value = var.enable_temporal ? {
+  description = "Postgres database names used by self-hosted Temporal; null when Temporal is off or using Temporal Cloud."
+  value = var.enable_temporal && var.temporal_self_hosted ? {
     default    = var.temporal_db_name
     visibility = var.temporal_visibility_db_name
   } : null

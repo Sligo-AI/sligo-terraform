@@ -106,7 +106,7 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
 - **Nginx Ingress Controller** (LoadBalancer service)
 - **Sligo Enterprise Helm chart** deployment
 
-Optional **`enable_temporal = true`** adds Temporal databases on PostgreSQL Flexible Server, credential secrets, and Helm values for self-hosted Temporal. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/azure-aks/terraform.tfvars.temporal.example).
+Optional **`enable_temporal = true`** enables Temporal clients and the worker. Default **`temporal_self_hosted = true`** also adds Flexible Server Temporal databases and the in-cluster server; set **`temporal_self_hosted = false`** with Cloud address/API key for Temporal Cloud only. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/azure-aks/terraform.tfvars.temporal.example).
 
 ---
 

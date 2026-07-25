@@ -1,7 +1,9 @@
 # Temporal-enabled deployment (Azure AKS example)
 # Merge these settings into terraform.tfvars or export as TF_VAR_*.
 
+# --- Self-hosted Temporal (in-cluster server + worker) ---
 enable_temporal              = true
+temporal_self_hosted         = true
 temporal_namespace           = "sligo-prod"
 temporal_task_queue          = "sligo-workflows"
 temporal_history_shard_count = 512
@@ -11,3 +13,11 @@ temporal_web_enabled         = true
 
 # temporal_db_username = "sligo"
 # temporal_db_password = "CHANGE_ME"
+
+# --- Temporal Cloud (worker only; no in-cluster Temporal server) ---
+# enable_temporal            = true
+# temporal_self_hosted       = false
+# temporal_frontend_address  = "your-namespace.account.tmprl.cloud:7233"
+# temporal_api_key           = "CHANGE_ME"
+# temporal_namespace         = "your-namespace"
+# temporal_task_queue        = "sligo-workflows"

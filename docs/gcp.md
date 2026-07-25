@@ -106,7 +106,7 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + in-cluster Redis S
 - **GCE Ingress** (HTTP(S) load balancer)
 - **Sligo Enterprise Helm chart** deployment
 
-When **`enable_temporal = true`**, the module also creates `temporal` and `temporal_visibility` databases on Cloud SQL, Kubernetes secrets for the Temporal subchart, and Helm values for self-hosted Temporal (server + worker + Web UI). See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example).
+When **`enable_temporal = true`**, the module enables Temporal clients and the `sligo-temporal-worker`. With the default **`temporal_self_hosted = true`**, it also creates `temporal` / `temporal_visibility` databases on Cloud SQL and Helm values for the in-cluster Temporal server. Set **`temporal_self_hosted = false`** plus `temporal_frontend_address` and `temporal_api_key` for Temporal Cloud (worker only). See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example).
 
 ---
 

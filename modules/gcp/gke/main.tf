@@ -463,7 +463,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {})
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -508,7 +508,7 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
     AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
     AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
-  } : {})
+  } : {}, local.temporal_client_env)
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -557,7 +557,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {})
+  } : {}, local.temporal_client_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - same flow as SHQ/AWS.

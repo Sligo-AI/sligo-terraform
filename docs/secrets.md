@@ -98,14 +98,14 @@ variable "db_password" {
 | `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `openai_api_key`, SpendHQ/Perplexity/Tavily, storage, Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
 | `redis-secret` | redis (external) | From ElastiCache (host, port) |
-| `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true`; host/port/database/username/password from managed Postgres |
-| `temporal-visibility-db-credentials` | Temporal subchart (visibility store) | When `enable_temporal = true` |
+| `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true` **and** `temporal_self_hosted = true`; host/port/database/username/password from managed Postgres |
+| `temporal-visibility-db-credentials` | Temporal subchart (visibility store) | Same as above |
 
 When **`enable_temporal = true`**, Terraform also:
 
-- Creates Postgres databases `temporal` and `temporal_visibility` on the existing managed instance
-- Passes Helm values for `temporal`, `temporalWorker`, and `temporal-server` (official subchart)
-- Injects `TEMPORAL_*` client env via Helm (not separate GSM keys)
+- Enables the `temporal-worker` Helm Deployment and injects `TEMPORAL_*` into `nextjs-secrets`, `backend-secrets`, and `mcp-gateway-secrets`
+- If **`temporal_self_hosted = true`** (default): creates Postgres databases `temporal` / `temporal_visibility`, Temporal DB credential secrets, and Helm values for the official Temporal server subchart
+- If **`temporal_self_hosted = false`**: points clients at Temporal Cloud (`temporal_frontend_address` + `temporal_api_key`); does **not** create Temporal Postgres DBs or install the server subchart
 
 See [examples/gcp-gke/terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example) and the Helm chart [TEMPORAL.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/TEMPORAL.md).
 
@@ -113,15 +113,19 @@ See [examples/gcp-gke/terraform.tfvars.temporal.example](../examples/gcp-gke/ter
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `enable_temporal` | `false` | Provision Temporal DBs, secrets, and Helm stack |
+| `enable_temporal` | `false` | Enable Temporal clients + sligo-temporal-worker |
+| `temporal_self_hosted` | `true` | Install in-cluster Temporal server + Postgres DBs; set `false` for Temporal Cloud |
+| `temporal_frontend_address` | *(empty)* | Cloud/external frontend `host:port` (required when not self-hosted) |
+| `temporal_api_key` | *(empty)* | Temporal Cloud API key (required when not self-hosted) |
+| `temporal_tls` | *(empty)* | Override `TEMPORAL_TLS` (`"true"`/`"false"`); empty = false self-hosted, true Cloud |
 | `temporal_namespace` | `sligo-prod` | Temporal logical namespace |
 | `temporal_task_queue` | `sligo-workflows` | Worker task queue |
-| `temporal_history_shard_count` | `512` | History shards (immutable after first deploy) |
-| `temporal_db_name` | `temporal` | Default store database name |
-| `temporal_visibility_db_name` | `temporal_visibility` | Visibility store database name |
+| `temporal_history_shard_count` | `512` | History shards (immutable after first deploy; self-hosted only) |
+| `temporal_db_name` | `temporal` | Default store database name (self-hosted only) |
+| `temporal_visibility_db_name` | `temporal_visibility` | Visibility store database name (self-hosted only) |
 | `temporal_db_username` | *(empty → `db_username`)* | Optional dedicated DB user |
 | `temporal_db_password` | *(empty → `db_password`)* | Optional dedicated DB password |
-| `temporal_web_enabled` | `true` | Deploy Temporal Web UI (ClusterIP; Super Admin proxy in app) |
+| `temporal_web_enabled` | `true` | Deploy Temporal Web UI (self-hosted only; ClusterIP; Super Admin proxy in app) |
 
 
 | Variable | Description |

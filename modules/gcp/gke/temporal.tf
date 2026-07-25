@@ -1,8 +1,28 @@
 locals {
-  temporal_enabled     = var.enable_temporal
+  temporal_enabled = var.enable_temporal
+  # Self-hosted server (Postgres DBs + temporal-server subchart). Independent of the
+  # Sligo worker: set temporal_self_hosted=false to run against Temporal Cloud.
+  temporal_self_hosted = var.enable_temporal && var.temporal_self_hosted
   temporal_db_user     = var.temporal_db_username != "" ? var.temporal_db_username : var.db_username
   temporal_db_password = var.temporal_db_password != "" ? var.temporal_db_password : var.db_password
   temporal_db_host     = google_sql_database_instance.postgres.private_ip_address
+
+  temporal_frontend_address = local.temporal_self_hosted ? "temporal-frontend:7233" : var.temporal_frontend_address
+  temporal_tls_value = (
+    var.temporal_tls != "" ? var.temporal_tls : (local.temporal_self_hosted ? "false" : "true")
+  )
+
+  # Injected into nextjs / backend / mcp-gateway secrets (worker reuses backend-secrets).
+  # Helm may still override ADDRESS / NAMESPACE / TASK_QUEUE when temporal.enabled is true.
+  temporal_client_env = local.temporal_enabled ? merge(
+    {
+      TEMPORAL_ADDRESS    = local.temporal_frontend_address
+      TEMPORAL_NAMESPACE  = var.temporal_namespace
+      TEMPORAL_TASK_QUEUE = var.temporal_task_queue
+      TEMPORAL_TLS        = local.temporal_tls_value
+    },
+    var.temporal_api_key != "" ? { TEMPORAL_API_KEY = var.temporal_api_key } : {}
+  ) : {}
 
   temporal_db_secret_data = {
     host     = local.temporal_db_host
@@ -21,21 +41,27 @@ locals {
   }
 
   temporal_helm_values = {
-    temporal = {
-      enabled    = local.temporal_enabled
-      selfHosted = local.temporal_enabled
-      namespace  = var.temporal_namespace
-      taskQueue  = var.temporal_task_queue
-      webAddress = "http://temporal-web:8080"
-      web = {
-        enabled = local.temporal_enabled && var.temporal_web_enabled
-      }
-      persistence = {
-        host = local.temporal_db_host
-        port = 5432
-        user = local.temporal_db_user
-      }
-    }
+    temporal = merge(
+      {
+        enabled         = local.temporal_enabled
+        selfHosted      = local.temporal_self_hosted
+        type            = "external"
+        frontendAddress = local.temporal_frontend_address
+        namespace       = var.temporal_namespace
+        taskQueue       = var.temporal_task_queue
+        web = {
+          enabled = local.temporal_self_hosted && var.temporal_web_enabled
+        }
+      },
+      local.temporal_self_hosted ? {
+        webAddress = "http://temporal-web:8080"
+        persistence = {
+          host = local.temporal_db_host
+          port = 5432
+          user = local.temporal_db_user
+        }
+      } : {}
+    )
     temporalWorker = {
       enabled      = local.temporal_enabled
       replicaCount = local.temporal_enabled ? 2 : 0
@@ -68,8 +94,8 @@ locals {
           }
         }
         namespaces = {
-          create = local.temporal_enabled
-          namespace = local.temporal_enabled ? [
+          create = local.temporal_self_hosted
+          namespace = local.temporal_self_hosted ? [
             {
               name      = var.temporal_namespace
               retention = "720h"
@@ -78,28 +104,39 @@ locals {
         }
       }
       web = {
-        enabled = local.temporal_enabled && var.temporal_web_enabled
+        enabled = local.temporal_self_hosted && var.temporal_web_enabled
       }
     }
   }
 }
 
+check "temporal_cloud_config" {
+  assert {
+    condition = (
+      !local.temporal_enabled ||
+      local.temporal_self_hosted ||
+      (var.temporal_frontend_address != "" && var.temporal_api_key != "")
+    )
+    error_message = "When enable_temporal=true and temporal_self_hosted=false (Temporal Cloud), set temporal_frontend_address and temporal_api_key."
+  }
+}
+
 resource "google_sql_database" "temporal" {
-  count    = local.temporal_enabled ? 1 : 0
+  count    = local.temporal_self_hosted ? 1 : 0
   name     = var.temporal_db_name
   instance = google_sql_database_instance.postgres.name
   project  = var.gcp_project_id
 }
 
 resource "google_sql_database" "temporal_visibility" {
-  count    = local.temporal_enabled ? 1 : 0
+  count    = local.temporal_self_hosted ? 1 : 0
   name     = var.temporal_visibility_db_name
   instance = google_sql_database_instance.postgres.name
   project  = var.gcp_project_id
 }
 
 resource "kubernetes_secret" "temporal_db_credentials" {
-  count = local.temporal_enabled ? 1 : 0
+  count = local.temporal_self_hosted ? 1 : 0
 
   metadata {
     name      = "temporal-db-credentials"
@@ -110,7 +147,7 @@ resource "kubernetes_secret" "temporal_db_credentials" {
 }
 
 resource "kubernetes_secret" "temporal_visibility_db_credentials" {
-  count = local.temporal_enabled ? 1 : 0
+  count = local.temporal_self_hosted ? 1 : 0
 
   metadata {
     name      = "temporal-visibility-db-credentials"

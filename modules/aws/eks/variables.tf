@@ -207,9 +207,34 @@ variable "db_password" {
 }
 
 variable "enable_temporal" {
-  description = "Provision Temporal Postgres databases, secrets, and Helm values for self-hosted Temporal."
+  description = "Enable Temporal clients (app/backend/mcp) and the sligo-temporal-worker Deployment. Pair with temporal_self_hosted for in-cluster server, or temporal_self_hosted=false for Temporal Cloud."
   type        = bool
   default     = false
+}
+
+variable "temporal_self_hosted" {
+  description = "When enable_temporal is true, install the official Temporal server subchart and provision Postgres DBs. Set false to use Temporal Cloud (or another external Temporal Service)."
+  type        = bool
+  default     = true
+}
+
+variable "temporal_frontend_address" {
+  description = "Temporal frontend host:port for Temporal Cloud / external mode (e.g. namespace.account.tmprl.cloud:7233). Ignored when temporal_self_hosted is true (uses temporal-frontend:7233)."
+  type        = string
+  default     = ""
+}
+
+variable "temporal_api_key" {
+  description = "Temporal Cloud API key. Required when enable_temporal=true and temporal_self_hosted=false. Injected into nextjs/backend/mcp-gateway secrets (worker reuses backend-secrets)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "temporal_tls" {
+  description = "Override TEMPORAL_TLS for clients (\"true\" or \"false\"). Empty = false for self-hosted, true for Temporal Cloud / external."
+  type        = string
+  default     = ""
 }
 
 variable "temporal_namespace" {
@@ -225,39 +250,39 @@ variable "temporal_task_queue" {
 }
 
 variable "temporal_history_shard_count" {
-  description = "Temporal history shard count. Immutable after first deploy."
+  description = "Temporal history shard count. Immutable after first deploy. Only used when temporal_self_hosted is true."
   type        = number
   default     = 512
 }
 
 variable "temporal_db_name" {
-  description = "Postgres database name for Temporal default store."
+  description = "Postgres database name for Temporal default store. Only used when temporal_self_hosted is true."
   type        = string
   default     = "temporal"
 }
 
 variable "temporal_visibility_db_name" {
-  description = "Postgres database name for Temporal visibility store."
+  description = "Postgres database name for Temporal visibility store. Only used when temporal_self_hosted is true."
   type        = string
   default     = "temporal_visibility"
 }
 
 variable "temporal_db_username" {
-  description = "Postgres user for Temporal databases. Empty reuses db_username."
+  description = "Postgres user for Temporal databases. Empty reuses db_username. Only used when temporal_self_hosted is true."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "temporal_db_password" {
-  description = "Postgres password for Temporal databases. Empty reuses db_password."
+  description = "Postgres password for Temporal databases. Empty reuses db_password. Only used when temporal_self_hosted is true."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "temporal_web_enabled" {
-  description = "Deploy Temporal Web UI (ClusterIP; Super Admin access via sligo-app proxy)."
+  description = "Deploy Temporal Web UI (ClusterIP; Super Admin access via sligo-app proxy). Only applies when temporal_self_hosted is true."
   type        = bool
   default     = true
 }
