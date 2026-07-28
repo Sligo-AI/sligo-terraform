@@ -604,8 +604,10 @@ resource "kubernetes_secret" "backend_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    JWT_SECRET                                         = var.jwt_secret
-    API_KEY                                            = var.api_key
+    JWT_SECRET = var.jwt_secret
+    API_KEY    = var.api_key
+    # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
+    BACKEND_URL                                        = "http://sligo-backend:3001"
     PORT                                               = "3001"
     DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
     REDIS_URL                                          = local.redis_url

@@ -1180,9 +1180,11 @@ resource "kubernetes_secret" "backend_secrets" {
   }
 
   data = merge({
-    JWT_SECRET                                                          = local.eff_strings["jwt_secret"]
-    API_KEY                                                             = local.eff_strings["api_key"]
-    BACKEND_API_KEY                                                     = local.eff_strings["backend_api_key"]
+    JWT_SECRET      = local.eff_strings["jwt_secret"]
+    API_KEY         = local.eff_strings["api_key"]
+    BACKEND_API_KEY = local.eff_strings["backend_api_key"]
+    # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
+    BACKEND_URL                                                         = "http://sligo-backend:3001"
     PORT                                                                = "3001"
     DATABASE_URL                                                        = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
     REDIS_URL                                                           = local.redis_url
