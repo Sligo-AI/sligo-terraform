@@ -101,3 +101,9 @@ encryption_key = "CHANGE_ME"
 # Networking (Optional - can use existing VPC)
 # vpc_id = "vpc-..."
 # subnet_ids = ["subnet-...", "subnet-..."]
+
+# Postmark email (optional)
+# postmark_server_token = "CHANGE_ME"
+# email_from = "noreply@mail.example.com"
+# email_inbound_domain = "example.com"
+# email_inbound_webhook_secret = "CHANGE_ME"

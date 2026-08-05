@@ -954,3 +954,30 @@ variable "aws_secret_access_key" {
   default     = ""
   sensitive   = true
 }
+
+# Postmark email
+variable "postmark_server_token" {
+  description = "Postmark server token"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "email_from" {
+  description = "Default verified sender address"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_domain" {
+  description = "Domain used for inbound email replies"
+  type        = string
+  default     = ""
+}
+
+variable "email_inbound_webhook_secret" {
+  description = "Shared secret used to authenticate inbound email webhooks"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

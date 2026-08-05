@@ -517,7 +517,7 @@ resource "kubernetes_secret" "backend_secrets" {
     SPENDHQ_SS_USERNAME = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
     SPENDHQ_SS_PASSWORD = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
     SPENDHQ_SS_PORT     = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-  } : {}, local.temporal_client_env)
+  } : {}, local.temporal_client_env, local.postmark_backend_env)
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -567,7 +567,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, local.temporal_client_env)
+  } : {}, local.temporal_client_env, local.postmark_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - same flow as SHQ/AWS.

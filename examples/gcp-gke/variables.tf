@@ -467,3 +467,26 @@ variable "azure_openai_base_path" {
   type    = string
   default = ""
 }
+
+# Postmark email (optional)
+variable "postmark_server_token" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "email_from" {
+  type    = string
+  default = ""
+}
+
+variable "email_inbound_domain" {
+  type    = string
+  default = ""
+}
+
+variable "email_inbound_webhook_secret" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
