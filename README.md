@@ -53,9 +53,9 @@ Defaults keep current behavior (`false`) so existing environments do not change 
 
 Sligo's enterprise model uses centralized secret governance in `sligo-ai-platform` with prefix isolation per client/environment.
 
-### Postmark email (GKE)
+### Postmark email
 
-Set `postmark_server_token` and `email_from` to enable Postmark. For inbound replies, also set `email_inbound_domain` and `email_inbound_webhook_secret`. The module injects these into the backend and MCP gateway secrets.
+All three cluster modules support Postmark. Set `postmark_server_token` and `email_from` to enable it. For inbound replies, also set `email_inbound_domain` and `email_inbound_webhook_secret`. The modules inject these into the backend and MCP gateway secrets.
 
 ---
 

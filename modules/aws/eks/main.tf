@@ -1224,7 +1224,7 @@ resource "kubernetes_secret" "backend_secrets" {
     SPENDHQ_SS_USERNAME = local.eff_strings["spendhq_ss_username"] != "" ? local.eff_strings["spendhq_ss_username"] : "placeholder"
     SPENDHQ_SS_PASSWORD = local.eff_strings["spendhq_ss_password"] != "" ? local.eff_strings["spendhq_ss_password"] : "placeholder"
     SPENDHQ_SS_PORT     = local.eff_strings["spendhq_ss_port"] != "" ? local.eff_strings["spendhq_ss_port"] : "3306"
-  } : {}, local.temporal_client_env)
+  } : {}, local.temporal_client_env, local.postmark_backend_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - required on EKS where
@@ -1290,7 +1290,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = local.eff_strings["azure_aisearch_key"] != "" ? local.eff_strings["azure_aisearch_key"] : "placeholder"
     AZURE_AISEARCH_INDEX      = local.eff_strings["azure_aisearch_index"]
     AZURE_AISEARCH_QUERY_TYPE = local.eff_strings["azure_aisearch_query_type"]
-  } : {}, local.temporal_client_env)
+  } : {}, local.temporal_client_env, local.postmark_env)
 }
 
 # Database Secret

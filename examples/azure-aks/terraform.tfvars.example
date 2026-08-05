@@ -36,3 +36,9 @@ gateway_secret      = "CHANGE_ME"
 frontend_url        = "https://app.example.com"
 next_public_api_url = "https://api.example.com"
 encryption_key      = "CHANGE_ME"
+
+# Postmark email (optional)
+# postmark_server_token = "CHANGE_ME"
+# email_from = "noreply@mail.example.com"
+# email_inbound_domain = "example.com"
+# email_inbound_webhook_secret = "CHANGE_ME"

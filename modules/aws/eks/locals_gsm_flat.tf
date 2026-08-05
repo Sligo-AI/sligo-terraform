@@ -76,6 +76,10 @@ locals {
     onedrive_client_secret               = var.onedrive_client_secret
     aws_access_key_id                    = var.aws_access_key_id
     aws_secret_access_key                = var.aws_secret_access_key
+    postmark_server_token                = var.postmark_server_token
+    email_from                           = var.email_from
+    email_inbound_domain                 = var.email_inbound_domain
+    email_inbound_webhook_secret         = var.email_inbound_webhook_secret
     spendhq_base_url                     = var.spendhq_base_url
     spendhq_client_id                    = var.spendhq_client_id
     spendhq_client_secret                = var.spendhq_client_secret
