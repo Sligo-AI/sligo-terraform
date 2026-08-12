@@ -758,9 +758,9 @@ resource "helm_release" "nginx_ingress" {
 # Helm Release for Sligo Cloud
 resource "helm_release" "sligo_cloud" {
   name       = "sligo-cloud"
-  repository = "https://sligo-ai.github.io/sligo-helm-charts"
-  chart      = "sligo-cloud"
-  version    = var.app_version
+  repository = var.chart_path != "" ? "" : "https://sligo-ai.github.io/sligo-helm-charts"
+  chart      = var.chart_path != "" ? var.chart_path : "sligo-cloud"
+  version    = var.chart_path != "" ? null : var.chart_version
   namespace  = kubernetes_namespace.sligo.metadata[0].name
   timeout    = 600
 

@@ -26,7 +26,7 @@ To upgrade Sligo Enterprise to a new version:
 
 ## Helm Chart Version
 
-The Helm chart version is tied to `app_version` in the module. Updating `app_version` typically updates the chart as needed.
+Pin the Helm chart with `chart_version` (default `1.0.1`). This is independent of `app_version`, which only sets container image tags. Set `chart_path` to use a local chart instead of the repository.
 
 ## Kubernetes / Cluster Upgrades
 

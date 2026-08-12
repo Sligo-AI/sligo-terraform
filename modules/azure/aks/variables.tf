@@ -58,6 +58,18 @@ variable "app_version" {
   default     = "latest"
 }
 
+variable "chart_version" {
+  description = "sligo-cloud Helm chart version (e.g., '1.0.1'). Chart 1.0.1+ supports extraVolumes/extraVolumeMounts for GCP credentials. Ignored when chart_path is set."
+  type        = string
+  default     = "1.0.1"
+}
+
+variable "chart_path" {
+  description = "Optional path to local sligo-cloud chart .tgz file. When set, uses local chart instead of repository."
+  type        = string
+  default     = ""
+}
+
 variable "helm_extra_values" {
   description = "Additional YAML merged into the sligo-cloud Helm release after module-rendered values (Helm: later values override earlier). Use for chart keys not modeled as module variables; do not put secrets here—use Kubernetes secrets or External Secrets."
   type        = string
