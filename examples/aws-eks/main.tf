@@ -10,6 +10,8 @@ module "sligo_aws" {
   domain_name                    = var.domain_name
   client_repository_name         = var.client_repository_name
   app_version                    = var.app_version
+  chart_version                  = var.chart_version
+  chart_path                     = var.chart_path
   helm_extra_values              = var.helm_extra_values
   enable_control_plane_exporter  = var.enable_control_plane_exporter
   sligo_service_account_key_path = var.sligo_service_account_key_path

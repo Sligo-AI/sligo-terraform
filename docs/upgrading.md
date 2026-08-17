@@ -26,7 +26,14 @@ To upgrade Sligo Enterprise to a new version:
 
 ## Helm Chart Version
 
-Pin the Helm chart with `chart_version` (default `1.0.1`). This is independent of `app_version`, which only sets container image tags. Set `chart_path` to use a local chart instead of the repository.
+Pin the Helm chart in `terraform.tfvars` the same way as the app image tag (independent pins):
+
+```hcl
+app_version   = "v1.2.3"  # container image tags
+chart_version = "1.1.2"   # sligo-cloud chart from sligo-helm-charts (default 1.0.1)
+```
+
+Set `chart_path` to use a local chart `.tgz` instead of the repository (ignores `chart_version`).
 
 ## Kubernetes / Cluster Upgrades
 

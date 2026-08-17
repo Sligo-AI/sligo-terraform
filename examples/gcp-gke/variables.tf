@@ -44,6 +44,18 @@ variable "app_version" {
   default     = "1.0.0"
 }
 
+variable "chart_version" {
+  description = "sligo-cloud Helm chart version from sligo-helm-charts (e.g. '1.1.2'). Ignored when chart_path is set."
+  type        = string
+  default     = "1.0.1"
+}
+
+variable "chart_path" {
+  description = "Optional path to a local sligo-cloud chart .tgz. When set, uses that chart instead of the repository."
+  type        = string
+  default     = ""
+}
+
 variable "helm_extra_values" {
   description = "Optional extra YAML for the sligo-cloud Helm chart (merged after module defaults). See modules/gcp/gke variable helm_extra_values."
   type        = string
