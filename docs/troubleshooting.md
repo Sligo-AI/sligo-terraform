@@ -22,6 +22,26 @@ description: "Common issues and solutions for Sligo Terraform deployments."
 - Ensure security groups/firewall allow access from the cluster to the database.
 - Check `db_password` is correct and not truncated.
 
+### LiteParse pods unschedulable (Insufficient cpu)
+
+Chart 1.2.1 defaults LiteParse to 2 replicas requesting 2 CPU each. Default node sizes are 2 vCPU, so those pods cannot schedule (`Preemption is not helpful`, `Insufficient cpu`).
+
+The module overrides this to 1 replica requesting 1 CPU / 2Gi with a 2 CPU / 4Gi limit (Cloud Run LiteParse size, but a request that still fits 2-vCPU nodes). If you are still on module `v2.4.0`, set `helm_extra_values` until you upgrade:
+
+```hcl
+helm_extra_values = <<-YAML
+liteparse:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+YAML
+```
+
 ### Ingress / Load balancer not ready
 
 - **AWS:** Wait for ALB creation (can take a few minutes). Check AWS Load Balancer Controller logs.

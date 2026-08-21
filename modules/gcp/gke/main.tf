@@ -1191,11 +1191,22 @@ resource "helm_release" "sligo_cloud" {
       }, local.gcp_adc_config)
 
       liteparse = {
-        enabled = true
+        enabled      = true
+        replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-liteparse"
           tag        = var.app_version
           pullPolicy = "Always"
+        }
+        resources = {
+          requests = {
+            cpu    = "1000m"
+            memory = "2Gi"
+          }
+          limits = {
+            cpu    = "2000m"
+            memory = "4Gi"
+          }
         }
       }
 
