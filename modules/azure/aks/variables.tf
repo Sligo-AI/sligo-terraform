@@ -70,6 +70,12 @@ variable "chart_path" {
   default     = ""
 }
 
+variable "release_upgrade_trigger" {
+  description = "Optional value to force a Helm upgrade (runs release-setup pre-upgrade job: Prisma migrate, sync). Change this (e.g. timestamp or increment) and apply to trigger the hook and pod restarts without changing app_version."
+  type        = string
+  default     = ""
+}
+
 variable "helm_extra_values" {
   description = "Additional YAML merged into the sligo-cloud Helm release after module-rendered values (Helm: later values override earlier). Use for chart keys not modeled as module variables; do not put secrets here—use Kubernetes secrets or External Secrets."
   type        = string
@@ -259,7 +265,7 @@ check "proactive_insights_config" {
 }
 
 variable "postgres_sku_name" {
-  description = "Azure PostgreSQL Flexible Server SKU (e.g., B_Standard_B1ms, GP_Standard_D2s_v3)"
+  description = "Azure PostgreSQL Flexible Server SKU name (e.g. B_Standard_B1ms, B_Standard_B4ms, GP_Standard_D2s_v3). Must be a Flexible Server SKU, not a Compute VM size."
   type        = string
   default     = "B_Standard_B1ms"
 }
@@ -312,7 +318,7 @@ variable "azure_storage_account_key" {
   sensitive   = true
 }
 
-# Secrets (same structure as AWS/GCP)
+# Secrets
 variable "jwt_secret" {
   description = "JWT secret for backend"
   type        = string
@@ -321,6 +327,12 @@ variable "jwt_secret" {
 
 variable "api_key" {
   description = "API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "backend_api_key" {
+  description = "Shared API key used by the frontend to authenticate requests to the backend (required, must not be empty; min 32 characters)"
   type        = string
   sensitive   = true
 }
@@ -366,6 +378,18 @@ variable "auth_provider" {
   description = "Auth provider: workos (default), oidc, or saml"
   type        = string
   default     = "workos"
+}
+
+variable "auth_invitations" {
+  description = "Auth invitations provider (e.g. workos). Set to enable invitation flows."
+  type        = string
+  default     = ""
+}
+
+variable "super_admin_emails" {
+  description = "Super Admin allowlist. Comma-separated emails. When set, user must be in this list AND have isSuperAdmin=true in DB."
+  type        = string
+  default     = ""
 }
 
 variable "auth_session_secret" {
@@ -520,6 +544,13 @@ variable "auth_cookie_name" {
   type        = string
   default     = ""
 }
+
+variable "auth_cookie_same_site" {
+  description = "Session cookie SameSite: lax (default) or none. Use 'none' for iframe embedding (requires HTTPS)."
+  type        = string
+  default     = ""
+}
+
 variable "sql_connection_string_decryption_iv" {
   type      = string
   default   = ""

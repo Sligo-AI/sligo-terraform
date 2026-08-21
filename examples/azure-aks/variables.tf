@@ -97,8 +97,9 @@ variable "db_password" {
 }
 
 variable "postgres_sku_name" {
-  type    = string
-  default = "B_Standard_B1ms"
+  description = "Azure PostgreSQL Flexible Server SKU (e.g. B_Standard_B1ms, GP_Standard_D2s_v3). Not a Compute VM size."
+  type        = string
+  default     = "B_Standard_B1ms"
 }
 
 variable "postgres_storage_mb" {
@@ -134,6 +135,13 @@ variable "api_key" {
   type      = string
   sensitive = true
 }
+
+variable "backend_api_key" {
+  description = "Shared API key used by the frontend to authenticate requests to the backend (min 32 characters)"
+  type        = string
+  sensitive   = true
+}
+
 variable "nextauth_secret" {
   type      = string
   sensitive = true
@@ -167,6 +175,19 @@ variable "auth_provider" {
   type    = string
   default = "workos"
 }
+
+variable "auth_invitations" {
+  description = "Auth invitations provider (e.g. workos). Set to enable invitation flows."
+  type        = string
+  default     = ""
+}
+
+variable "super_admin_emails" {
+  description = "Super Admin allowlist. Comma-separated emails."
+  type        = string
+  default     = ""
+}
+
 variable "auth_session_secret" {
   type      = string
   default   = ""
@@ -293,6 +314,22 @@ variable "langsmith_api_key" {
   default   = ""
   sensitive = true
 }
+
+variable "langsmith_tracing" {
+  type    = string
+  default = "false"
+}
+
+variable "langsmith_project" {
+  type    = string
+  default = ""
+}
+
+variable "langsmith_endpoint" {
+  type    = string
+  default = "https://api.smith.langchain.com"
+}
+
 variable "pinecone_api_key" {
   type      = string
   default   = ""
@@ -354,6 +391,18 @@ variable "auth_base_url" {
 
 variable "auth_cookie_name" {
   description = "Session cookie name (default: sligo_session)"
+  type        = string
+  default     = ""
+}
+
+variable "auth_cookie_same_site" {
+  description = "Session cookie SameSite: lax (default) or none. Use 'none' for iframe embedding (requires HTTPS)."
+  type        = string
+  default     = ""
+}
+
+variable "release_upgrade_trigger" {
+  description = "Optional value to force a Helm upgrade without changing app_version."
   type        = string
   default     = ""
 }

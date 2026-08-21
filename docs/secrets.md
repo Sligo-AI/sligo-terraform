@@ -18,6 +18,7 @@ Store secrets in `terraform.tfvars` (add to `.gitignore`):
 db_password    = "your-secure-password"
 jwt_secret     = "your-jwt-secret"
 api_key        = "your-api-key"
+backend_api_key = "your-frontend-backend-shared-key-min-32-chars"
 encryption_key = "64-hex-chars-from-openssl-rand-hex-32"
 nextauth_secret = "your-nextauth-secret"
 gateway_secret  = "your-gateway-secret"
@@ -93,9 +94,9 @@ variable "db_password" {
 
 | Terraform creates | Used by Helm as | Main Terraform variables |
 |-------------------|-----------------|---------------------------|
-| `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `encryption_key`, `auth_provider`, WorkOS/OIDC/SAML vars, `openai_api_key`, bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. |
-| `backend-secrets` | backend API | `jwt_secret`, `api_key`, `encryption_key`, `openai_api_key`, `anthropic_api_key`, `google_vertex_ai_web_credentials`, `langsmith_api_key`, storage, etc. |
-| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, storage, Pinecone/SingleStore, etc. |
+| `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `backend_api_key`, `encryption_key`, `auth_provider`, `auth_invitations`, `super_admin_emails`, WorkOS/OIDC/SAML vars, `openai_api_key`, bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. |
+| `backend-secrets` | backend API | `jwt_secret`, `api_key`, `backend_api_key`, `encryption_key`, `openai_api_key`, `anthropic_api_key`, `google_vertex_ai_web_credentials`, LangSmith (`langsmith_*`), storage, etc. |
+| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, LangSmith, storage, Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
 | `redis-secret` | redis (external) | From ElastiCache (host, port) |
 | `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true` **and** `temporal_self_hosted = true`; host/port/database/username/password from managed Postgres |
@@ -148,11 +149,14 @@ Proactive Insights runs on the Temporal worker, so it requires `enable_temporal 
 | `db_password` | Database password (Aurora/Cloud SQL/Azure) |
 | `jwt_secret` | Backend JWT signing |
 | `api_key` | API authentication |
+| `backend_api_key` | Shared frontend↔backend service key (required; min 32 characters) |
 | `nextauth_secret` | NextAuth/legacy session |
 | `gateway_secret` | MCP Gateway secret |
 | `encryption_key` | 64 hex characters (AES-256) |
 | `workos_cookie_password` | When `auth_provider = "workos"` (generate with `openssl rand -base64 32`) |
 | `auth_session_secret` | When `auth_provider = "oidc"` or `"saml"` (min 32 chars) |
+| `super_admin_emails` | Optional comma-separated super-admin allowlist |
+| `auth_invitations` | Optional invitations provider (e.g. `workos`) |
 
 For all app env vars (e.g. `STORAGE_PROVIDER`, vector stores, OIDC/SAML, Azure AI Search), see the [Helm SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md). Module variables include **`storage_provider`** (`gcs` or `s3`); the app defaults to `gcs` when unset.
 

@@ -20,6 +20,7 @@ sligo_service_account_key_path = "./sligo-service-account-key.json"
 # Database Configuration
 db_username        = "sligo"
 # db_password = "CHANGE_ME"
+# Flexible Server SKU (B_Standard_B*, GP_Standard_D*), not a Compute VM size name.
 postgres_sku_name  = "B_Standard_B1ms"
 postgres_storage_mb = 32768
 
@@ -32,11 +33,16 @@ redis_high_availability_enabled = true
 # Required Secrets
 jwt_secret          = "CHANGE_ME"
 api_key             = "CHANGE_ME"
+# Shared frontend↔backend service key (min 32 chars). Distinct from api_key.
+backend_api_key     = "CHANGE_ME_MIN_32_CHARS________________"
 nextauth_secret     = "CHANGE_ME"
 gateway_secret      = "CHANGE_ME"
 frontend_url        = "https://app.example.com"
 next_public_api_url = "https://api.example.com"
 encryption_key      = "CHANGE_ME"
+# Optional: comma-separated allowlist for super-admin bootstrap
+# super_admin_emails = "admin@example.com"
+# auth_invitations   = "workos"
 
 # Postmark email (optional)
 # postmark_server_token = "CHANGE_ME"

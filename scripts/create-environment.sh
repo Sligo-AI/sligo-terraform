@@ -216,6 +216,7 @@ main() {
     local encryption_key=$(generate_encryption_key)
     local jwt_secret=$(generate_secret 64)
     local api_key=$(generate_secret 64)
+    local backend_api_key=$(generate_secret 64)
     local nextauth_secret=$(generate_secret 64)
     local gateway_secret=$(generate_secret 64)
     local workos_cookie_password=$(generate_secret 32)
@@ -269,6 +270,7 @@ main() {
             sed "s|^[[:space:]]*#*[[:space:]]*encryption_key.*=.*\".*\"|encryption_key = \"$encryption_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|^[[:space:]]*#*[[:space:]]*jwt_secret.*=.*\".*\"|jwt_secret          = \"$jwt_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|^[[:space:]]*#*[[:space:]]*api_key.*=.*\".*\"|api_key             = \"$api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|^[[:space:]]*#*[[:space:]]*backend_api_key.*=.*\".*\"|backend_api_key     = \"$backend_api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|^[[:space:]]*#*[[:space:]]*nextauth_secret.*=.*\".*\"|nextauth_secret     = \"$nextauth_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|^[[:space:]]*#*[[:space:]]*gateway_secret.*=.*\".*\"|gateway_secret      = \"$gateway_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|^[[:space:]]*#*[[:space:]]*workos_cookie_password.*=.*\".*\"|workos_cookie_password = \"$workos_cookie_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
@@ -294,6 +296,7 @@ main() {
             sed "s|encryption_key.*=.*\".*\"|encryption_key      = \"$encryption_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|jwt_secret.*=.*\".*\"|jwt_secret          = \"$jwt_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|api_key.*=.*\".*\"|api_key             = \"$api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
+            sed "s|backend_api_key.*=.*\".*\"|backend_api_key     = \"$backend_api_key\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|nextauth_secret.*=.*\".*\"|nextauth_secret     = \"$nextauth_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|gateway_secret.*=.*\".*\"|gateway_secret      = \"$gateway_secret\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
             sed "s|workos_cookie_password.*=.*\".*\"|workos_cookie_password = \"$workos_cookie_password\"|" "$tfvars_file" > "$temp_file" && mv "$temp_file" "$tfvars_file"
@@ -336,6 +339,7 @@ This environment was created using the \`make create-environment\` command.
    - ✅ encryption_key (auto-generated, 64 hex characters)
    - ✅ jwt_secret (auto-generated)
    - ✅ api_key (auto-generated)
+   - ✅ backend_api_key (auto-generated)
    - ✅ nextauth_secret (auto-generated)
    - ✅ gateway_secret (auto-generated)
    - ✅ workos_cookie_password (auto-generated)

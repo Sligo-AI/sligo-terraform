@@ -190,7 +190,7 @@ resource "azurerm_private_endpoint" "redis" {
   }
 }
 
-# Storage Account and Blob Containers (4 containers - same as AWS S3/GCS)
+# Storage Account and Blob Containers
 resource "random_id" "storage_suffix" {
   byte_length = 4
 }
@@ -516,7 +516,7 @@ resource "kubernetes_manifest" "external_secret_mcp_gateway" {
   depends_on = [kubernetes_manifest.gcp_secret_manager_store]
 }
 
-# Application Secrets (same structure as AWS/GCP)
+# Application Secrets
 resource "kubernetes_secret" "nextjs_secrets" {
   count = var.use_eso_managed_app_secrets ? 0 : 1
 
@@ -532,9 +532,11 @@ resource "kubernetes_secret" "nextjs_secrets" {
     PORT                           = "3000"
     REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
+    BACKEND_API_KEY                = var.backend_api_key
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
     AUTH_PROVIDER                  = var.auth_provider
+    AUTH_INVITATIONS               = var.auth_invitations != "" ? var.auth_invitations : ""
     WORKOS_API_KEY                 = var.workos_api_key != "" ? var.workos_api_key : "placeholder"
     WORKOS_CLIENT_ID               = var.workos_client_id != "" ? var.workos_client_id : "placeholder"
     WORKOS_COOKIE_PASSWORD         = var.workos_cookie_password != "" ? var.workos_cookie_password : "placeholder"
@@ -564,6 +566,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_STORAGE_ACCOUNT_NAME     = local.storage_account_name
     AZURE_STORAGE_ACCOUNT_KEY      = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
     GOOGLE_PROJECTID               = var.google_project_id != "" ? var.google_project_id : ""
+    SUPER_ADMIN_EMAILS             = var.super_admin_emails != "" ? var.super_admin_emails : ""
     # Same JSON as GAR pull — GCS client for MDI default seed (mdi-defaults bucket).
     MDI_GCP_KEY                                        = file(var.sligo_service_account_key_path)
     }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
@@ -593,7 +596,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, local.temporal_client_env)
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -604,8 +607,9 @@ resource "kubernetes_secret" "backend_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    JWT_SECRET = var.jwt_secret
-    API_KEY    = var.api_key
+    JWT_SECRET      = var.jwt_secret
+    API_KEY         = var.api_key
+    BACKEND_API_KEY = var.backend_api_key
     # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
     BACKEND_URL                                        = "http://sligo-backend:3001"
     PORT                                               = "3001"
@@ -621,6 +625,9 @@ resource "kubernetes_secret" "backend_secrets" {
     TOGETHER_AI_API_KEY                                = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
     VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
     BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
+    LANGSMITH_TRACING                                  = var.langsmith_tracing
+    LANGSMITH_PROJECT                                  = var.langsmith_project
+    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
     LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
     LANGFUSE_BASE_URL                                  = var.langfuse_base_url
     LANGFUSE_PUBLIC_KEY                                = var.langfuse_public_key
@@ -632,7 +639,7 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
     AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
     GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
     AZURE_OPENAI_API_KEY                               = var.azure_openai_api_key
     AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
     AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
@@ -676,10 +683,14 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     SPENDHQ_SS_PASSWORD                                = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
     SPENDHQ_SS_PORT                                    = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
     ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    LANGSMITH_TRACING                                  = var.langsmith_tracing
+    LANGSMITH_PROJECT                                  = var.langsmith_project
+    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
+    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
     AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
     AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
     GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
     SINGLESTORE_HOST                                   = var.singlestore_host
     SINGLESTORE_PORT                                   = var.singlestore_port
     SINGLESTORE_USER                                   = var.singlestore_user
@@ -692,6 +703,21 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
   } : {}, local.temporal_client_env, local.postmark_env)
+}
+
+# GCP credentials as a file for ADC (Application Default Credentials).
+# Mounted at /secrets/gcp/credentials.json so backend/mcp-gateway use an explicit SA for Vertex AI.
+resource "kubernetes_secret" "gcp_credentials" {
+  count = (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? 1 : 0
+
+  metadata {
+    name      = "gcp-credentials"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+
+  data = {
+    "credentials.json" = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials
+  }
 }
 
 resource "kubernetes_secret" "database_secret" {
@@ -755,6 +781,31 @@ resource "helm_release" "nginx_ingress" {
   depends_on = [time_sleep.wait_for_cluster]
 }
 
+# GCP ADC: mount credentials for backend and mcpGateway when Vertex/GCP SA keys are provided.
+locals {
+  gcp_adc_enabled = var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != ""
+  gcp_adc_config = local.gcp_adc_enabled ? {
+    extraVolumes = [{
+      name = "gcp-credentials"
+      secret = {
+        secretName = kubernetes_secret.gcp_credentials[0].metadata[0].name
+      }
+    }]
+    extraVolumeMounts = [{
+      name      = "gcp-credentials"
+      mountPath = "/secrets/gcp"
+      readOnly  = true
+    }]
+    env = {
+      GOOGLE_APPLICATION_CREDENTIALS = "/secrets/gcp/credentials.json"
+    }
+    } : {
+    extraVolumes      = []
+    extraVolumeMounts = []
+    env               = {}
+  }
+}
+
 # Helm Release for Sligo Cloud
 resource "helm_release" "sligo_cloud" {
   name       = "sligo-cloud"
@@ -767,7 +818,8 @@ resource "helm_release" "sligo_cloud" {
   values = concat(
     [yamlencode({
       global = {
-        imagePullSecrets = [kubernetes_secret.gar_pull_secret.metadata[0].name]
+        imagePullSecrets      = [kubernetes_secret.gar_pull_secret.metadata[0].name]
+        releaseUpgradeTrigger = var.release_upgrade_trigger
       }
 
       controlPlaneExporter = {
@@ -812,7 +864,7 @@ resource "helm_release" "sligo_cloud" {
           limits   = { cpu = "1000m", memory = "2Gi" }
         }
       }
-      backend = {
+      backend = merge({
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-backend"
@@ -824,8 +876,8 @@ resource "helm_release" "sligo_cloud" {
           requests = { cpu = "1000m", memory = "2Gi" }
           limits   = { cpu = "2000m", memory = "4Gi" }
         }
-      }
-      mcpGateway = {
+      }, local.gcp_adc_config)
+      mcpGateway = merge({
         replicaCount = 1
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-mcp-gateway"
@@ -837,7 +889,7 @@ resource "helm_release" "sligo_cloud" {
           requests = { cpu = "500m", memory = "1Gi" }
           limits   = { cpu = "1000m", memory = "2Gi" }
         }
-      }
+      }, local.gcp_adc_config)
       releaseSetup = {
         enabled = true
         image = {
@@ -871,6 +923,7 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.nextjs_secrets,
     kubernetes_secret.backend_secrets,
     kubernetes_secret.mcp_gateway_secrets,
+    kubernetes_secret.gcp_credentials,
     kubernetes_secret.database_secret,
     kubernetes_secret.temporal_db_credentials,
     kubernetes_secret.temporal_visibility_db_credentials,

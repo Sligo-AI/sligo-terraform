@@ -38,6 +38,7 @@ module "sligo_azure" {
   # Secrets
   jwt_secret             = var.jwt_secret
   api_key                = var.api_key
+  backend_api_key        = var.backend_api_key
   nextauth_secret        = var.nextauth_secret
   gateway_secret         = var.gateway_secret
   frontend_url           = var.frontend_url
@@ -46,6 +47,8 @@ module "sligo_azure" {
   workos_client_id       = var.workos_client_id
   workos_cookie_password = var.workos_cookie_password
   auth_provider          = var.auth_provider
+  auth_invitations       = var.auth_invitations
+  super_admin_emails     = var.super_admin_emails
   auth_session_secret    = var.auth_session_secret
   oidc_issuer            = var.oidc_issuer
   oidc_client_id         = var.oidc_client_id
@@ -75,6 +78,9 @@ module "sligo_azure" {
   backend_request_timeout_ms       = var.backend_request_timeout_ms
   openai_base_url                  = var.openai_base_url
   langsmith_api_key                = var.langsmith_api_key
+  langsmith_tracing                = var.langsmith_tracing
+  langsmith_project                = var.langsmith_project
+  langsmith_endpoint               = var.langsmith_endpoint
 
   # Pinecone Configuration
   pinecone_api_key     = var.pinecone_api_key
@@ -90,8 +96,10 @@ module "sligo_azure" {
   singlestore_database = var.singlestore_database
 
   # Optional auth overrides
-  auth_base_url    = var.auth_base_url
-  auth_cookie_name = var.auth_cookie_name
+  auth_base_url           = var.auth_base_url
+  auth_cookie_name        = var.auth_cookie_name
+  auth_cookie_same_site   = var.auth_cookie_same_site
+  release_upgrade_trigger = var.release_upgrade_trigger
 
   # SPENDHQ Configuration
   spendhq_base_url      = var.spendhq_base_url

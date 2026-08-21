@@ -67,10 +67,12 @@ Edit `terraform.tfvars` with your values. Key variables:
 | `client_repository_name` | From Sligo |
 | `app_version` | e.g., `v1.0.0` |
 | `db_password` | Database password |
-| `jwt_secret`, `api_key`, `nextauth_secret`, `gateway_secret` | App secrets |
+| `jwt_secret`, `api_key`, `backend_api_key`, `nextauth_secret`, `gateway_secret` | App secrets (`backend_api_key` is the frontend↔backend service key, min 32 chars) |
 | `encryption_key` | 64 hex chars: `openssl rand -hex 32` |
 
-**Optional:** `postgres_sku_name`, `redis_sku_name`, `node_pool_vm_size`, `use_existing_storage_account`.
+**Optional:** `postgres_sku_name`, `redis_sku_name`, `node_pool_vm_size`, `use_existing_storage_account`, `super_admin_emails`, `auth_invitations`, `release_upgrade_trigger`.
+
+For PostgreSQL Flexible Server, `postgres_sku_name` must use Azure Database SKU names (for example `B_Standard_B1ms`, `B_Standard_B4ms`, `GP_Standard_D2s_v3`). Do not use Compute VM size names.
 
 ---
 
