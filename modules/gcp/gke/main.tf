@@ -402,6 +402,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = var.backend_api_key
+    BACKEND_REQUEST_TIMEOUT_MS     = tostring(var.backend_request_timeout_ms)
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     AUTH_PROVIDER                  = var.auth_provider

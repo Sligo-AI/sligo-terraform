@@ -1105,6 +1105,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = local.eff_strings["backend_api_key"]
+    BACKEND_REQUEST_TIMEOUT_MS     = tostring(local.effective_backend_request_timeout_ms)
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
     AUTH_PROVIDER                  = local.eff_strings["auth_provider"]
