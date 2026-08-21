@@ -30,7 +30,7 @@ Pin the Helm chart in `terraform.tfvars` the same way as the app image tag (inde
 
 ```hcl
 app_version   = "v1.2.3"  # container image tags
-chart_version = "1.1.2"   # sligo-cloud chart from sligo-helm-charts (default 1.0.1)
+chart_version = "1.2.1"   # sligo-cloud chart from sligo-helm-charts (default 1.2.1)
 ```
 
 Set `chart_path` to use a local chart `.tgz` instead of the repository (ignores `chart_version`).

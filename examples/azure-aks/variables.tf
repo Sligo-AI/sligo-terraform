@@ -55,9 +55,9 @@ variable "app_version" {
 }
 
 variable "chart_version" {
-  description = "sligo-cloud Helm chart version from sligo-helm-charts (e.g. '1.1.2'). Ignored when chart_path is set."
+  description = "sligo-cloud Helm chart version from sligo-helm-charts (e.g. '1.2.1'). Ignored when chart_path is set."
   type        = string
-  default     = "1.0.1"
+  default     = "1.2.1"
 }
 
 variable "chart_path" {

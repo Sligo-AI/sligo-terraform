@@ -43,6 +43,7 @@ Images are pulled from:
 us-central1-docker.pkg.dev/sligo-ai-platform/<client_repository_name>/sligo-frontend:<app_version>
 us-central1-docker.pkg.dev/sligo-ai-platform/<client_repository_name>/sligo-backend:<app_version>
 us-central1-docker.pkg.dev/sligo-ai-platform/<client_repository_name>/sligo-mcp-gateway:<app_version>
+us-central1-docker.pkg.dev/sligo-ai-platform/<client_repository_name>/sligo-liteparse:<app_version>
 ```
 
 Terraform creates a Kubernetes image pull secret automatically — you only need the key file and path.

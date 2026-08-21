@@ -87,9 +87,9 @@ variable "app_version" {
 }
 
 variable "chart_version" {
-  description = "sligo-cloud Helm chart version (e.g., '1.0.1'). Chart 1.0.1+ supports extraVolumes/extraVolumeMounts for GCP credentials. Ignored when chart_path is set."
+  description = "sligo-cloud Helm chart version (e.g., '1.2.1'). Chart 1.2.1+ enables LiteParse by default; this module pins its image to the client GAR. Ignored when chart_path is set."
   type        = string
-  default     = "1.0.1"
+  default     = "1.2.1"
 }
 
 variable "chart_path" {

@@ -1797,6 +1797,15 @@ resource "helm_release" "sligo_cloud" {
         }
       }, local.gcp_adc_config)
 
+      liteparse = {
+        enabled = true
+        image = {
+          repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-liteparse"
+          tag        = var.app_version
+          pullPolicy = "Always"
+        }
+      }
+
       # Pre-install/pre-upgrade Job: Prisma migrate + sync AI models + sync MCP servers (same as build-and-publish)
       releaseSetup = {
         enabled = true
