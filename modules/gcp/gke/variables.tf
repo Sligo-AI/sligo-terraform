@@ -45,6 +45,12 @@ variable "cloud_sql_deletion_protection" {
   default     = true
 }
 
+variable "cluster_log_retention_days" {
+  description = "Days to retain GKE control-plane logs in a per-cluster Cloud Logging bucket. Default 400 (~1 year). Use a shorter value (for example 14 or 90) in staging and development. Does not change the project _Default log bucket."
+  type        = number
+  default     = 400
+}
+
 variable "private_service_access_destroy_wait" {
   description = "How long to wait after Cloud SQL is destroyed before deleting the VPC service networking connection. GCP often needs several minutes to release the peering; increase if destroy fails with 'Producer services are still using this connection'."
   type        = string
@@ -216,6 +222,12 @@ variable "db_password" {
   description = "Database password"
   type        = string
   sensitive   = true
+}
+
+variable "db_backup_retention_days" {
+  description = "Number of automated Cloud SQL backups to retain (taken daily). Default 7. Point-in-time recovery WAL retention is capped at 7 days. Staging and development can use a shorter window."
+  type        = number
+  default     = 7
 }
 
 variable "enable_temporal" {

@@ -5,7 +5,7 @@ This Terraform module provisions a complete AWS infrastructure and deploys Sligo
 ## Features
 
 - **EKS Cluster** - Managed Kubernetes cluster
-- **Aurora Serverless v2 PostgreSQL** - Auto-scaling managed database with automatic backups
+- **Aurora Serverless v2 PostgreSQL** - Auto-scaling managed database with 7-day automated backups, deletion protection, and a final snapshot on destroy (override in non-production)
 - **ElastiCache Redis** - Managed Redis cache
 - **S3 Storage** - Object storage buckets
 - **ACM Certificate** - Automatic SSL/TLS certificate creation

@@ -190,6 +190,9 @@ module "eks" {
 
   cluster_endpoint_public_access = true
 
+  cluster_enabled_log_types              = ["api", "audit", "authenticator"]
+  cloudwatch_log_group_retention_in_days = var.cluster_log_retention_days
+
   # Enable access entries API (required for EKS clusters to allow nodes to join)
   # This ensures node groups can automatically join the cluster
   authentication_mode = "API_AND_CONFIG_MAP"
@@ -278,17 +281,20 @@ resource "aws_security_group" "rds" {
 
 # Aurora Serverless v2 Cluster
 resource "aws_rds_cluster" "postgres" {
-  cluster_identifier     = "${var.cluster_name}-postgres"
-  engine                 = "aurora-postgresql"
-  engine_version         = "15.15"
-  database_name          = "sligo"
-  master_username        = local.eff_strings["db_username"]
-  master_password        = local.eff_strings["db_password"]
-  db_subnet_group_name   = aws_db_subnet_group.postgres.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = true
-  storage_encrypted      = true
-  enable_http_endpoint   = true
+  cluster_identifier        = "${var.cluster_name}-postgres"
+  engine                    = "aurora-postgresql"
+  engine_version            = "15.15"
+  database_name             = "sligo"
+  master_username           = local.eff_strings["db_username"]
+  master_password           = local.eff_strings["db_password"]
+  db_subnet_group_name      = aws_db_subnet_group.postgres.name
+  vpc_security_group_ids    = [aws_security_group.rds.id]
+  backup_retention_period   = var.db_backup_retention_days
+  deletion_protection       = var.db_deletion_protection
+  skip_final_snapshot       = var.db_skip_final_snapshot
+  final_snapshot_identifier = var.db_skip_final_snapshot ? null : "${var.cluster_name}-postgres-final"
+  storage_encrypted         = true
+  enable_http_endpoint      = var.aurora_enable_http_endpoint
   serverlessv2_scaling_configuration {
     min_capacity = var.aurora_min_capacity
     max_capacity = var.aurora_max_capacity

@@ -41,6 +41,12 @@ variable "node_pool_vm_size" {
   default     = "Standard_D2s_v3"
 }
 
+variable "cluster_log_retention_days" {
+  description = "Days to retain AKS control-plane logs in Log Analytics. Default 400 (~1 year). Use a shorter value (for example 30 or 90) in staging and development. Azure requires 30–730."
+  type        = number
+  default     = 400
+}
+
 # Application Configuration
 variable "domain_name" {
   description = "Domain name for the application"
@@ -274,6 +280,18 @@ variable "postgres_storage_mb" {
   description = "PostgreSQL storage in MB"
   type        = number
   default     = 32768
+}
+
+variable "db_backup_retention_days" {
+  description = "Days of automated PostgreSQL backups to retain. Default 7. Azure Flexible Server requires 7–35. Staging can keep the default; production can raise it up to 35."
+  type        = number
+  default     = 7
+}
+
+variable "db_deletion_protection" {
+  description = "When true, a CanNotDelete lock is applied to the PostgreSQL Flexible Server. Default true. Set false in staging and development so terraform destroy can run in one step."
+  type        = bool
+  default     = true
 }
 
 # Redis Configuration

@@ -26,6 +26,12 @@ variable "eks_cluster_admin_principal_arns" {
   default     = []
 }
 
+variable "cluster_log_retention_days" {
+  description = "Days to retain EKS control-plane logs (api, audit, authenticator). Default 400 (~1 year). Use a shorter value (for example 14 or 90) in staging and development. Must be a CloudWatch Logs retention value: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, or 3653."
+  type        = number
+  default     = 400
+}
+
 # Node Group Configuration
 variable "node_group_min_size" {
   description = "Minimum number of nodes in the EKS node group"
@@ -302,6 +308,30 @@ check "proactive_insights_config" {
     )
     error_message = "When enable_proactive_insights=true, set enable_temporal=true (PI runs on the Temporal worker) and provide spendhq_ss_host, spendhq_ss_username, and spendhq_ss_password."
   }
+}
+
+variable "db_backup_retention_days" {
+  description = "Days of automated Aurora backups to retain (1–35). Default 7. Staging and development can use a shorter window."
+  type        = number
+  default     = 7
+}
+
+variable "db_deletion_protection" {
+  description = "When true, the Aurora cluster cannot be deleted until set to false (set false, apply, then destroy). Default true. Set false in staging and development so terraform destroy can run in one step."
+  type        = bool
+  default     = true
+}
+
+variable "db_skip_final_snapshot" {
+  description = "When true, destroying the Aurora cluster does not create a final snapshot. Default false. Set true in staging and development if you do not need a snapshot on destroy."
+  type        = bool
+  default     = false
+}
+
+variable "aurora_enable_http_endpoint" {
+  description = "Enable the RDS Data API (required for the RDS Query Editor in the AWS console). Default false. The application uses private TCP; query the database from the cluster with kubectl and psql instead. Set true only if you need the Query Editor."
+  type        = bool
+  default     = false
 }
 
 variable "aurora_min_capacity" {

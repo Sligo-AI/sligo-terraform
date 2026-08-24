@@ -22,6 +22,22 @@ description: "Common issues and solutions for Sligo Terraform deployments."
 - Ensure security groups/firewall allow access from the cluster to the database.
 - Check `db_password` is correct and not truncated.
 
+### Query the database
+
+The application connects over private TCP. On AWS, the RDS Data API (`aurora_enable_http_endpoint`) is **off** by default.
+
+From a workstation with `kubectl` access to the cluster, copy `DATABASE_URL` from the `backend-secrets` secret and run `psql` in a throwaway pod:
+
+```bash
+DB_URL=$(kubectl get secret -n sligo backend-secrets -o jsonpath='{.data.DATABASE_URL}' | base64 -d)
+kubectl run -n sligo -it --rm psql --image=postgres:15 --restart=Never --env="DATABASE_URL=${DB_URL}" -- \
+  psql "$DATABASE_URL"
+```
+
+GCP Cloud SQL and Azure Flexible Server are private-IP only; the same in-cluster `psql` approach applies.
+
+To tear down a protected database, set deletion protection to `false` (AWS `db_deletion_protection`, GCP `cloud_sql_deletion_protection`, Azure `db_deletion_protection`), apply, then destroy.
+
 ### LiteParse pods unschedulable (Insufficient cpu)
 
 Chart 1.2.1 defaults LiteParse to 2 replicas requesting 2 CPU each. Default node sizes are 2 vCPU, so those pods cannot schedule (`Preemption is not helpful`, `Insufficient cpu`).

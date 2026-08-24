@@ -74,6 +74,8 @@ Edit `terraform.tfvars` with your values. Key variables:
 
 For PostgreSQL Flexible Server, `postgres_sku_name` must use Azure Database SKU names (for example `B_Standard_B1ms`, `B_Standard_B4ms`, `GP_Standard_D2s_v3`). Do not use Compute VM size names.
 
+AKS control-plane logs default to **400 days** in Log Analytics. PostgreSQL backups default to **7 days** (Azure requires 7–35) with a CanNotDelete lock when `db_deletion_protection` is true. Staging/dev should lower log retention and set `db_deletion_protection = false`; see [Multiple environments](../multiple-environments/).
+
 ---
 
 ## Step 4: Deploy

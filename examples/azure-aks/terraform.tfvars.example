@@ -23,6 +23,11 @@ db_username        = "sligo"
 # Flexible Server SKU (B_Standard_B*, GP_Standard_D*), not a Compute VM size name.
 postgres_sku_name  = "B_Standard_B1ms"
 postgres_storage_mb = 32768
+# Defaults: cluster_log_retention_days=400, db_backup_retention_days=7, db_deletion_protection=true.
+# Staging / development example (Azure backup retention minimum is 7):
+# cluster_log_retention_days = 30
+# db_backup_retention_days   = 7
+# db_deletion_protection     = false
 
 # Redis Configuration
 # Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip Azure Managed Redis.

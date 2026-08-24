@@ -70,6 +70,8 @@ Edit `terraform.tfvars` with your values. Key variables:
 
 **Optional:** `acm_certificate_arn` for existing TLS cert, or leave empty to auto-create.
 
+Control-plane logs default to **400 days**. Automated Aurora backups default to **7 days** with deletion protection on and a final snapshot on destroy. Staging/dev should lower retention and turn deletion protection off; see [Multiple environments](../multiple-environments/).
+
 ---
 
 ## Step 4: Deploy

@@ -7,6 +7,12 @@ cluster_version = "1.28"
 # Teardown: set both false, run terraform apply, then terraform destroy
 # gke_deletion_protection       = false
 # cloud_sql_deletion_protection = false
+# Defaults: cluster_log_retention_days=400, db_backup_retention_days=7, Cloud SQL deletion protection=true.
+# Staging / development example:
+# cluster_log_retention_days    = 90
+# db_backup_retention_days      = 1
+# gke_deletion_protection       = false
+# cloud_sql_deletion_protection = false
 # If destroy fails on service networking peering, increase wait (default 10m in module):
 # private_service_access_destroy_wait = "15m"
 

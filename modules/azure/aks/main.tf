@@ -98,6 +98,15 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   delegated_subnet_id           = azurerm_subnet.postgres.id
   private_dns_zone_id           = azurerm_private_dns_zone.postgres.id
   public_network_access_enabled = false
+  backup_retention_days         = var.db_backup_retention_days
+}
+
+resource "azurerm_management_lock" "postgres" {
+  count      = var.db_deletion_protection ? 1 : 0
+  name       = "${var.cluster_name}-postgres-lock"
+  scope      = azurerm_postgresql_flexible_server.postgres.id
+  lock_level = "CanNotDelete"
+  notes      = "Set db_deletion_protection=false and apply before destroy."
 }
 
 resource "azurerm_postgresql_flexible_server_database" "sligo" {
@@ -282,6 +291,37 @@ resource "azurerm_kubernetes_cluster" "main" {
   network_profile {
     network_plugin    = "azure"
     load_balancer_sku = "standard"
+  }
+}
+
+resource "azurerm_log_analytics_workspace" "cluster" {
+  name                = "${var.cluster_name}-logs"
+  location            = local.rg_location
+  resource_group_name = local.rg_name
+  sku                 = "PerGB2018"
+  retention_in_days   = var.cluster_log_retention_days
+}
+
+resource "azurerm_monitor_diagnostic_setting" "aks" {
+  name                           = "${var.cluster_name}-aks-diag"
+  target_resource_id             = azurerm_kubernetes_cluster.main.id
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.cluster.id
+  log_analytics_destination_type = "Dedicated"
+
+  enabled_log {
+    category = "kube-apiserver"
+  }
+  enabled_log {
+    category = "kube-audit"
+  }
+  enabled_log {
+    category = "kube-audit-admin"
+  }
+  enabled_log {
+    category = "kube-controller-manager"
+  }
+  enabled_log {
+    category = "kube-scheduler"
   }
 }
 

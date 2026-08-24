@@ -64,7 +64,8 @@ resource "google_project_service" "required_apis" {
     "compute.googleapis.com",
     "servicenetworking.googleapis.com",
     "sqladmin.googleapis.com",
-    "storage.googleapis.com"
+    "storage.googleapis.com",
+    "logging.googleapis.com"
   ])
 
   project = var.gcp_project_id
@@ -207,10 +208,57 @@ resource "google_container_cluster" "primary" {
     enabled = true
   }
 
+  logging_config {
+    enable_components = [
+      "SYSTEM_COMPONENTS",
+      "APISERVER",
+      "SCHEDULER",
+      "CONTROLLER_MANAGER",
+    ]
+  }
+
   depends_on = [
     google_project_service.required_apis,
     null_resource.subnet_secondary_ranges
   ]
+}
+
+locals {
+  cluster_log_bucket_id = substr(replace("${var.cluster_name}-cluster-logs", "_", "-"), 0, 100)
+}
+
+# Per-cluster log bucket so control-plane retention is not tied to the project _Default bucket.
+resource "google_logging_project_bucket_config" "cluster" {
+  project        = var.gcp_project_id
+  location       = "global"
+  bucket_id      = local.cluster_log_bucket_id
+  retention_days = var.cluster_log_retention_days
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_logging_project_sink" "cluster" {
+  name        = "${var.cluster_name}-cluster-logs"
+  project     = var.gcp_project_id
+  destination = "logging.googleapis.com/projects/${var.gcp_project_id}/locations/global/buckets/${google_logging_project_bucket_config.cluster.bucket_id}"
+  filter      = <<-EOT
+    (resource.type="k8s_cluster" OR resource.type="k8s_control_plane")
+    AND resource.labels.cluster_name="${var.cluster_name}"
+  EOT
+
+  unique_writer_identity = true
+}
+
+resource "google_project_iam_member" "cluster_log_writer" {
+  project = var.gcp_project_id
+  role    = "roles/logging.bucketWriter"
+  member  = google_logging_project_sink.cluster.writer_identity
+
+  condition {
+    title       = "${var.cluster_name}-cluster-logs-bucket"
+    description = "Allow the cluster log sink to write only to this cluster's log bucket"
+    expression  = "resource.type == \"logging.googleapis.com/LogBucket\" && resource.name == \"projects/${var.gcp_project_id}/locations/global/buckets/${google_logging_project_bucket_config.cluster.bucket_id}\""
+  }
 }
 
 # Node Pool
@@ -269,8 +317,14 @@ resource "google_sql_database_instance" "postgres" {
     }
 
     backup_configuration {
-      enabled    = true
-      start_time = "03:00"
+      enabled                        = true
+      start_time                     = "03:00"
+      point_in_time_recovery_enabled = true
+      transaction_log_retention_days = min(7, var.db_backup_retention_days)
+      backup_retention_settings {
+        retained_backups = var.db_backup_retention_days
+        retention_unit   = "COUNT"
+      }
     }
   }
 

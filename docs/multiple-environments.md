@@ -45,6 +45,12 @@ cd ../aws-eks-prod && terraform apply
 | `domain_name` | dev.example.com | staging.example.com | app.example.com |
 | Node/DB size | Smaller | Medium | Larger |
 | Secrets | Different per env | Different per env | Different per env |
+| `cluster_log_retention_days` | 14 or 90 | 14 or 90 | 400 (module default) |
+| `db_backup_retention_days` | 1–7 | 1–7 (Azure minimum 7) | 7 (module default; raise up to 35 if needed) |
+| DB deletion protection | `false` | `false` | `true` (module default) |
+| AWS `db_skip_final_snapshot` | `true` | `true` | `false` (module default) |
+
+Production-safe defaults live in the modules. Set the non-production values in each environment’s `terraform.tfvars`.
 
 **Never reuse production secrets** in dev or staging.
 
