@@ -35,7 +35,14 @@ db_username = "sligo"
 # db_password = "CHANGE_ME"  # Set via environment variable or secrets manager
 
 # Redis Configuration
-# Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip in-cluster Redis Stack.
+# Default: in-cluster Redis Stack with a PVC.
+# Optional: Memorystore for Redis Cluster (RedisJSON-compatible JSON; app needs a cluster client).
+# use_memorystore_redis_cluster = true
+# memorystore_node_type         = "REDIS_SHARED_CORE_NANO"
+# memorystore_replica_count     = 1
+# If this VPC already has a gcp-memorystore-redis Service Connection Policy in the region:
+# use_existing_memorystore_connection_policy = true
+# Optional: set redis_url (e.g. Redis Cloud rediss://...) to skip in-cluster Redis and Memorystore.
 # redis_url = ""  # GSM / secrets manager in production
 # redis_persistence_size          = "1Gi"
 # redis_persistence_storage_class = "standard-rwo"

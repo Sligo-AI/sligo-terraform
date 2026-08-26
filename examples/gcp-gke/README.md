@@ -1,6 +1,6 @@
 # GCP GKE Example
 
-Deploy Sligo Cloud on GCP GKE with Cloud SQL, Memorystore Redis, and Cloud Storage.
+Deploy Sligo Cloud on GCP GKE with Cloud SQL, Redis (in-cluster Stack or Memorystore Cluster), and Cloud Storage.
 
 ## Quick Start
 

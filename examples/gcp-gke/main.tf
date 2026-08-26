@@ -23,9 +23,17 @@ module "sligo_gcp" {
   db_username = var.db_username
   db_password = var.db_password
 
-  # Redis configuration (in-cluster Redis Stack, always persistent)
-  redis_persistence_size          = var.redis_persistence_size
-  redis_persistence_storage_class = var.redis_persistence_storage_class
+  # Redis: in-cluster Redis Stack (default), Memorystore Cluster, or redis_url
+  redis_url                                  = var.redis_url
+  use_memorystore_redis_cluster              = var.use_memorystore_redis_cluster
+  use_existing_memorystore_connection_policy = var.use_existing_memorystore_connection_policy
+  memorystore_shard_count                    = var.memorystore_shard_count
+  memorystore_replica_count                  = var.memorystore_replica_count
+  memorystore_node_type                      = var.memorystore_node_type
+  memorystore_authorization_mode             = var.memorystore_authorization_mode
+  memorystore_transit_encryption_mode        = var.memorystore_transit_encryption_mode
+  redis_persistence_size                     = var.redis_persistence_size
+  redis_persistence_storage_class            = var.redis_persistence_storage_class
 
   # GCS Storage configuration
   use_existing_gcs_bucket = var.use_existing_gcs_bucket

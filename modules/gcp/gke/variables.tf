@@ -329,15 +329,57 @@ check "proactive_insights_config" {
 }
 
 # Redis Configuration
-# When redis_url is set (e.g. Redis Cloud), in-cluster Redis Stack is not deployed.
+# When redis_url is set (e.g. Redis Cloud), in-cluster Redis Stack and Memorystore are not used.
 variable "redis_url" {
-  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; in-cluster Redis Stack is not created."
+  description = "External Redis connection URL (e.g. Redis Cloud rediss://...). When non-empty, app secrets use this URL and Helm does not deploy Redis; Memorystore is not created. Do not set together with use_memorystore_redis_cluster."
   type        = string
   default     = ""
   sensitive   = true
 }
 
-# In-cluster Redis Stack (only when redis_url is empty)
+variable "use_memorystore_redis_cluster" {
+  description = "When true, provision Memorystore for Redis Cluster (PSC, RedisJSON-compatible JSON on 8.0+) and skip in-cluster Redis Stack. App must use a cluster-aware Redis client (REDIS_CLUSTER_MODE=true)."
+  type        = bool
+  default     = false
+}
+
+variable "use_existing_memorystore_connection_policy" {
+  description = "When true, do not create google_network_connectivity_service_connection_policy. The VPC already has a gcp-memorystore-redis Service Connection Policy in this region (only one is allowed per network/region)."
+  type        = bool
+  default     = false
+}
+
+variable "memorystore_shard_count" {
+  description = "Number of shards for Memorystore for Redis Cluster"
+  type        = number
+  default     = 1
+}
+
+variable "memorystore_replica_count" {
+  description = "Replica nodes per shard (0 = no HA, 1 = HA). 1 is recommended so a node failure does not drop data."
+  type        = number
+  default     = 1
+}
+
+variable "memorystore_node_type" {
+  description = "Memorystore Redis Cluster node type (e.g. REDIS_SHARED_CORE_NANO for staging, REDIS_HIGHMEM_MEDIUM for production)"
+  type        = string
+  default     = "REDIS_SHARED_CORE_NANO"
+}
+
+variable "memorystore_authorization_mode" {
+  description = "AUTH_MODE_DISABLED or AUTH_MODE_IAM_AUTH. Leave disabled until the app supports IAM auth."
+  type        = string
+  default     = "AUTH_MODE_DISABLED"
+}
+
+variable "memorystore_transit_encryption_mode" {
+  description = "TRANSIT_ENCRYPTION_MODE_DISABLED or TRANSIT_ENCRYPTION_MODE_SERVER_AUTHENTICATION. Leave disabled until the app supports TLS (rediss)."
+  type        = string
+  default     = "TRANSIT_ENCRYPTION_MODE_DISABLED"
+}
+
+# In-cluster Redis Stack (only when redis_url is empty and Memorystore is off)
 variable "redis_persistence_size" {
   description = "PersistentVolumeClaim size for Redis Stack data"
   type        = string

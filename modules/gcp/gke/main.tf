@@ -65,7 +65,9 @@ resource "google_project_service" "required_apis" {
     "servicenetworking.googleapis.com",
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
-    "logging.googleapis.com"
+    "logging.googleapis.com",
+    "redis.googleapis.com",
+    "networkconnectivity.googleapis.com",
   ])
 
   project = var.gcp_project_id
@@ -249,7 +251,11 @@ resource "google_logging_project_sink" "cluster" {
   unique_writer_identity = true
 }
 
+# Same-project log buckets leave writer_identity empty; Logging already allows the write.
+# Grant IAM only when Google returns a real unique writer (typically cross-project sinks).
 resource "google_project_iam_member" "cluster_log_writer" {
+  count = startswith(google_logging_project_sink.cluster.writer_identity, "serviceAccount:") ? 1 : 0
+
   project = var.gcp_project_id
   role    = "roles/logging.bucketWriter"
   member  = google_logging_project_sink.cluster.writer_identity
@@ -346,7 +352,7 @@ resource "google_sql_user" "user" {
   project  = var.gcp_project_id
 }
 
-# GKE uses in-cluster Redis Stack (from Helm) with persistence. Memorystore is not used.
+# Redis: in-cluster Redis Stack (default), Memorystore for Redis Cluster (opt-in), or redis_url.
 
 # Kubernetes Provider Configuration
 provider "kubernetes" {
@@ -454,6 +460,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     NEXTAUTH_SECRET                = var.nextauth_secret
     PORT                           = "3000"
     REDIS_URL                      = local.redis_url
+    REDIS_CLUSTER_MODE             = local.redis_cluster_mode
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = var.backend_api_key
     BACKEND_REQUEST_TIMEOUT_MS     = tostring(var.backend_request_timeout_ms)
@@ -521,7 +528,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     } : {}, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
-  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env)
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env, local.redis_cluster_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -541,6 +548,7 @@ resource "kubernetes_secret" "backend_secrets" {
     PORT                                               = "3001"
     DATABASE_URL                                       = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     REDIS_URL                                          = local.redis_url
+    REDIS_CLUSTER_MODE                                 = local.redis_cluster_mode
     MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
     SQL_CONNECTION_STRING_DECRYPTION_IV                = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY               = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
@@ -578,7 +586,7 @@ resource "kubernetes_secret" "backend_secrets" {
     SPENDHQ_SS_USERNAME = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
     SPENDHQ_SS_PASSWORD = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
     SPENDHQ_SS_PORT     = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-  } : {}, local.temporal_client_env, local.postmark_backend_env)
+  } : {}, local.temporal_client_env, local.postmark_backend_env, local.redis_cluster_env)
 }
 
 resource "kubernetes_secret" "mcp_gateway_secrets" {
@@ -597,6 +605,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
     REDIS_URL                                          = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url
+    REDIS_CLUSTER_MODE                                 = local.redis_cluster_mode
     PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
     PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
     OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
@@ -628,7 +637,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, local.temporal_client_env, local.postmark_env)
+  } : {}, local.temporal_client_env, local.postmark_env, local.redis_cluster_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - same flow as SHQ/AWS.
@@ -789,22 +798,6 @@ locals {
   gcs_bucket_logos_id         = var.use_existing_gcs_bucket ? var.gcs_bucket_logos_name : google_storage_bucket.logos[0].name
   gcs_bucket_rag_id           = var.use_existing_gcs_bucket ? var.gcs_bucket_rag_name : google_storage_bucket.rag[0].name
 
-  # Redis URL: external (Redis Cloud, etc.) or in-cluster Redis Stack (Helm)
-  use_external_redis = trimspace(var.redis_url) != ""
-  redis_url          = local.use_external_redis ? trimspace(var.redis_url) : "redis://redis.${kubernetes_namespace.sligo.metadata[0].name}.svc.cluster.local:6379"
-
-  # Single object shape for Helm (Terraform rejects mismatched conditional branch types).
-  redis_helm_values = {
-    enabled = !local.use_external_redis
-    type    = "internal"
-    internal = {
-      persistence = {
-        enabled      = !local.use_external_redis
-        size         = var.redis_persistence_size
-        storageClass = var.redis_persistence_storage_class
-      }
-    }
-  }
 }
 
 # Service Account for GCS Access (for use by pods)
@@ -1315,7 +1308,8 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_manifest.external_secret_backend,
     kubernetes_manifest.external_secret_mcp_gateway,
     kubernetes_service_account.app_gcs,
-    google_service_account_iam_member.app_gcs_workload_identity
+    google_service_account_iam_member.app_gcs_workload_identity,
+    google_redis_cluster.sligo,
   ]
 }
 

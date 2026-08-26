@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Deploy on GCP GKE"
-description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, in-cluster Redis Stack, and Cloud Storage."
+description: "Step-by-step guide for deploying Sligo Enterprise on Google GKE with Cloud SQL, Redis (in-cluster Stack or Memorystore Cluster), and Cloud Storage."
 ---
 
 {% include theme-image.html light="gcp-deployment.png" dark="gcp-deployment-dark.png" alt="GCP Deployment" %}
@@ -70,7 +70,7 @@ Edit `terraform.tfvars` with your values. Key variables:
 | `jwt_secret`, `api_key`, `nextauth_secret`, `gateway_secret` | App secrets |
 | `encryption_key` | 64 hex chars: `openssl rand -hex 32` |
 
-**Optional:** `db_tier` (default `db-f1-micro`), `redis_persistence_size` (default `1Gi`), `redis_persistence_storage_class` (default `standard-rwo`), `use_existing_gcs_bucket`.
+**Optional:** `db_tier` (default `db-f1-micro`), `redis_persistence_size` (default `1Gi`), `redis_persistence_storage_class` (default `standard-rwo`), `use_memorystore_redis_cluster` (default `false`), `use_existing_gcs_bucket`.
 
 Control-plane logs default to **400 days** in a per-cluster Cloud Logging bucket. Cloud SQL keeps **7** automated backups with point-in-time recovery (WAL capped at 7 days) and deletion protection on. Staging/dev should lower retention and set `gke_deletion_protection` / `cloud_sql_deletion_protection` to `false`; see [Multiple environments](../multiple-environments/).
 
@@ -84,7 +84,7 @@ terraform plan
 terraform apply
 ```
 
-Deployment typically takes 15–25 minutes (GKE + Cloud SQL + in-cluster Redis Stack + GCS buckets).
+Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Redis + GCS buckets). Memorystore Cluster adds extra time on first apply.
 
 ---
 
@@ -103,7 +103,7 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + in-cluster Redis S
 
 - **GKE cluster** with node pool
 - **Cloud SQL** (PostgreSQL)
-- **In-cluster Redis Stack** (RedisJSON, persistent)
+- **Redis** — in-cluster Redis Stack by default, or Memorystore for Redis Cluster when `use_memorystore_redis_cluster = true` (JSON-compatible; app needs a cluster-aware client). `redis_url` skips both and points at Redis Cloud or similar.
 - **4 GCS buckets** (file-manager, agent-avatars, logos, rag)
 - **GCE Ingress** (HTTP(S) load balancer)
 - **Sligo Enterprise Helm chart** deployment

@@ -17,3 +17,13 @@ output "ingress_hostname" {
   description = "Load balancer hostname"
   value       = module.sligo_gcp.ingress_hostname
 }
+
+output "redis_backend" {
+  description = "Redis backend: external, memorystore, or in-cluster"
+  value       = module.sligo_gcp.redis_backend
+}
+
+output "redis_endpoint" {
+  description = "Redis discovery / service endpoint"
+  value       = module.sligo_gcp.redis_endpoint
+}

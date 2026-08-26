@@ -94,9 +94,53 @@ variable "db_password" {
   sensitive   = true
 }
 
-# Redis Configuration (in-cluster Redis Stack, always persistent)
+# Redis: in-cluster Redis Stack (default), Memorystore Cluster, or redis_url
+variable "redis_url" {
+  description = "External Redis connection URL (e.g. Redis Cloud). When set, skip in-cluster Redis and Memorystore."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "use_memorystore_redis_cluster" {
+  description = "Provision Memorystore for Redis Cluster instead of in-cluster Redis Stack"
+  type        = bool
+  default     = false
+}
+
+variable "use_existing_memorystore_connection_policy" {
+  description = "Skip creating the Memorystore PSC Service Connection Policy (VPC already has one)"
+  type        = bool
+  default     = false
+}
+
+variable "memorystore_shard_count" {
+  type    = number
+  default = 1
+}
+
+variable "memorystore_replica_count" {
+  type    = number
+  default = 1
+}
+
+variable "memorystore_node_type" {
+  type    = string
+  default = "REDIS_SHARED_CORE_NANO"
+}
+
+variable "memorystore_authorization_mode" {
+  type    = string
+  default = "AUTH_MODE_DISABLED"
+}
+
+variable "memorystore_transit_encryption_mode" {
+  type    = string
+  default = "TRANSIT_ENCRYPTION_MODE_DISABLED"
+}
+
 variable "redis_persistence_size" {
-  description = "PersistentVolumeClaim size for Redis Stack data"
+  description = "PersistentVolumeClaim size for in-cluster Redis Stack data"
   type        = string
   default     = "1Gi"
 }
