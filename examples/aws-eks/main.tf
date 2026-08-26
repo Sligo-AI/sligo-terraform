@@ -110,6 +110,8 @@ module "sligo_aws" {
   azure_openai_api_instance_name = var.azure_openai_api_instance_name
   azure_openai_api_version       = var.azure_openai_api_version
   azure_openai_base_path         = var.azure_openai_base_path
+  bedrock_aws_region             = var.bedrock_aws_region
+  bedrock_aws_bearer_token       = var.bedrock_aws_bearer_token
 
   # Postmark email (optional)
   postmark_server_token        = var.postmark_server_token

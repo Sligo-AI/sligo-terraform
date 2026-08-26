@@ -741,6 +741,18 @@ variable "azure_openai_base_path" {
   type    = string
   default = ""
 }
+# Amazon Bedrock (optional; nextjs + backend; temporal-worker reuses backend-secrets)
+variable "bedrock_aws_region" {
+  type        = string
+  default     = ""
+  description = "Bedrock source region (e.g. us-east-1). Injected when bedrock_aws_bearer_token is set."
+}
+variable "bedrock_aws_bearer_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Long-term Bedrock API key (not an IAM access key)."
+}
 variable "spendhq_base_url" {
   type    = string
   default = ""

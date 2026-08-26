@@ -56,6 +56,8 @@ locals {
     azure_openai_api_instance_name       = var.azure_openai_api_instance_name
     azure_openai_api_version             = var.azure_openai_api_version
     azure_openai_base_path               = var.azure_openai_base_path
+    bedrock_aws_region                   = var.bedrock_aws_region
+    bedrock_aws_bearer_token             = var.bedrock_aws_bearer_token
     langsmith_api_key                    = var.langsmith_api_key
     langsmith_tracing                    = var.langsmith_tracing
     langsmith_project                    = var.langsmith_project

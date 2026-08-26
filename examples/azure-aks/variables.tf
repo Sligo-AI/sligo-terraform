@@ -481,6 +481,19 @@ variable "azure_openai_base_path" {
   default = ""
 }
 
+# Amazon Bedrock (optional; nextjs + backend)
+variable "bedrock_aws_region" {
+  type        = string
+  default     = ""
+  description = "Bedrock source region (e.g. us-east-1)"
+}
+variable "bedrock_aws_bearer_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Long-term Bedrock API key (not an IAM access key)"
+}
+
 variable "storage_provider" {
   description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
   type        = string

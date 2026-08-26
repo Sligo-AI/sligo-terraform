@@ -160,12 +160,13 @@ Proactive Insights runs on the Temporal worker, so it requires `enable_temporal 
 
 For all app env vars (e.g. `STORAGE_PROVIDER`, vector stores, OIDC/SAML, Azure AI Search), see the [Helm SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md). Module variables include **`storage_provider`** (`gcs` or `s3`); the app defaults to `gcs` when unset.
 
-### Optional: Azure AI Search and Azure OpenAI
+### Optional: Azure AI Search, Azure OpenAI, and Amazon Bedrock
 
 Terraform supports:
 
 - **Azure AI Search** (nextjs + mcp-gateway): set `azure_aisearch_endpoint` (and optionally `azure_aisearch_key`, `azure_aisearch_index`, `azure_aisearch_query_type`) to inject `RAG_VECTOR_STORE=azureaisearch` and the `AZURE_AISEARCH_*` keys.
 - **Azure OpenAI** (backend): set `azure_openai_api_key` (and optionally `azure_openai_api_instance_name`, `azure_openai_api_version`, `azure_openai_base_path`) to inject the `AZURE_OPENAI_*` keys.
+- **Amazon Bedrock** (nextjs + backend; Temporal worker reuses backend-secrets): set `bedrock_aws_bearer_token` (long-term Bedrock API key) and optionally `bedrock_aws_region` (defaults to `us-east-1` when injected) to inject `BEDROCK_AWS_BEARER_TOKEN` and `BEDROCK_AWS_REGION`. Do not reuse S3 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
 
 ### Gaps vs current Helm secrets doc
 

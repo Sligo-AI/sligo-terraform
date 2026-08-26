@@ -1175,6 +1175,9 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = local.eff_strings["azure_aisearch_key"] != "" ? local.eff_strings["azure_aisearch_key"] : "placeholder"
     AZURE_AISEARCH_INDEX      = local.eff_strings["azure_aisearch_index"]
     AZURE_AISEARCH_QUERY_TYPE = local.eff_strings["azure_aisearch_query_type"]
+    } : {}, local.eff_strings["bedrock_aws_bearer_token"] != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN = local.eff_strings["bedrock_aws_bearer_token"]
+    BEDROCK_AWS_REGION       = local.eff_strings["bedrock_aws_region"] != "" ? local.eff_strings["bedrock_aws_region"] : "us-east-1"
   } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, local.temporal_client_env)
 }
 
@@ -1224,6 +1227,9 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                                      = local.eff_strings["azure_openai_api_instance_name"]
     AZURE_OPENAI_API_VERSION                                            = local.eff_strings["azure_openai_api_version"]
     AZURE_OPENAI_BASE_PATH                                              = local.eff_strings["azure_openai_base_path"]
+    } : {}, local.eff_strings["bedrock_aws_bearer_token"] != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN = local.eff_strings["bedrock_aws_bearer_token"]
+    BEDROCK_AWS_REGION       = local.eff_strings["bedrock_aws_region"] != "" ? local.eff_strings["bedrock_aws_region"] : "us-east-1"
     } : {}, var.enable_proactive_insights ? {
     # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
     # SingleStore connection, not just the MCP gateway.

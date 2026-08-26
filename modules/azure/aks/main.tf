@@ -637,6 +637,9 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
+    } : {}, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
   } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env)
 }
 
@@ -685,6 +688,9 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
     AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
     AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
+    } : {}, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
     } : {}, var.enable_proactive_insights ? {
     # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
     # SingleStore connection, not just the MCP gateway.

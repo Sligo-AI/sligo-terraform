@@ -480,6 +480,19 @@ variable "azure_openai_base_path" {
   default = ""
 }
 
+# Amazon Bedrock (optional; nextjs + backend)
+variable "bedrock_aws_region" {
+  type        = string
+  default     = ""
+  description = "Bedrock source region (e.g. us-east-1)"
+}
+variable "bedrock_aws_bearer_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Long-term Bedrock API key (not an IAM access key)"
+}
+
 # Postmark email (optional)
 variable "postmark_server_token" {
   type      = string
