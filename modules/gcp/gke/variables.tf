@@ -51,6 +51,12 @@ variable "cluster_log_retention_days" {
   default     = 400
 }
 
+variable "cluster_log_bucket_location" {
+  description = "Location for the per-cluster Cloud Logging bucket. Default global. Use us for US multi-region (same idea as GCS location US) or a region such as us-east4."
+  type        = string
+  default     = "global"
+}
+
 variable "private_service_access_destroy_wait" {
   description = "How long to wait after Cloud SQL is destroyed before deleting the VPC service networking connection. GCP often needs several minutes to release the peering; increase if destroy fails with 'Producer services are still using this connection'."
   type        = string

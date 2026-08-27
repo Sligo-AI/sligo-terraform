@@ -232,7 +232,7 @@ locals {
 # Per-cluster log bucket so control-plane retention is not tied to the project _Default bucket.
 resource "google_logging_project_bucket_config" "cluster" {
   project        = var.gcp_project_id
-  location       = "global"
+  location       = var.cluster_log_bucket_location
   bucket_id      = local.cluster_log_bucket_id
   retention_days = var.cluster_log_retention_days
 
@@ -242,7 +242,7 @@ resource "google_logging_project_bucket_config" "cluster" {
 resource "google_logging_project_sink" "cluster" {
   name        = "${var.cluster_name}-cluster-logs"
   project     = var.gcp_project_id
-  destination = "logging.googleapis.com/projects/${var.gcp_project_id}/locations/global/buckets/${google_logging_project_bucket_config.cluster.bucket_id}"
+  destination = "logging.googleapis.com/projects/${var.gcp_project_id}/locations/${var.cluster_log_bucket_location}/buckets/${google_logging_project_bucket_config.cluster.bucket_id}"
   filter      = <<-EOT
     (resource.type="k8s_cluster" OR resource.type="k8s_control_plane")
     AND resource.labels.cluster_name="${var.cluster_name}"
@@ -387,10 +387,11 @@ resource "kubernetes_namespace" "sligo" {
 # Use Helm instead of kubernetes_manifest so first-time bootstraps can plan without
 # a live Kubernetes API / CRD schema discovery (kubernetes_manifest fails at plan).
 resource "helm_release" "gke_ingress_prereqs" {
-  name      = "gke-ingress-prereqs"
-  chart     = "${path.module}/charts/gke-ingress-prereqs"
-  namespace = kubernetes_namespace.sligo.metadata[0].name
-  timeout   = 600
+  name           = "gke-ingress-prereqs"
+  chart          = "${path.module}/charts/gke-ingress-prereqs"
+  namespace      = kubernetes_namespace.sligo.metadata[0].name
+  timeout        = 600
+  take_ownership = true
 
   values = [yamlencode({
     managedSslCertificate = {
