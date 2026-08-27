@@ -387,11 +387,10 @@ resource "kubernetes_namespace" "sligo" {
 # Use Helm instead of kubernetes_manifest so first-time bootstraps can plan without
 # a live Kubernetes API / CRD schema discovery (kubernetes_manifest fails at plan).
 resource "helm_release" "gke_ingress_prereqs" {
-  name           = "gke-ingress-prereqs"
-  chart          = "${path.module}/charts/gke-ingress-prereqs"
-  namespace      = kubernetes_namespace.sligo.metadata[0].name
-  timeout        = 600
-  take_ownership = true
+  name      = "gke-ingress-prereqs"
+  chart     = "${path.module}/charts/gke-ingress-prereqs"
+  namespace = kubernetes_namespace.sligo.metadata[0].name
+  timeout   = 600
 
   values = [yamlencode({
     managedSslCertificate = {
