@@ -251,21 +251,9 @@ resource "google_logging_project_sink" "cluster" {
   unique_writer_identity = true
 }
 
-# Same-project log buckets leave writer_identity empty; Logging already allows the write.
-# Grant IAM only when Google returns a real unique writer (typically cross-project sinks).
-resource "google_project_iam_member" "cluster_log_writer" {
-  count = startswith(google_logging_project_sink.cluster.writer_identity, "serviceAccount:") ? 1 : 0
-
-  project = var.gcp_project_id
-  role    = "roles/logging.bucketWriter"
-  member  = google_logging_project_sink.cluster.writer_identity
-
-  condition {
-    title       = "${var.cluster_name}-cluster-logs-bucket"
-    description = "Allow the cluster log sink to write only to this cluster's log bucket"
-    expression  = "resource.type == \"logging.googleapis.com/LogBucket\" && resource.name == \"projects/${var.gcp_project_id}/locations/global/buckets/${google_logging_project_bucket_config.cluster.bucket_id}\""
-  }
-}
+# Same-project log buckets: Logging already allows the write. Do not grant
+# roles/logging.bucketWriter from writer_identity — Google leaves that field
+# empty, and counting on it fails plan when the sink does not exist yet.
 
 # Node Pool
 resource "google_container_node_pool" "primary_nodes" {
