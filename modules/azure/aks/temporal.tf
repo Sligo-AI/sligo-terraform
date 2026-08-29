@@ -1,9 +1,10 @@
 locals {
-  temporal_enabled     = var.enable_temporal
-  temporal_self_hosted = var.enable_temporal && var.temporal_self_hosted
-  temporal_db_user     = var.temporal_db_username != "" ? var.temporal_db_username : var.db_username
-  temporal_db_password = var.temporal_db_password != "" ? var.temporal_db_password : var.db_password
-  temporal_db_host     = azurerm_postgresql_flexible_server.postgres.fqdn
+  temporal_enabled          = var.enable_temporal
+  temporal_self_hosted      = var.enable_temporal && var.temporal_self_hosted
+  temporal_db_user          = var.temporal_db_username != "" ? var.temporal_db_username : var.db_username
+  temporal_db_password      = var.temporal_db_password != "" ? var.temporal_db_password : var.db_password
+  temporal_db_host          = azurerm_postgresql_flexible_server.postgres.fqdn
+  temporal_sql_connect_addr = "${local.temporal_db_host}:5432"
 
   temporal_frontend_address = local.temporal_self_hosted ? "temporal-frontend:7233" : var.temporal_frontend_address
   temporal_tls_value = (
@@ -66,14 +67,16 @@ locals {
             datastores = {
               default = {
                 sql = {
-                  host = local.temporal_db_host
-                  user = local.temporal_db_user
+                  host        = local.temporal_db_host
+                  connectAddr = local.temporal_sql_connect_addr
+                  user        = local.temporal_db_user
                 }
               }
               visibility = {
                 sql = {
-                  host = local.temporal_db_host
-                  user = local.temporal_db_user
+                  host        = local.temporal_db_host
+                  connectAddr = local.temporal_sql_connect_addr
+                  user        = local.temporal_db_user
                 }
               }
             }

@@ -6,6 +6,8 @@ locals {
   temporal_db_user     = var.temporal_db_username != "" ? var.temporal_db_username : var.db_username
   temporal_db_password = var.temporal_db_password != "" ? var.temporal_db_password : var.db_password
   temporal_db_host     = google_sql_database_instance.postgres.private_ip_address
+  # Official Temporal Helm chart (sql plugin) requires connectAddr, not host.
+  temporal_sql_connect_addr = "${local.temporal_db_host}:5432"
 
   temporal_frontend_address = local.temporal_self_hosted ? "temporal-frontend:7233" : var.temporal_frontend_address
   temporal_tls_value = (
@@ -70,14 +72,16 @@ locals {
             datastores = {
               default = {
                 sql = {
-                  host = local.temporal_db_host
-                  user = local.temporal_db_user
+                  host        = local.temporal_db_host
+                  connectAddr = local.temporal_sql_connect_addr
+                  user        = local.temporal_db_user
                 }
               }
               visibility = {
                 sql = {
-                  host = local.temporal_db_host
-                  user = local.temporal_db_user
+                  host        = local.temporal_db_host
+                  connectAddr = local.temporal_sql_connect_addr
+                  user        = local.temporal_db_user
                 }
               }
             }
