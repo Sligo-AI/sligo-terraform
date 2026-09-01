@@ -87,14 +87,11 @@ locals {
             }
           }
         }
+        # Subchart namespace Job races frontend. sligo-cloud 1.2.4+ creates
+        # var.temporal_namespace via post-install Job.
         namespaces = {
-          create = local.temporal_self_hosted
-          namespace = local.temporal_self_hosted ? [
-            {
-              name      = var.temporal_namespace
-              retention = "720h"
-            }
-          ] : []
+          create    = false
+          namespace = []
         }
       }
       web = {
