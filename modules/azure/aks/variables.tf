@@ -42,7 +42,7 @@ variable "node_pool_vm_size" {
 }
 
 variable "cluster_log_retention_days" {
-  description = "Days to retain AKS control-plane logs in Log Analytics. Default 400 (~1 year). Use a shorter value (for example 30 or 90) in staging and development. Azure requires 30–730."
+  description = "Days to retain AKS logs in Log Analytics (control plane and container stdout/stderr). Default 400 (~1 year). Use a shorter value (for example 30 or 90) in staging and development. Azure requires 30–730."
   type        = number
   default     = 400
 }

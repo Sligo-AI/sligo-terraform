@@ -72,7 +72,7 @@ Edit `terraform.tfvars` with your values. Key variables:
 
 **Optional:** `db_tier` (default `db-f1-micro`), `redis_persistence_size` (default `1Gi`), `redis_persistence_storage_class` (default `standard-rwo`), `use_memorystore_redis_cluster` (default `false`), `use_existing_gcs_bucket`.
 
-Control-plane logs default to **400 days** in a per-cluster Cloud Logging bucket. Cloud SQL keeps **7** automated backups with point-in-time recovery (WAL capped at 7 days) and deletion protection on. Staging/dev should lower retention and set `gke_deletion_protection` / `cloud_sql_deletion_protection` to `false`; see [Multiple environments](../multiple-environments/).
+Control-plane logs default to **400 days** in a per-cluster Cloud Logging bucket. Container stdout/stderr (`WORKLOADS`) is collected into the project's default Cloud Logging bucket. Cloud SQL keeps **7** automated backups with point-in-time recovery (WAL capped at 7 days) and deletion protection on. Staging/dev should lower retention and set `gke_deletion_protection` / `cloud_sql_deletion_protection` to `false`; see [Multiple environments](../multiple-environments/).
 
 ---
 

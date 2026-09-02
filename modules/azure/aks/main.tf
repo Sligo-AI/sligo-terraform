@@ -267,6 +267,14 @@ locals {
   blob_rag             = var.use_existing_storage_account ? "rag" : azurerm_storage_container.rag[0].name
 }
 
+resource "azurerm_log_analytics_workspace" "cluster" {
+  name                = "${var.cluster_name}-logs"
+  location            = local.rg_location
+  resource_group_name = local.rg_name
+  sku                 = "PerGB2018"
+  retention_in_days   = var.cluster_log_retention_days
+}
+
 # AKS Cluster
 resource "azurerm_kubernetes_cluster" "main" {
   name                = var.cluster_name
@@ -292,14 +300,11 @@ resource "azurerm_kubernetes_cluster" "main" {
     network_plugin    = "azure"
     load_balancer_sku = "standard"
   }
-}
 
-resource "azurerm_log_analytics_workspace" "cluster" {
-  name                = "${var.cluster_name}-logs"
-  location            = local.rg_location
-  resource_group_name = local.rg_name
-  sku                 = "PerGB2018"
-  retention_in_days   = var.cluster_log_retention_days
+  oms_agent {
+    log_analytics_workspace_id      = azurerm_log_analytics_workspace.cluster.id
+    msi_auth_for_monitoring_enabled = true
+  }
 }
 
 resource "azurerm_monitor_diagnostic_setting" "aks" {

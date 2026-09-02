@@ -210,12 +210,15 @@ resource "google_container_cluster" "primary" {
     enabled = true
   }
 
+  # WORKLOADS ships container stdout/stderr to Cloud Logging (k8s_container in
+  # the project default bucket). The per-cluster sink below is control-plane only.
   logging_config {
     enable_components = [
       "SYSTEM_COMPONENTS",
       "APISERVER",
       "SCHEDULER",
       "CONTROLLER_MANAGER",
+      "WORKLOADS",
     ]
   }
 

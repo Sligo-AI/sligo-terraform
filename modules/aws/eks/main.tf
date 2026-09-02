@@ -193,6 +193,14 @@ module "eks" {
   cluster_enabled_log_types              = ["api", "audit", "authenticator"]
   cloudwatch_log_group_retention_in_days = var.cluster_log_retention_days
 
+  # Container stdout/stderr (Fluent Bit via the CloudWatch Observability add-on).
+  # Control-plane types above are a separate CloudWatch log group.
+  cluster_addons = {
+    amazon-cloudwatch-observability = {
+      most_recent = true
+    }
+  }
+
   # Enable access entries API (required for EKS clusters to allow nodes to join)
   # This ensures node groups can automatically join the cluster
   authentication_mode = "API_AND_CONFIG_MAP"
@@ -228,6 +236,10 @@ module "eks" {
       # Attach cluster's primary security group to node group
       # This ensures proper communication between nodes and cluster
       attach_cluster_primary_security_group = true
+
+      iam_role_additional_policies = {
+        CloudWatchAgentServerPolicy = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      }
 
       # Add Kubernetes labels and tags
       labels = {
