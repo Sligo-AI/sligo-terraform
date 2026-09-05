@@ -112,7 +112,7 @@ Deployment typically takes 15–25 minutes (EKS + Aurora + ElastiCache + S3).
 
 Optional **`enable_temporal = true`** enables Temporal clients and the worker. Default **`temporal_self_hosted = true`** also adds Aurora Temporal databases and the in-cluster server; set **`temporal_self_hosted = false`** with Cloud address/API key for Temporal Cloud only. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/aws-eks/terraform.tfvars.temporal.example).
 
-Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Aurora database, a private S3 bucket, ClickHouse operator/cert-manager (unless skipped), and a `langfuse.<domain>` ingress host. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/aws-eks/terraform.tfvars.langfuse.example).
+Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Aurora database, a private S3 bucket, ClickHouse operator/cert-manager (unless skipped), a `langfuse.<domain>` ingress host, a **separate ACM certificate** (not a SAN on the app cert), and a Route 53 CNAME when `route53_zone_id` + `alb_hostname` are set. The ALB annotation lists both certificate ARNs. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/aws-eks/terraform.tfvars.langfuse.example).
 
 ---
 

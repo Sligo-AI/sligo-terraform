@@ -7,7 +7,8 @@ langfuse_web_enabled = true
 langfuse_db_name     = "langfuse"
 
 # Requires sligo-cloud Helm chart 1.3.0+.
-# Point DNS for langfuse.<domain_name> at the same load balancer as the app.
+# Terraform creates a separate ACM cert for langfuse.<domain_name> (not a SAN on the app cert).
+# Point DNS for langfuse.<domain_name> at the same ALB as the app (or set route53_zone_id + alb_hostname).
 
 # --- Langfuse Cloud / existing instance ---
 # enable_langfuse        = true

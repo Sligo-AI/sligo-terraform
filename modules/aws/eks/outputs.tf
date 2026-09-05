@@ -138,12 +138,13 @@ locals {
     "2. Get ALB hostname (after cert is ISSUED):",
     "   kubectl get ingress -n sligo -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'"
   ]
-  _step3 = [
+  _step3 = compact([
     "3. Add CNAMEs in your DNS (point to the hostname from step 2):",
     "   ${var.domain_name} -> <ALB hostname>",
     "   api.${var.domain_name} -> <ALB hostname>",
+    local.langfuse_self_hosted && var.langfuse_web_enabled ? "   ${local.langfuse_domain} -> <ALB hostname> (Langfuse UI; separate ACM cert)" : "",
     "   Or set route53_zone_id and alb_hostname in Terraform and apply again to create these in Route 53."
-  ]
+  ])
   dns_next_steps_lines = concat(
     local._step1_acm,
     local._step2,

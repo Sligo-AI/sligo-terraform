@@ -893,6 +893,22 @@ resource "helm_release" "sligo_cloud" {
         annotations = {
           "kubernetes.io/ingress.class" = "nginx"
         }
+        # One TLS secret per hostname (same isolation as GKE ManagedCertificate / ACM).
+        # Provision app-tls-cert and langfuse-tls-cert (cert-manager Certificates or uploaded PEMs).
+        tls = concat(
+          [
+            {
+              secretName = "app-tls-cert"
+              hosts      = [var.domain_name]
+            }
+          ],
+          local.langfuse_self_hosted && var.langfuse_web_enabled ? [
+            {
+              secretName = "langfuse-tls-cert"
+              hosts      = [local.langfuse_domain]
+            }
+          ] : []
+        )
         hosts = concat(
           [
             {

@@ -3,6 +3,10 @@ managedSslCertificate:
   name: sligo-managed-cert-app
   domains: []
 
+# GKE ManagedCertificate allows one domain per object on some clusters.
+# Extra certs are attached on the Ingress via a comma-separated annotation.
+extraManagedSslCertificates: []
+
 backendConfig:
   name: sligo-app-backendconfig
   timeoutSec: 60

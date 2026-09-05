@@ -483,6 +483,45 @@ resource "aws_acm_certificate_validation" "sligo" {
   validation_record_fqdns = [for r in aws_route53_record.acm_validation : r.fqdn]
 }
 
+# Separate ACM cert for Langfuse (do not add a SAN to the app cert — same one-name-per-cert
+# isolation as GKE ManagedCertificate). ALB attaches both ARNs.
+resource "aws_acm_certificate" "langfuse" {
+  count             = local.langfuse_self_hosted && var.langfuse_web_enabled ? 1 : 0
+  domain_name       = local.langfuse_domain
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${var.cluster_name}-langfuse-certificate"
+  }
+}
+
+resource "aws_route53_record" "acm_validation_langfuse" {
+  for_each = local.route53_zone_configured && local.langfuse_self_hosted && var.langfuse_web_enabled && length(aws_acm_certificate.langfuse) > 0 ? {
+    for dvo in aws_acm_certificate.langfuse[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  } : {}
+
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "langfuse" {
+  count = local.route53_zone_configured && local.langfuse_self_hosted && var.langfuse_web_enabled && length(aws_acm_certificate.langfuse) > 0 ? 1 : 0
+
+  certificate_arn         = aws_acm_certificate.langfuse[0].arn
+  validation_record_fqdns = [for r in aws_route53_record.acm_validation_langfuse : r.fqdn]
+}
+
 # CNAME records for app and api when Route 53 zone and ALB hostname are provided
 resource "aws_route53_record" "app" {
   count = local.route53_zone_configured && local.alb_hostname_configured ? 1 : 0
@@ -499,6 +538,16 @@ resource "aws_route53_record" "api" {
 
   zone_id = var.route53_zone_id
   name    = "api.${local.eff_strings["domain_name"]}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [var.alb_hostname]
+}
+
+resource "aws_route53_record" "langfuse" {
+  count = local.route53_zone_configured && local.alb_hostname_configured && local.langfuse_self_hosted && var.langfuse_web_enabled ? 1 : 0
+
+  zone_id = var.route53_zone_id
+  name    = local.langfuse_domain
   type    = "CNAME"
   ttl     = 300
   records = [var.alb_hostname]
@@ -1733,15 +1782,18 @@ resource "helm_release" "sligo_cloud" {
         annotations = merge({
           "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
           "alb.ingress.kubernetes.io/target-type"          = "ip"
-          "alb.ingress.kubernetes.io/listen-ports"         = local.certificate_arn != "" ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
+          "alb.ingress.kubernetes.io/listen-ports"         = local.certificate_arn != "" || (local.langfuse_self_hosted && var.langfuse_web_enabled) ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
           "alb.ingress.kubernetes.io/healthcheck-path"     = "/api/health"
           "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
           "alb.ingress.kubernetes.io/healthcheck-port"     = "traffic-port"
           "alb.ingress.kubernetes.io/success-codes"        = "200"
-          }, local.certificate_arn != "" ? {
-          "alb.ingress.kubernetes.io/certificate-arn" = local.certificate_arn
-          "alb.ingress.kubernetes.io/ssl-policy"      = "ELBSecurityPolicy-FS-1-2-Res-2020-10"
-          "alb.ingress.kubernetes.io/ssl-redirect"    = "443"
+          }, local.certificate_arn != "" || (local.langfuse_self_hosted && var.langfuse_web_enabled) ? {
+          "alb.ingress.kubernetes.io/certificate-arn" = join(",", compact([
+            local.certificate_arn,
+            local.langfuse_self_hosted && var.langfuse_web_enabled && length(aws_acm_certificate.langfuse) > 0 ? aws_acm_certificate.langfuse[0].arn : "",
+          ]))
+          "alb.ingress.kubernetes.io/ssl-policy"   = "ELBSecurityPolicy-FS-1-2-Res-2020-10"
+          "alb.ingress.kubernetes.io/ssl-redirect" = "443"
           } : {}, length(var.subnet_ids) > 0 ? {
           "alb.ingress.kubernetes.io/subnets" = join(",", var.subnet_ids)
         } : {})

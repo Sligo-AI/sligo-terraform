@@ -399,8 +399,14 @@ resource "helm_release" "gke_ingress_prereqs" {
     managedSslCertificate = {
       enabled = var.use_managed_ssl_certificate
       name    = "sligo-managed-cert-app"
-      domains = concat([var.domain_name], local.langfuse_self_hosted && var.langfuse_web_enabled ? [local.langfuse_domain] : [])
+      domains = [var.domain_name]
     }
+    extraManagedSslCertificates = local.langfuse_self_hosted && var.langfuse_web_enabled ? [
+      {
+        name    = "sligo-managed-cert-langfuse"
+        domains = [local.langfuse_domain]
+      }
+    ] : []
     backendConfig = {
       name       = "sligo-app-backendconfig"
       timeoutSec = 60
@@ -1152,7 +1158,12 @@ resource "helm_release" "sligo_cloud" {
         className = "gce"
         annotations = merge(
           { "kubernetes.io/ingress.class" = "gce" },
-          var.use_managed_ssl_certificate ? { "networking.gke.io/managed-certificates" = "sligo-managed-cert-app" } : {}
+          var.use_managed_ssl_certificate ? {
+            "networking.gke.io/managed-certificates" = join(",", compact([
+              "sligo-managed-cert-app",
+              local.langfuse_self_hosted && var.langfuse_web_enabled ? "sligo-managed-cert-langfuse" : "",
+            ]))
+          } : {}
         )
         # No spec.tls secret; use GKE ManagedCertificate via annotation when use_managed_ssl_certificate is true
         tls = []
