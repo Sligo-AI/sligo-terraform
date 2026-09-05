@@ -112,6 +112,8 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
 
 Optional **`enable_temporal = true`** enables Temporal clients and the worker. Default **`temporal_self_hosted = true`** also adds Flexible Server Temporal databases and the in-cluster server; set **`temporal_self_hosted = false`** with Cloud address/API key for Temporal Cloud only. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/azure-aks/terraform.tfvars.temporal.example).
 
+Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Flexible Server database, a private blob container, ClickHouse operator/cert-manager (unless skipped), and a `langfuse.<domain>` ingress host. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/azure-aks/terraform.tfvars.langfuse.example).
+
 ---
 
 ## Manual Setup (Without create-environment)

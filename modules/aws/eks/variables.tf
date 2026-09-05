@@ -175,6 +175,9 @@ variable "secret_names" {
     "langfuse-base-url",
     "langfuse-public-key",
     "langfuse-secret-key",
+    "langfuse-ui-url",
+    "langfuse-init-user-email",
+    "langfuse-init-user-password",
     "langsmith-api-base-url",
     "observability-provider"
   ]
@@ -823,9 +826,101 @@ variable "langsmith_api_base_url" {
 }
 
 variable "observability_provider" {
-  description = "Observability provider (langsmith or langfuse)"
+  description = "Observability provider (langsmith or langfuse). Self-hosted Langfuse forces langfuse."
   type        = string
   default     = "langsmith"
+}
+
+variable "enable_langfuse" {
+  description = "Enable Langfuse as the observability backend (secrets + Helm injection). Pair with langfuse_self_hosted for in-cluster Langfuse, or false for Langfuse Cloud / BYO URL."
+  type        = bool
+  default     = false
+}
+
+variable "langfuse_self_hosted" {
+  description = "When enable_langfuse is true, install the official Langfuse Helm subchart and provision Postgres DB, S3 bucket, and ClickHouse/Valkey. Set false to use Langfuse Cloud or an existing instance."
+  type        = bool
+  default     = true
+}
+
+variable "langfuse_web_enabled" {
+  description = "Expose Langfuse UI on langfuse_domain_name and set LANGFUSE_UI_URL for the Super Admin launch page."
+  type        = bool
+  default     = true
+}
+
+variable "langfuse_domain_name" {
+  description = "Public hostname for the Langfuse UI. Empty defaults to langfuse.<domain_name>."
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_db_name" {
+  description = "Postgres database name for Langfuse."
+  type        = string
+  default     = "langfuse"
+}
+
+variable "langfuse_db_username" {
+  description = "Postgres user for Langfuse. Empty reuses db_username."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langfuse_db_password" {
+  description = "Postgres password for Langfuse. Empty reuses db_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langfuse_init_user_email" {
+  description = "Langfuse UI admin email. Empty defaults to langfuse-admin@<domain_name>."
+  type        = string
+  default     = ""
+}
+
+variable "langfuse_init_org_id" {
+  description = "LANGFUSE_INIT_ORG_ID for first-boot org/project."
+  type        = string
+  default     = "sligo"
+}
+
+variable "langfuse_init_project_id" {
+  description = "LANGFUSE_INIT_PROJECT_ID for first-boot project."
+  type        = string
+  default     = "sligo"
+}
+
+variable "install_cert_manager" {
+  description = "Install cert-manager when Langfuse is self-hosted. Set false if cert-manager already exists."
+  type        = bool
+  default     = true
+}
+
+variable "install_clickhouse_operator" {
+  description = "Install the ClickHouse operator when Langfuse is self-hosted."
+  type        = bool
+  default     = true
+}
+
+variable "langfuse_clickhouse_replicas" {
+  description = "ClickHouse server replicas. 1 for staging; 3 for production."
+  type        = number
+  default     = 1
+}
+
+variable "langfuse_keeper_replicas" {
+  description = "ClickHouse Keeper replicas. Must be odd."
+  type        = number
+  default     = 1
+}
+
+variable "langfuse_storage_class" {
+  description = "StorageClass for Langfuse ClickHouse, Keeper, and Valkey PVCs."
+  type        = string
+  default     = ""
 }
 
 variable "onedrive_client_secret" {

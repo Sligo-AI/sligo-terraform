@@ -399,7 +399,7 @@ resource "helm_release" "gke_ingress_prereqs" {
     managedSslCertificate = {
       enabled = var.use_managed_ssl_certificate
       name    = "sligo-managed-cert-app"
-      domains = [var.domain_name]
+      domains = concat([var.domain_name], local.langfuse_self_hosted && var.langfuse_web_enabled ? [local.langfuse_domain] : [])
     }
     backendConfig = {
       name       = "sligo-app-backendconfig"
@@ -475,10 +475,10 @@ resource "kubernetes_secret" "nextjs_secrets" {
     LANGSMITH_PROJECT              = var.langsmith_project
     LANGSMITH_ENDPOINT             = var.langsmith_endpoint
     LANGSMITH_API_KEY              = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    LANGFUSE_BASE_URL              = var.langfuse_base_url
-    LANGFUSE_PUBLIC_KEY            = var.langfuse_public_key
-    LANGFUSE_SECRET_KEY            = var.langfuse_secret_key != "" ? var.langfuse_secret_key : ""
-    OBSERVABILITY_PROVIDER         = var.observability_provider
+    LANGFUSE_BASE_URL              = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY            = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY            = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER         = local.observability_provider_effective
     BUCKET_NAME_AGENT_AVATARS      = local.gcs_bucket_agent_avatars_id
     BUCKET_NAME_FILE_MANAGER       = local.gcs_bucket_file_manager_id
     BUCKET_NAME_LOGOS              = local.gcs_bucket_logos_id
@@ -519,7 +519,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     } : {}, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
-  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env, local.redis_cluster_env)
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env, local.langfuse_ui_env, local.redis_cluster_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -554,10 +554,10 @@ resource "kubernetes_secret" "backend_secrets" {
     LANGSMITH_PROJECT                                  = var.langsmith_project
     LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
     LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    LANGFUSE_BASE_URL                                  = var.langfuse_base_url
-    LANGFUSE_PUBLIC_KEY                                = var.langfuse_public_key
-    LANGFUSE_SECRET_KEY                                = var.langfuse_secret_key != "" ? var.langfuse_secret_key : ""
-    OBSERVABILITY_PROVIDER                             = var.observability_provider
+    LANGFUSE_BASE_URL                                  = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY                                = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY                                = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER                             = local.observability_provider_effective
     BUCKET_NAME_FILE_MANAGER                           = local.gcs_bucket_file_manager_id
     NODE_ENV                                           = "production"
     SKIP_ENV_VALIDATION                                = "true"
@@ -995,6 +995,9 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "LANGFUSE_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-base-url"] } },
         { secretKey = "LANGFUSE_PUBLIC_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-public-key"] } },
         { secretKey = "LANGFUSE_SECRET_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-secret-key"] } },
+        { secretKey = "LANGFUSE_UI_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-ui-url"] } },
+        { secretKey = "LANGFUSE_INIT_USER_EMAIL", remoteRef = { key = local.gsm_secret_ids["langfuse-init-user-email"] } },
+        { secretKey = "LANGFUSE_INIT_USER_PASSWORD", remoteRef = { key = local.gsm_secret_ids["langfuse-init-user-password"] } },
         { secretKey = "LANGSMITH_API_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langsmith-api-base-url"] } },
         { secretKey = "OBSERVABILITY_PROVIDER", remoteRef = { key = local.gsm_secret_ids["observability-provider"] } }
       ]
@@ -1153,18 +1156,21 @@ resource "helm_release" "sligo_cloud" {
         )
         # No spec.tls secret; use GKE ManagedCertificate via annotation when use_managed_ssl_certificate is true
         tls = []
-        hosts = [
-          {
-            host = var.domain_name
-            paths = [
-              {
-                path     = "/"
-                pathType = "Prefix"
-                backend  = "app"
-              }
-            ]
-          }
-        ]
+        hosts = concat(
+          [
+            {
+              host = var.domain_name
+              paths = [
+                {
+                  path     = "/"
+                  pathType = "Prefix"
+                  backend  = "app"
+                }
+              ]
+            }
+          ],
+          local.langfuse_ingress_hosts
+        )
       }
 
       app = {
@@ -1281,6 +1287,8 @@ resource "helm_release" "sligo_cloud" {
     })],
     [yamlencode(local.temporal_helm_values)],
     local.temporal_self_hosted ? [yamlencode(local.temporal_self_hosted_helm_values)] : [],
+    [yamlencode(local.langfuse_helm_values)],
+    local.langfuse_self_hosted ? [yamlencode(local.langfuse_self_hosted_helm_values)] : [],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
   )
 
@@ -1295,6 +1303,12 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.database_secret,
     kubernetes_secret.temporal_db_credentials,
     kubernetes_secret.temporal_visibility_db_credentials,
+    kubernetes_secret.langfuse_db_credentials,
+    kubernetes_secret.langfuse_general,
+    kubernetes_secret.langfuse_clickhouse_auth,
+    kubernetes_secret.langfuse_gcs_credentials,
+    helm_release.cert_manager,
+    helm_release.clickhouse_operator,
     kubernetes_manifest.external_secret_nextjs,
     kubernetes_manifest.external_secret_backend,
     kubernetes_manifest.external_secret_mcp_gateway,

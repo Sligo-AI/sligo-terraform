@@ -1026,6 +1026,9 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "LANGFUSE_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-base-url"] } },
         { secretKey = "LANGFUSE_PUBLIC_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-public-key"] } },
         { secretKey = "LANGFUSE_SECRET_KEY", remoteRef = { key = local.gsm_secret_ids["langfuse-secret-key"] } },
+        { secretKey = "LANGFUSE_UI_URL", remoteRef = { key = local.gsm_secret_ids["langfuse-ui-url"] } },
+        { secretKey = "LANGFUSE_INIT_USER_EMAIL", remoteRef = { key = local.gsm_secret_ids["langfuse-init-user-email"] } },
+        { secretKey = "LANGFUSE_INIT_USER_PASSWORD", remoteRef = { key = local.gsm_secret_ids["langfuse-init-user-password"] } },
         { secretKey = "LANGSMITH_API_BASE_URL", remoteRef = { key = local.gsm_secret_ids["langsmith-api-base-url"] } },
         { secretKey = "OBSERVABILITY_PROVIDER", remoteRef = { key = local.gsm_secret_ids["observability-provider"] } }
       ]
@@ -1144,10 +1147,10 @@ resource "kubernetes_secret" "nextjs_secrets" {
     LANGSMITH_PROJECT              = local.eff_strings["langsmith_project"]
     LANGSMITH_ENDPOINT             = local.eff_strings["langsmith_endpoint"]
     LANGSMITH_API_KEY              = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
-    LANGFUSE_BASE_URL              = local.eff_strings["langfuse_base_url"]
-    LANGFUSE_PUBLIC_KEY            = local.eff_strings["langfuse_public_key"]
-    LANGFUSE_SECRET_KEY            = local.eff_strings["langfuse_secret_key"] != "" ? local.eff_strings["langfuse_secret_key"] : ""
-    OBSERVABILITY_PROVIDER         = local.eff_strings["observability_provider"]
+    LANGFUSE_BASE_URL              = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY            = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY            = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER         = local.observability_provider_effective
     BUCKET_NAME_AGENT_AVATARS      = local.s3_bucket_agent_avatars_id
     BUCKET_NAME_FILE_MANAGER       = local.s3_bucket_file_manager_id
     BUCKET_NAME_LOGOS              = local.s3_bucket_logos_id
@@ -1190,7 +1193,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     } : {}, local.eff_strings["bedrock_aws_bearer_token"] != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = local.eff_strings["bedrock_aws_bearer_token"]
     BEDROCK_AWS_REGION       = local.eff_strings["bedrock_aws_region"] != "" ? local.eff_strings["bedrock_aws_region"] : "us-east-1"
-  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, local.temporal_client_env)
+  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, local.temporal_client_env, local.langfuse_ui_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -1224,10 +1227,10 @@ resource "kubernetes_secret" "backend_secrets" {
     LANGSMITH_PROJECT                                                   = local.eff_strings["langsmith_project"]
     LANGSMITH_ENDPOINT                                                  = local.eff_strings["langsmith_endpoint"]
     LANGSMITH_API_KEY                                                   = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
-    LANGFUSE_BASE_URL                                                   = local.eff_strings["langfuse_base_url"]
-    LANGFUSE_PUBLIC_KEY                                                 = local.eff_strings["langfuse_public_key"]
-    LANGFUSE_SECRET_KEY                                                 = local.eff_strings["langfuse_secret_key"] != "" ? local.eff_strings["langfuse_secret_key"] : ""
-    OBSERVABILITY_PROVIDER                                              = local.eff_strings["observability_provider"]
+    LANGFUSE_BASE_URL                                                   = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY                                                 = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY                                                 = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER                                              = local.observability_provider_effective
     BUCKET_NAME_FILE_MANAGER                                            = local.s3_bucket_file_manager_id
     NODE_ENV                                                            = local.eff_strings["node_env"]
     SKIP_ENV_VALIDATION                                                 = "true"
@@ -1742,18 +1745,21 @@ resource "helm_release" "sligo_cloud" {
           } : {}, length(var.subnet_ids) > 0 ? {
           "alb.ingress.kubernetes.io/subnets" = join(",", var.subnet_ids)
         } : {})
-        hosts = [
-          {
-            host = local.eff_strings["domain_name"]
-            paths = [
-              {
-                path     = "/"
-                pathType = "Prefix"
-                backend  = "app"
-              }
-            ]
-          }
-        ]
+        hosts = concat(
+          [
+            {
+              host = local.eff_strings["domain_name"]
+              paths = [
+                {
+                  path     = "/"
+                  pathType = "Prefix"
+                  backend  = "app"
+                }
+              ]
+            }
+          ],
+          local.langfuse_ingress_hosts
+        )
       }
 
       app = {
@@ -1870,6 +1876,8 @@ resource "helm_release" "sligo_cloud" {
     })],
     [yamlencode(local.temporal_helm_values)],
     local.temporal_self_hosted ? [yamlencode(local.temporal_self_hosted_helm_values)] : [],
+    [yamlencode(local.langfuse_helm_values)],
+    local.langfuse_self_hosted ? [yamlencode(local.langfuse_self_hosted_helm_values)] : [],
     var.helm_extra_values != "" ? [var.helm_extra_values] : []
   )
 
@@ -1882,6 +1890,12 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.mcp_gateway_secrets,
     kubernetes_secret.database_secret,
     kubernetes_secret.temporal_db_credentials,
+    kubernetes_secret.langfuse_db_credentials,
+    kubernetes_secret.langfuse_general,
+    kubernetes_secret.langfuse_clickhouse_auth,
+    kubernetes_secret.langfuse_s3_auth,
+    helm_release.cert_manager,
+    helm_release.clickhouse_operator,
     kubernetes_secret.temporal_visibility_db_credentials,
     kubernetes_service_account.s3_access,
     kubernetes_secret.redis_secret,

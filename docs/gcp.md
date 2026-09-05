@@ -110,6 +110,8 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Redis + GCS bucket
 
 When **`enable_temporal = true`**, the module enables Temporal clients and the `sligo-temporal-worker`. With the default **`temporal_self_hosted = true`**, it also creates `temporal` / `temporal_visibility` databases on Cloud SQL and Helm values for the in-cluster Temporal server. Set **`temporal_self_hosted = false`** plus `temporal_frontend_address` and `temporal_api_key` for Temporal Cloud (worker only). See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example).
 
+Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Cloud SQL database, a private GCS bucket, ClickHouse operator/cert-manager (unless skipped), and a `langfuse.<domain>` ingress host. Super Admin shows the UI URL and login. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/gcp-gke/terraform.tfvars.langfuse.example).
+
 ---
 
 ## Manual Setup (Without create-environment)

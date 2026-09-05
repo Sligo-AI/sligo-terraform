@@ -1,0 +1,25 @@
+# Langfuse-enabled deployment (GCP GKE example)
+# Merge these settings into terraform.tfvars / GSM JSON or export as TF_VAR_*.
+
+# --- Self-hosted Langfuse (in-cluster + Super Admin launch page) ---
+enable_langfuse      = true
+langfuse_self_hosted = true
+langfuse_web_enabled = true
+# langfuse_domain_name = "langfuse.app.example.com"  # default langfuse.<domain_name>
+langfuse_db_name     = "langfuse"
+# install_cert_manager         = true
+# install_clickhouse_operator  = true
+# langfuse_clickhouse_replicas = 1   # use 3 in production
+# langfuse_keeper_replicas     = 1   # odd; use 3 in production
+
+# Requires sligo-cloud Helm chart 1.3.0+ (langfuse.selfHosted).
+# Point DNS for langfuse.<domain_name> at the same load balancer as the app.
+# chart_path = "../../path/to/sligo-cloud"  # local chart during development
+
+# --- Langfuse Cloud / existing instance (no in-cluster Langfuse) ---
+# enable_langfuse        = true
+# langfuse_self_hosted   = false
+# observability_provider = "langfuse"
+# langfuse_base_url      = "https://cloud.langfuse.com"
+# langfuse_public_key    = "pk-lf-..."
+# langfuse_secret_key    = "sk-lf-..."
