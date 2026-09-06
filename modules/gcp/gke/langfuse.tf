@@ -86,6 +86,12 @@ locals {
           { name = "LANGFUSE_INIT_USER_NAME", value = "Langfuse Admin" },
           { name = "LANGFUSE_INIT_USER_PASSWORD", value = random_password.langfuse_init_user[0].result }
         ]
+        # GCE Ingress cannot backend a ClusterIP Service (404 "backend NotFound").
+        web = {
+          service = {
+            type = "NodePort"
+          }
+        }
       }
       postgresql = {
         deploy = false
