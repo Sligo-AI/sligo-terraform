@@ -8,8 +8,9 @@ locals {
   langfuse_init_email = (
     var.langfuse_init_user_email != "" ? var.langfuse_init_user_email : "langfuse-admin@${local.eff_strings["domain_name"]}"
   )
-  # try(): this local is always evaluated; the password resource has count=0 when Langfuse is off.
+  # try(): these locals are always evaluated; counted Langfuse resources are empty when it is off.
   langfuse_init_user_password      = try(random_password.langfuse_init_user[0].result, "")
+  langfuse_s3_bucket               = try(aws_s3_bucket.langfuse[0].id, "")
   langfuse_public_key_effective    = local.langfuse_self_hosted ? "lf_pk_${random_id.langfuse_pk[0].hex}" : local.eff_strings["langfuse_public_key"]
   langfuse_secret_key_effective    = local.langfuse_self_hosted ? "lf_sk_${random_id.langfuse_sk[0].hex}" : (local.eff_strings["langfuse_secret_key"] != "" ? local.eff_strings["langfuse_secret_key"] : "")
   langfuse_base_url_effective      = local.langfuse_self_hosted ? "http://langfuse-web:3000" : local.eff_strings["langfuse_base_url"]
@@ -128,7 +129,7 @@ locals {
       s3 = {
         deploy          = false
         storageProvider = "s3"
-        bucket          = aws_s3_bucket.langfuse[0].id
+        bucket          = local.langfuse_s3_bucket
         region          = var.aws_region
         forcePathStyle  = false
         accessKeyId = {
