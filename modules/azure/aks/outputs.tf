@@ -65,3 +65,8 @@ output "storage_account_name" {
   description = "Azure Storage account name"
   value       = local.storage_account_name
 }
+
+output "managed_tls_enabled" {
+  description = "Whether Let's Encrypt Certificates are managed for app-tls-cert (and langfuse-tls-cert when Langfuse UI is enabled)."
+  value       = var.enable_managed_tls
+}

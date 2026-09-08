@@ -1,0 +1,18 @@
+enabled: true
+email: ""
+server: https://acme-v02.api.letsencrypt.org/directory
+privateKeySecretName: letsencrypt-account-key
+ingressClass: nginx
+issuerName: letsencrypt
+
+app:
+  enabled: true
+  name: app-tls
+  secretName: app-tls-cert
+  dnsNames: []
+
+langfuse:
+  enabled: false
+  name: langfuse-tls
+  secretName: langfuse-tls-cert
+  dnsNames: []

@@ -1,0 +1,33 @@
+{{- if .Values.enabled }}
+{{- if .Values.app.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.app.name }}
+spec:
+  secretName: {{ .Values.app.secretName }}
+  issuerRef:
+    name: {{ .Values.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+{{- range .Values.app.dnsNames }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- if .Values.langfuse.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.langfuse.name }}
+spec:
+  secretName: {{ .Values.langfuse.secretName }}
+  issuerRef:
+    name: {{ .Values.issuerName }}
+    kind: ClusterIssuer
+  dnsNames:
+{{- range .Values.langfuse.dnsNames }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

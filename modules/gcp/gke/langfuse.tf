@@ -8,6 +8,8 @@ locals {
   langfuse_init_email = (
     var.langfuse_init_user_email != "" ? var.langfuse_init_user_email : "langfuse-admin@${var.domain_name}"
   )
+  # try(): this local is always evaluated; the password resource has count=0 when Langfuse is off.
+  langfuse_init_user_password      = try(random_password.langfuse_init_user[0].result, "")
   langfuse_public_key_effective    = local.langfuse_self_hosted ? "lf_pk_${random_id.langfuse_pk[0].hex}" : var.langfuse_public_key
   langfuse_secret_key_effective    = local.langfuse_self_hosted ? "lf_sk_${random_id.langfuse_sk[0].hex}" : (var.langfuse_secret_key != "" ? var.langfuse_secret_key : "")
   langfuse_base_url_effective      = local.langfuse_self_hosted ? "http://langfuse-web:3000" : var.langfuse_base_url
@@ -23,7 +25,7 @@ locals {
   langfuse_ui_env = local.langfuse_self_hosted && var.langfuse_web_enabled ? {
     LANGFUSE_UI_URL             = "https://${local.langfuse_domain}"
     LANGFUSE_INIT_USER_EMAIL    = local.langfuse_init_email
-    LANGFUSE_INIT_USER_PASSWORD = random_password.langfuse_init_user[0].result
+    LANGFUSE_INIT_USER_PASSWORD = local.langfuse_init_user_password
   } : {}
 
   langfuse_ingress_hosts = local.langfuse_self_hosted && var.langfuse_web_enabled ? [
@@ -84,7 +86,7 @@ locals {
           { name = "LANGFUSE_INIT_PROJECT_SECRET_KEY", value = local.langfuse_secret_key_effective },
           { name = "LANGFUSE_INIT_USER_EMAIL", value = local.langfuse_init_email },
           { name = "LANGFUSE_INIT_USER_NAME", value = "Langfuse Admin" },
-          { name = "LANGFUSE_INIT_USER_PASSWORD", value = random_password.langfuse_init_user[0].result }
+          { name = "LANGFUSE_INIT_USER_PASSWORD", value = local.langfuse_init_user_password }
         ]
         # GCE Ingress cannot backend a ClusterIP Service (404 "backend NotFound").
         web = {

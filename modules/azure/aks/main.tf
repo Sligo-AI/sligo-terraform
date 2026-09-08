@@ -1020,6 +1020,7 @@ resource "helm_release" "sligo_cloud" {
     kubernetes_secret.langfuse_clickhouse_auth,
     kubernetes_secret.langfuse_azure_auth,
     helm_release.cert_manager,
+    helm_release.letsencrypt_tls,
     helm_release.clickhouse_operator,
     kubernetes_secret.temporal_visibility_db_credentials,
     kubernetes_secret.redis_secret,

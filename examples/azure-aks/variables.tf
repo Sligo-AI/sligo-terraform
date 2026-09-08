@@ -522,3 +522,27 @@ variable "email_inbound_webhook_secret" {
   default   = ""
   sensitive = true
 }
+
+variable "enable_managed_tls" {
+  description = "Let's Encrypt Certificates for app-tls-cert. See module variable enable_managed_tls."
+  type        = bool
+  default     = true
+}
+
+variable "letsencrypt_email" {
+  description = "ACME account email. Empty defaults to letsencrypt@<domain_name>."
+  type        = string
+  default     = ""
+}
+
+variable "letsencrypt_server" {
+  description = "Let's Encrypt ACME directory: production or staging."
+  type        = string
+  default     = "production"
+}
+
+variable "install_cert_manager" {
+  description = "Install cert-manager when managed TLS or Langfuse needs it."
+  type        = bool
+  default     = true
+}

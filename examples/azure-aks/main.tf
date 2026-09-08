@@ -128,4 +128,10 @@ module "sligo_azure" {
   email_from                   = var.email_from
   email_inbound_domain         = var.email_inbound_domain
   email_inbound_webhook_secret = var.email_inbound_webhook_secret
+
+  # Managed TLS (Let's Encrypt → app-tls-cert). Requires DNS at the nginx LoadBalancer.
+  enable_managed_tls   = var.enable_managed_tls
+  letsencrypt_email    = var.letsencrypt_email
+  letsencrypt_server   = var.letsencrypt_server
+  install_cert_manager = var.install_cert_manager
 }

@@ -90,7 +90,9 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
 
 ---
 
-## Step 5: Post-Deploy — DNS
+## Step 5: Post-Deploy — DNS and TLS
+
+By default Azure installs **cert-manager** and a Let's Encrypt `Certificate` that writes the Kubernetes secret `app-tls-cert` (the secret nginx already references). Issuance uses HTTP-01 and needs public DNS.
 
 1. Get the nginx ingress load balancer IP:
    ```bash
@@ -98,6 +100,15 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
    ```
 
 2. Create an A record pointing your domain to the external IP.
+
+3. Wait for the cert (usually 1–2 minutes after DNS propagates):
+   ```bash
+   kubectl get certificate -n sligo
+   kubectl describe certificate app-tls -n sligo
+   kubectl get secret app-tls-cert -n sligo
+   ```
+
+Optional tfvars: `letsencrypt_email` (defaults to `letsencrypt@<domain_name>`), `letsencrypt_server = "staging"` for ACME staging, `enable_managed_tls = false` if you upload `app-tls-cert` yourself.
 
 ---
 
@@ -108,6 +119,7 @@ Deployment typically takes 20–30 minutes (AKS + PostgreSQL + Redis + Storage +
 - **Azure Managed Redis**
 - **Azure Storage Account** with 4 blob containers (file-manager, agent-avatars, logos, rag)
 - **Nginx Ingress Controller** (LoadBalancer service)
+- **cert-manager** and Let's Encrypt `Certificate`s for `app-tls-cert` (disable with `enable_managed_tls = false`)
 - **Sligo Enterprise Helm chart** deployment
 
 Optional **`enable_temporal = true`** enables Temporal clients and the worker. Default **`temporal_self_hosted = true`** also adds Flexible Server Temporal databases and the in-cluster server; set **`temporal_self_hosted = false`** with Cloud address/API key for Temporal Cloud only. See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/azure-aks/terraform.tfvars.temporal.example).

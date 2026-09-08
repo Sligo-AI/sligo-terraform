@@ -765,8 +765,30 @@ variable "langfuse_init_project_id" {
   default     = "sligo"
 }
 
+variable "enable_managed_tls" {
+  description = "When true, install a Let's Encrypt ClusterIssuer and Certificate resources that populate app-tls-cert (and langfuse-tls-cert when Langfuse UI is enabled). Requires DNS for domain_name to point at the nginx LoadBalancer. Set false to bring your own Kubernetes TLS secrets."
+  type        = bool
+  default     = true
+}
+
+variable "letsencrypt_email" {
+  description = "ACME account email for Let's Encrypt. Empty defaults to letsencrypt@<domain_name>."
+  type        = string
+  default     = ""
+}
+
+variable "letsencrypt_server" {
+  description = "Let's Encrypt ACME directory: production or staging."
+  type        = string
+  default     = "production"
+  validation {
+    condition     = contains(["production", "staging"], var.letsencrypt_server)
+    error_message = "letsencrypt_server must be \"production\" or \"staging\"."
+  }
+}
+
 variable "install_cert_manager" {
-  description = "Install cert-manager when Langfuse is self-hosted. Set false if cert-manager already exists."
+  description = "Install cert-manager when managed TLS or self-hosted Langfuse needs it. Set false if cert-manager already exists in the cluster."
   type        = bool
   default     = true
 }
