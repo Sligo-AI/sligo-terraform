@@ -116,7 +116,7 @@ Optional tfvars: `letsencrypt_email` (defaults to `letsencrypt@<domain_name>`), 
 
 - **AKS cluster** with system-assigned identity
 - **Azure Database for PostgreSQL** (Flexible Server)
-- **Azure Managed Redis**
+- **Azure Managed Redis** with RedisJSON (required for `JSON.GET`). Modules cannot be added after create; applying this on an existing cache recreates the Redis database and drops cache data. Use `redis_url` to point at Redis Cloud / Redis Stack instead.
 - **Azure Storage Account** with 4 blob containers (file-manager, agent-avatars, logos, rag)
 - **Nginx Ingress Controller** (LoadBalancer service)
 - **cert-manager** and Let's Encrypt `Certificate`s for `app-tls-cert` (disable with `enable_managed_tls = false`)

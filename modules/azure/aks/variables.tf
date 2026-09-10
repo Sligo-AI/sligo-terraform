@@ -308,7 +308,7 @@ variable "redis_url" {
 
 # Azure Managed Redis (only when redis_url is empty)
 variable "redis_sku_name" {
-  description = "Azure Managed Redis SKU (e.g. Balanced_B0, Balanced_B1, Balanced_B3)"
+  description = "Azure Managed Redis SKU (e.g. Balanced_B0, Balanced_B1, Balanced_B3). The default database always loads RedisJSON (required for JSON.GET)."
   type        = string
   default     = "Balanced_B1"
 }

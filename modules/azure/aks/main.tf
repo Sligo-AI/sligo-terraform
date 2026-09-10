@@ -146,7 +146,9 @@ locals {
 }
 
 # Azure Managed Redis
-# Private endpoint: accessible only from VNet, no public exposure
+# Private endpoint: accessible only from VNet, no public exposure.
+# RedisJSON must be set at create time (Azure cannot load modules later). Changing
+# module on an existing cache recreates the database and drops Redis data.
 resource "azurerm_managed_redis" "redis" {
   count               = local.use_external_redis ? 0 : 1
   name                = "${replace(var.cluster_name, "-", "")}-redis"
@@ -161,6 +163,10 @@ resource "azurerm_managed_redis" "redis" {
     access_keys_authentication_enabled = true
     client_protocol                    = "Encrypted"
     clustering_policy                  = "EnterpriseCluster"
+
+    module {
+      name = "RedisJSON"
+    }
   }
 }
 
