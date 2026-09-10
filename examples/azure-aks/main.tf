@@ -49,6 +49,7 @@ module "sligo_azure" {
   auth_provider          = var.auth_provider
   auth_invitations       = var.auth_invitations
   super_admin_emails     = var.super_admin_emails
+  shq_module_enabled     = var.shq_module_enabled
   auth_session_secret    = var.auth_session_secret
   oidc_issuer            = var.oidc_issuer
   oidc_client_id         = var.oidc_client_id

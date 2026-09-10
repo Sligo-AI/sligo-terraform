@@ -334,6 +334,12 @@ check "proactive_insights_config" {
   }
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 # Redis Configuration
 # When redis_url is set (e.g. Redis Cloud), in-cluster Redis Stack and Memorystore are not used.
 variable "redis_url" {

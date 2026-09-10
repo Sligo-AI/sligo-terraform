@@ -412,6 +412,12 @@ variable "use_existing_s3_bucket" {
   default     = false
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 # SPENDHQ Configuration (for mcp-gateway)
 variable "spendhq_base_url" {
   description = "SPENDHQ base URL"

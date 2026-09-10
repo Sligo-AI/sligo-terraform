@@ -188,6 +188,12 @@ variable "super_admin_emails" {
   default     = ""
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 variable "auth_session_secret" {
   type      = string
   default   = ""

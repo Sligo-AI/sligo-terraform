@@ -281,6 +281,12 @@ variable "super_admin_emails" {
   default     = ""
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 variable "next_public_google_client_id" {
   type    = string
   default = ""

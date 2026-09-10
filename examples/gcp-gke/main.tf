@@ -63,6 +63,7 @@ module "sligo_gcp" {
   saml_default_org_name  = var.saml_default_org_name
   encryption_key         = var.encryption_key
   super_admin_emails     = var.super_admin_emails
+  shq_module_enabled     = var.shq_module_enabled
 
   # Google Cloud Configuration
   next_public_google_client_id     = var.next_public_google_client_id

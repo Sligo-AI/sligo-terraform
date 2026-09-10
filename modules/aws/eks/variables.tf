@@ -313,6 +313,12 @@ check "proactive_insights_config" {
   }
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 variable "db_backup_retention_days" {
   description = "Days of automated Aurora backups to retain (1–35). Default 7. Staging and development can use a shorter window."
   type        = number

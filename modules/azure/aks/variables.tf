@@ -273,6 +273,12 @@ check "proactive_insights_config" {
   }
 }
 
+variable "shq_module_enabled" {
+  description = "Optional. Default false."
+  type        = bool
+  default     = false
+}
+
 variable "postgres_sku_name" {
   description = "Azure PostgreSQL Flexible Server SKU name (e.g. B_Standard_B1ms, B_Standard_B4ms, GP_Standard_D2s_v3). Must be a Flexible Server SKU, not a Compute VM size."
   type        = string

@@ -91,6 +91,8 @@ module "sligo_aws" {
   auth_base_url    = var.auth_base_url
   auth_cookie_name = var.auth_cookie_name
 
+  shq_module_enabled = var.shq_module_enabled
+
   # SPENDHQ Configuration (for mcp-gateway)
   spendhq_base_url      = var.spendhq_base_url
   spendhq_client_id     = var.spendhq_client_id

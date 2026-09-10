@@ -654,7 +654,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     } : {}, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
-  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, local.temporal_client_env, local.langfuse_ui_env)
+  } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}, local.temporal_client_env, local.langfuse_ui_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {
@@ -939,6 +939,7 @@ resource "helm_release" "sligo_cloud" {
           pullPolicy = "Always"
         }
         secretName = local.nextjs_secret_name
+        env        = var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}
         resources = {
           requests = { cpu = "500m", memory = "1Gi" }
           limits   = { cpu = "1000m", memory = "2Gi" }
