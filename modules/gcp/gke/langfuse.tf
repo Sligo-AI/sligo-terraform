@@ -29,7 +29,12 @@ locals {
       var.google_vertex_ai_web_credentials != "" ? var.google_vertex_ai_web_credentials : file(var.sligo_service_account_key_path)
     )
   )
-  langfuse_gcs_sa_email = try(jsondecode(local.langfuse_gcs_credentials_json).client_email, "")
+  langfuse_gcs_sa_email   = try(jsondecode(local.langfuse_gcs_credentials_json).client_email, "")
+  langfuse_gcs_sa_project = try(jsondecode(local.langfuse_gcs_credentials_json).project_id, "")
+  # Do not bind Vertex/GAR keys from another GCP project (org IAM constraints).
+  langfuse_gcs_sa_in_project = (
+    local.langfuse_gcs_sa_project != "" && local.langfuse_gcs_sa_project == var.gcp_project_id
+  )
 
   langfuse_client_env = {
     LANGFUSE_BASE_URL      = local.langfuse_base_url_effective
@@ -244,7 +249,7 @@ resource "google_storage_bucket" "langfuse" {
 }
 
 resource "google_storage_bucket_iam_member" "langfuse" {
-  count  = local.langfuse_self_hosted && local.langfuse_gcs_sa_email != "" ? 1 : 0
+  count  = local.langfuse_self_hosted && local.langfuse_gcs_sa_in_project && local.langfuse_gcs_sa_email != "" ? 1 : 0
   bucket = google_storage_bucket.langfuse[0].name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${local.langfuse_gcs_sa_email}"
