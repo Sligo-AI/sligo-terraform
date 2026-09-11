@@ -15,6 +15,13 @@ locals {
   langfuse_secret_key_effective    = local.langfuse_self_hosted ? "lf_sk_${random_id.langfuse_sk[0].hex}" : (local.eff_strings["langfuse_secret_key"] != "" ? local.eff_strings["langfuse_secret_key"] : "")
   langfuse_base_url_effective      = local.langfuse_self_hosted ? "http://langfuse-web:3000" : local.eff_strings["langfuse_base_url"]
   observability_provider_effective = local.langfuse_self_hosted ? "langfuse" : local.eff_strings["observability_provider"]
+  langfuse_database_url = format(
+    "postgresql://%s:%s@%s:5432/%s",
+    urlencode(local.langfuse_db_user),
+    urlencode(local.langfuse_db_password),
+    local.langfuse_db_host,
+    var.langfuse_db_name
+  )
 
   langfuse_ui_env = local.langfuse_self_hosted && var.langfuse_web_enabled ? {
     LANGFUSE_UI_URL             = "https://${local.langfuse_domain}"
@@ -72,6 +79,9 @@ locals {
           }
         }
         additionalEnv = [
+          { name = "DATABASE_URL", value = local.langfuse_database_url },
+          { name = "DIRECT_URL", value = local.langfuse_database_url },
+          { name = "REDIS_PORT", value = "6379" },
           { name = "LANGFUSE_INIT_ORG_ID", value = var.langfuse_init_org_id },
           { name = "LANGFUSE_INIT_ORG_NAME", value = "Sligo" },
           { name = "LANGFUSE_INIT_PROJECT_ID", value = var.langfuse_init_project_id },
@@ -89,8 +99,10 @@ locals {
         }
       }
       postgresql = {
-        deploy = false
-        host   = local.langfuse_db_host
+        deploy    = false
+        host      = local.langfuse_db_host
+        port      = 5432
+        directUrl = local.langfuse_database_url
         auth = {
           username       = local.langfuse_db_user
           existingSecret = "langfuse-db-credentials"
@@ -101,6 +113,8 @@ locals {
         }
       }
       redis = {
+        deploy = true
+        port   = 6379
         dataStorage = {
           className = var.langfuse_storage_class
           keepPvc   = true
