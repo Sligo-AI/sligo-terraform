@@ -23,19 +23,6 @@ locals {
     local.langfuse_db_host,
     var.langfuse_db_name
   )
-  # Prefer in-project ADC JSON (org IAM constraints often block the GAR pull-key SA).
-  langfuse_gcs_credentials_json = (
-    var.gcp_sa_key != "" ? var.gcp_sa_key : (
-      var.google_vertex_ai_web_credentials != "" ? var.google_vertex_ai_web_credentials : file(var.sligo_service_account_key_path)
-    )
-  )
-  langfuse_gcs_sa_email   = try(jsondecode(local.langfuse_gcs_credentials_json).client_email, "")
-  langfuse_gcs_sa_project = try(jsondecode(local.langfuse_gcs_credentials_json).project_id, "")
-  # Do not bind Vertex/GAR keys from another GCP project (org IAM constraints).
-  langfuse_gcs_sa_in_project = (
-    local.langfuse_gcs_sa_project != "" && local.langfuse_gcs_sa_project == var.gcp_project_id
-  )
-
   langfuse_client_env = {
     LANGFUSE_BASE_URL      = local.langfuse_base_url_effective
     LANGFUSE_PUBLIC_KEY    = local.langfuse_public_key_effective
@@ -118,6 +105,10 @@ locals {
             type = "NodePort"
           }
         }
+        serviceAccount = {
+          create = false
+          name   = "langfuse-gcs"
+        }
       }
       postgresql = {
         deploy = false
@@ -164,14 +155,6 @@ locals {
         deploy          = false
         storageProvider = "gcs"
         bucket          = local.langfuse_gcs_bucket
-        gcs = {
-          credentials = {
-            secretKeyRef = {
-              name = "langfuse-gcs-credentials"
-              key  = "credentials.json"
-            }
-          }
-        }
       }
     }
   }
@@ -248,13 +231,6 @@ resource "google_storage_bucket" "langfuse" {
   depends_on = [google_project_service.required_apis]
 }
 
-resource "google_storage_bucket_iam_member" "langfuse" {
-  count  = local.langfuse_self_hosted && local.langfuse_gcs_sa_in_project && local.langfuse_gcs_sa_email != "" ? 1 : 0
-  bucket = google_storage_bucket.langfuse[0].name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${local.langfuse_gcs_sa_email}"
-}
-
 resource "google_storage_bucket_iam_member" "langfuse_gcs_access" {
   count  = local.langfuse_self_hosted ? 1 : 0
   bucket = google_storage_bucket.langfuse[0].name
@@ -307,17 +283,23 @@ resource "kubernetes_secret" "langfuse_clickhouse_auth" {
   }
 }
 
-resource "kubernetes_secret" "langfuse_gcs_credentials" {
+resource "kubernetes_service_account" "langfuse_gcs" {
   count = local.langfuse_self_hosted ? 1 : 0
 
   metadata {
-    name      = "langfuse-gcs-credentials"
+    name      = "langfuse-gcs"
     namespace = kubernetes_namespace.sligo.metadata[0].name
+    annotations = {
+      "iam.gke.io/gcp-service-account" = google_service_account.gcs_access.email
+    }
   }
+}
 
-  data = {
-    "credentials.json" = local.langfuse_gcs_credentials_json
-  }
+resource "google_service_account_iam_member" "langfuse_gcs_workload_identity" {
+  count              = local.langfuse_self_hosted ? 1 : 0
+  service_account_id = google_service_account.gcs_access.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.gcp_project_id}.svc.id.goog[${kubernetes_namespace.sligo.metadata[0].name}/${kubernetes_service_account.langfuse_gcs[0].metadata[0].name}]"
 }
 
 resource "helm_release" "cert_manager" {
