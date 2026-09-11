@@ -99,10 +99,9 @@ locals {
         }
       }
       postgresql = {
-        deploy    = false
-        host      = local.langfuse_db_host
-        port      = 5432
-        directUrl = local.langfuse_database_url
+        deploy = false
+        host   = local.langfuse_db_host
+        port   = 5432
         auth = {
           username       = local.langfuse_db_user
           existingSecret = "langfuse-db-credentials"

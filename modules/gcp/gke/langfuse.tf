@@ -23,6 +23,13 @@ locals {
     local.langfuse_db_host,
     var.langfuse_db_name
   )
+  # Prefer in-project ADC JSON (org IAM constraints often block the GAR pull-key SA).
+  langfuse_gcs_credentials_json = (
+    var.gcp_sa_key != "" ? var.gcp_sa_key : (
+      var.google_vertex_ai_web_credentials != "" ? var.google_vertex_ai_web_credentials : file(var.sligo_service_account_key_path)
+    )
+  )
+  langfuse_gcs_sa_email = try(jsondecode(local.langfuse_gcs_credentials_json).client_email, "")
 
   langfuse_client_env = {
     LANGFUSE_BASE_URL      = local.langfuse_base_url_effective
@@ -108,10 +115,9 @@ locals {
         }
       }
       postgresql = {
-        deploy    = false
-        host      = local.langfuse_db_host
-        port      = 5432
-        directUrl = local.langfuse_database_url
+        deploy = false
+        host   = local.langfuse_db_host
+        port   = 5432
         auth = {
           username       = local.langfuse_db_user
           existingSecret = "langfuse-db-credentials"
@@ -238,10 +244,17 @@ resource "google_storage_bucket" "langfuse" {
 }
 
 resource "google_storage_bucket_iam_member" "langfuse" {
+  count  = local.langfuse_self_hosted && local.langfuse_gcs_sa_email != "" ? 1 : 0
+  bucket = google_storage_bucket.langfuse[0].name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${local.langfuse_gcs_sa_email}"
+}
+
+resource "google_storage_bucket_iam_member" "langfuse_gcs_access" {
   count  = local.langfuse_self_hosted ? 1 : 0
   bucket = google_storage_bucket.langfuse[0].name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${jsondecode(file(var.sligo_service_account_key_path)).client_email}"
+  member = "serviceAccount:${google_service_account.gcs_access.email}"
 }
 
 resource "kubernetes_secret" "langfuse_db_credentials" {
@@ -298,7 +311,7 @@ resource "kubernetes_secret" "langfuse_gcs_credentials" {
   }
 
   data = {
-    "credentials.json" = file(var.sligo_service_account_key_path)
+    "credentials.json" = local.langfuse_gcs_credentials_json
   }
 }
 
