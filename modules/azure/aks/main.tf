@@ -645,13 +645,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SINGLESTORE_USER                                        = var.singlestore_user
     SINGLESTORE_PASSWORD                                    = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
     SINGLESTORE_DATABASE                                    = var.singlestore_database
-    } : {}, var.azure_aisearch_endpoint != "" ? {
-    RAG_VECTOR_STORE          = "azureaisearch"
-    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
-    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
-    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
-    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-    } : {}, var.bedrock_aws_bearer_token != "" ? {
+    } : {}, local.azure_aisearch_env, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
   } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}, local.temporal_client_env, local.langfuse_ui_env)
@@ -697,14 +691,9 @@ resource "kubernetes_secret" "backend_secrets" {
     AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
     AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
     GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
-    AZURE_OPENAI_API_KEY                               = var.azure_openai_api_key
-    AZURE_OPENAI_API_INSTANCE_NAME                     = var.azure_openai_api_instance_name
-    AZURE_OPENAI_API_VERSION                           = var.azure_openai_api_version
-    AZURE_OPENAI_BASE_PATH                             = var.azure_openai_base_path
-    } : {}, var.bedrock_aws_bearer_token != "" ? {
-    BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
-    BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
+    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN                           = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION                                 = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
     } : {}, var.enable_proactive_insights ? {
     # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
     # SingleStore connection, not just the MCP gateway.
@@ -757,12 +746,9 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     SINGLESTORE_USER                                   = var.singlestore_user
     SINGLESTORE_PASSWORD                               = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
     SINGLESTORE_DATABASE                               = var.singlestore_database
-    } : {}, var.azure_aisearch_endpoint != "" ? {
-    RAG_VECTOR_STORE          = "azureaisearch"
-    AZURE_AISEARCH_ENDPOINT   = var.azure_aisearch_endpoint
-    AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
-    AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
-    AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
+    } : {}, local.azure_aisearch_env, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
   } : {}, local.temporal_client_env, local.postmark_env)
 }
 

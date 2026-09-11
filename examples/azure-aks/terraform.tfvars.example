@@ -55,6 +55,13 @@ encryption_key      = "CHANGE_ME"
 # email_inbound_domain = "example.com"
 # email_inbound_webhook_secret = "CHANGE_ME"
 
+# Azure AI + AI Search (on by default). Creates the accounts only — they deploy chat/embedding models.
+# create_azure_ai           = true
+# create_azure_aisearch     = true
+# azure_ai_location         = ""     # empty = AKS location
+# azure_ai_public_network_access = false  # VNet private endpoints (like Redis)
+# Opt out / BYO: create_azure_ai = false and set azure_openai_api_key (same for Search).
+
 # TLS: Let's Encrypt HTTP-01 via cert-manager (creates Kubernetes secret app-tls-cert).
 # DNS for domain_name must point at the nginx LoadBalancer EXTERNAL-IP or issuance stays pending.
 # enable_managed_tls = true

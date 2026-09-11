@@ -450,7 +450,31 @@ variable "spendhq_ss_port" {
   default = "3306"
 }
 
-# Azure AI Search (optional; nextjs + mcp-gateway)
+variable "create_azure_ai" {
+  description = "Create an Azure OpenAI-compatible account and inject AZURE_OPENAI_* (no model deployments). Default true; set false to BYO."
+  type        = bool
+  default     = true
+}
+
+variable "create_azure_aisearch" {
+  description = "Create Azure AI Search and inject AZURE_AISEARCH_* (app creates the index). Default true; set false to BYO."
+  type        = bool
+  default     = true
+}
+
+variable "azure_ai_location" {
+  description = "Region for Azure AI / AI Search. Empty uses the AKS location."
+  type        = string
+  default     = ""
+}
+
+variable "azure_ai_public_network_access" {
+  description = "Public internet access to created Azure AI / AI Search. Default false uses private endpoints (VNet only)."
+  type        = bool
+  default     = false
+}
+
+# Azure AI Search (optional BYO; nextjs + mcp-gateway)
 variable "azure_aisearch_endpoint" {
   type    = string
   default = ""

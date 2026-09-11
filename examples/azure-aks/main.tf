@@ -112,7 +112,11 @@ module "sligo_azure" {
   spendhq_ss_password   = var.spendhq_ss_password
   spendhq_ss_port       = var.spendhq_ss_port
 
-  # Azure AI Search (optional) + Azure OpenAI (optional)
+  # Azure AI Search + Azure AI (create in-module, or pass BYO credentials)
+  create_azure_ai                = var.create_azure_ai
+  create_azure_aisearch          = var.create_azure_aisearch
+  azure_ai_location              = var.azure_ai_location
+  azure_ai_public_network_access = var.azure_ai_public_network_access
   azure_aisearch_endpoint        = var.azure_aisearch_endpoint
   azure_aisearch_key             = var.azure_aisearch_key
   azure_aisearch_index           = var.azure_aisearch_index

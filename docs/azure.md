@@ -126,6 +126,8 @@ Optional **`enable_temporal = true`** enables Temporal clients and the worker. D
 
 Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Flexible Server database, a private blob container, ClickHouse operator/cert-manager (unless skipped), and a `langfuse.<domain>` ingress host. TLS uses a **separate** nginx secret (`langfuse-tls-cert`), not a second name on `app-tls-cert`. Point DNS for `langfuse.<domain>` at the same nginx LoadBalancer as the app. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/azure-aks/terraform.tfvars.langfuse.example).
 
+By default **`create_azure_ai`** and **`create_azure_aisearch`** create an Azure OpenAI-compatible account and Azure AI Search in the AKS region (no model deployments, no Search index). Access is **private** (VNet endpoints, same pattern as Redis). Keys are injected into app secrets. Set both to `false` and pass BYO `azure_openai_*` / `azure_aisearch_*` if they already have the services. See [secrets.md](../secrets/#optional-azure-ai-search-azure-openai-and-amazon-bedrock).
+
 ---
 
 ## Manual Setup (Without create-environment)

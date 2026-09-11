@@ -186,8 +186,8 @@ For all app env vars (e.g. `STORAGE_PROVIDER`, vector stores, OIDC/SAML, Azure A
 
 Terraform supports:
 
-- **Azure AI Search** (nextjs + mcp-gateway): set `azure_aisearch_endpoint` (and optionally `azure_aisearch_key`, `azure_aisearch_index`, `azure_aisearch_query_type`) to inject `RAG_VECTOR_STORE=azureaisearch` and the `AZURE_AISEARCH_*` keys.
-- **Azure OpenAI** (backend): set `azure_openai_api_key` (and optionally `azure_openai_api_instance_name`, `azure_openai_api_version`, `azure_openai_base_path`) to inject the `AZURE_OPENAI_*` keys.
+- **Azure AI Search** (nextjs + mcp-gateway): AKS creates the service by default (`create_azure_aisearch`). To BYO, set `create_azure_aisearch = false` and pass `azure_aisearch_endpoint` / `azure_aisearch_key`. Index `vectorsearch` is created by the app on first embed. Optional `azure_aisearch_index`, `azure_aisearch_query_type` (default `similarity_hybrid`).
+- **Azure AI** (OpenAI-compatible account; nextjs + backend + mcp-gateway): AKS creates the account by default (`create_azure_ai`). To BYO, set `create_azure_ai = false` and pass `azure_openai_api_key` (+ instance/version/base path). Terraform does not deploy chat or embedding models — they do that in Azure. Default `azure_ai_public_network_access = false` (private endpoints). Empty `azure_ai_location` uses the AKS region.
 - **Amazon Bedrock** (nextjs + backend; Temporal worker reuses backend-secrets): set `bedrock_aws_bearer_token` (long-term Bedrock API key) and optionally `bedrock_aws_region` (defaults to `us-east-1` when injected) to inject `BEDROCK_AWS_BEARER_TOKEN` and `BEDROCK_AWS_REGION`. Do not reuse S3 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
 
 ### Gaps vs current Helm secrets doc

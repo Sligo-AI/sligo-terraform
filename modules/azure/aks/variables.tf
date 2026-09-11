@@ -828,7 +828,43 @@ variable "onedrive_client_secret" {
   default   = ""
   sensitive = true
 }
-# Azure AI Search (optional; for nextjs + mcp-gateway when using RAG vector store azureaisearch)
+variable "create_azure_ai" {
+  description = "Create an Azure OpenAI-compatible Cognitive account (kind=OpenAI) and inject AZURE_OPENAI_* into app/backend/mcp secrets. Does not deploy models. Set false and pass azure_openai_api_key to BYO."
+  type        = bool
+  default     = true
+}
+
+variable "create_azure_aisearch" {
+  description = "Create Azure AI Search and inject AZURE_AISEARCH_* (and RAG_VECTOR_STORE=azureaisearch). Does not create the index. Set false and pass azure_aisearch_endpoint to BYO."
+  type        = bool
+  default     = true
+}
+
+variable "azure_ai_location" {
+  description = "Region for Azure AI and AI Search. Empty uses the AKS resource-group location. Models are regional — pick a region that offers the deployments they will create."
+  type        = string
+  default     = ""
+}
+
+variable "azure_ai_sku_name" {
+  description = "SKU for the Azure OpenAI Cognitive account (typically S0)."
+  type        = string
+  default     = "S0"
+}
+
+variable "azure_aisearch_sku" {
+  description = "Azure AI Search SKU. Not Free (vector/hybrid). basic supports the app default similarity_hybrid and semantic_hybrid (semantic ranker is Basic+)."
+  type        = string
+  default     = "basic"
+}
+
+variable "azure_ai_public_network_access" {
+  description = "When false (default), Azure AI and AI Search are VNet-only via private endpoints on the PE subnet (same pattern as Redis). Set true only if you need public internet access to those endpoints."
+  type        = bool
+  default     = false
+}
+
+# Azure AI Search (optional BYO; for nextjs + mcp-gateway when using RAG vector store azureaisearch)
 variable "azure_aisearch_endpoint" {
   type    = string
   default = ""
