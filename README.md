@@ -78,7 +78,7 @@ All three cluster modules support Postmark. Set `postmark_server_token` and `ema
 | Upgrading | [upgrading](https://sligo-ai.github.io/sligo-terraform/upgrading/) |
 | Troubleshooting | [troubleshooting](https://sligo-ai.github.io/sligo-terraform/troubleshooting/) |
 
-Module variables include **`storage_provider`** (`gcs` or `s3`; optional, app defaults to `gcs`). For all app env vars (e.g. `STORAGE_PROVIDER`), see the secrets doc and the Helm chart [SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md).
+Module variables include **`storage_provider`** (`gcs`, `s3`, or `azure`). Each cloud defaults to its object store: GKE `gcs`, EKS `s3`, AKS `azure`. Override only to use a different backend. For all app env vars (e.g. `STORAGE_PROVIDER`), see the secrets doc and the Helm chart [SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md).
 
 ---
 

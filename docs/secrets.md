@@ -180,7 +180,7 @@ Proactive Insights runs on the Temporal worker, so it requires `enable_temporal 
 | `super_admin_emails` | Optional comma-separated super-admin allowlist |
 | `auth_invitations` | Optional invitations provider (e.g. `workos`) |
 
-For all app env vars (e.g. `STORAGE_PROVIDER`, vector stores, OIDC/SAML, Azure AI Search), see the [Helm SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md). Module variables include **`storage_provider`** (`gcs` or `s3`); the app defaults to `gcs` when unset.
+For all app env vars (e.g. `STORAGE_PROVIDER`, vector stores, OIDC/SAML, Azure AI Search), see the [Helm SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md). Module variables include **`storage_provider`** (`gcs`, `s3`, or `azure`). Each cloud defaults to its object store and always injects `STORAGE_PROVIDER`: GKE `gcs`, EKS `s3`, AKS `azure` (plus `AZURE_STORAGE_ACCOUNT_NAME` / `AZURE_STORAGE_ACCOUNT_KEY` and container names as `BUCKET_NAME_*`).
 
 ### Optional: Azure AI Search, Azure OpenAI, and Amazon Bedrock
 

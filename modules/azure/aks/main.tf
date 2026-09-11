@@ -219,6 +219,14 @@ resource "azurerm_storage_account" "main" {
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
 
+  # Browser SAS uploads (knowledge base / file-manager) hit Blob from the user's
+  # laptop. CORS is already scoped to frontend_url; containers stay private so
+  # unsigned access is denied. VNet-only firewall would block those SAS PUTs.
+  public_network_access_enabled   = true
+  https_traffic_only_enabled      = true
+  shared_access_key_enabled       = true
+  allow_nested_items_to_be_public = false
+
   blob_properties {
     cors_rule {
       allowed_origins    = [var.frontend_url]
@@ -229,14 +237,14 @@ resource "azurerm_storage_account" "main" {
     }
   }
 
-  # Restrict to VNet: deny public access, allow only AKS subnet
   network_rules {
-    default_action             = "Deny"
-    bypass                     = ["AzureServices"]
-    virtual_network_subnet_ids = [azurerm_subnet.aks.id]
+    default_action = "Allow"
+    bypass         = ["AzureServices"]
   }
 }
 
+# Private containers on a single account. App folders (e.g. "Azure Blob Storage")
+# are labels, not separate backends.
 resource "azurerm_storage_container" "file_manager" {
   count                 = var.use_existing_storage_account ? 0 : 1
   name                  = "file-manager"
@@ -620,18 +628,19 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SKIP_ENV_VALIDATION            = "true"
     AZURE_STORAGE_ACCOUNT_NAME     = local.storage_account_name
     AZURE_STORAGE_ACCOUNT_KEY      = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    STORAGE_PROVIDER               = var.storage_provider != "" ? var.storage_provider : "azure"
     GOOGLE_PROJECTID               = var.google_project_id != "" ? var.google_project_id : ""
     SUPER_ADMIN_EMAILS             = var.super_admin_emails != "" ? var.super_admin_emails : ""
     # Same JSON as GAR pull — GCS client for MDI default seed (mdi-defaults bucket).
-    MDI_GCP_KEY                                        = file(var.sligo_service_account_key_path)
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
-    AUTH_SESSION_SECRET                                = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
-    OIDC_ISSUER                                        = var.oidc_issuer
-    OIDC_CLIENT_ID                                     = var.oidc_client_id
-    OIDC_CLIENT_SECRET                                 = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
-    OIDC_SCOPES                                        = var.oidc_scopes
-    OIDC_DEFAULT_ORG_ID                                = var.oidc_default_org_id
-    OIDC_DEFAULT_ORG_NAME                              = var.oidc_default_org_name
+    MDI_GCP_KEY                            = file(var.sligo_service_account_key_path)
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
+    AUTH_SESSION_SECRET                    = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
+    OIDC_ISSUER                            = var.oidc_issuer
+    OIDC_CLIENT_ID                         = var.oidc_client_id
+    OIDC_CLIENT_SECRET                     = var.oidc_client_secret != "" ? var.oidc_client_secret : "placeholder"
+    OIDC_SCOPES                            = var.oidc_scopes
+    OIDC_DEFAULT_ORG_ID                    = var.oidc_default_org_id
+    OIDC_DEFAULT_ORG_NAME                  = var.oidc_default_org_name
     } : {}, var.auth_provider == "saml" ? {
     AUTH_SESSION_SECRET                                     = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     SAML_ENTRYPOINT                                         = var.saml_entrypoint
@@ -663,37 +672,38 @@ resource "kubernetes_secret" "backend_secrets" {
     API_KEY         = var.api_key
     BACKEND_API_KEY = var.backend_api_key
     # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
-    BACKEND_URL                                        = "http://sligo-backend:3001"
-    PORT                                               = "3001"
-    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    REDIS_URL                                          = local.redis_url
-    MCP_GATEWAY_URL                                    = "http://mcp-gateway:3002"
-    SQL_CONNECTION_STRING_DECRYPTION_IV                = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
-    SQL_CONNECTION_STRING_DECRYPTION_KEY               = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
-    ENCRYPTION_KEY                                     = var.encryption_key != "" ? var.encryption_key : "placeholder"
-    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    OPENAI_BASE_URL                                    = var.openai_base_url
-    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    TOGETHER_AI_API_KEY                                = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
-    VERBOSE_LOGGING                                    = tostring(var.verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS                         = tostring(var.backend_request_timeout_ms)
-    LANGSMITH_TRACING                                  = var.langsmith_tracing
-    LANGSMITH_PROJECT                                  = var.langsmith_project
-    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
-    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    LANGFUSE_BASE_URL                                  = local.langfuse_base_url_effective
-    LANGFUSE_PUBLIC_KEY                                = local.langfuse_public_key_effective
-    LANGFUSE_SECRET_KEY                                = local.langfuse_secret_key_effective
-    OBSERVABILITY_PROVIDER                             = local.observability_provider_effective
-    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
-    NODE_ENV                                           = "production"
-    SKIP_ENV_VALIDATION                                = "true"
-    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
-    BEDROCK_AWS_BEARER_TOKEN                           = var.bedrock_aws_bearer_token
-    BEDROCK_AWS_REGION                                 = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
+    BACKEND_URL                            = "http://sligo-backend:3001"
+    PORT                                   = "3001"
+    DATABASE_URL                           = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
+    REDIS_URL                              = local.redis_url
+    MCP_GATEWAY_URL                        = "http://mcp-gateway:3002"
+    SQL_CONNECTION_STRING_DECRYPTION_IV    = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
+    SQL_CONNECTION_STRING_DECRYPTION_KEY   = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
+    ENCRYPTION_KEY                         = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    OPENAI_BASE_URL                        = var.openai_base_url
+    ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    TOGETHER_AI_API_KEY                    = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
+    VERBOSE_LOGGING                        = tostring(var.verbose_logging)
+    BACKEND_REQUEST_TIMEOUT_MS             = tostring(var.backend_request_timeout_ms)
+    LANGSMITH_TRACING                      = var.langsmith_tracing
+    LANGSMITH_PROJECT                      = var.langsmith_project
+    LANGSMITH_ENDPOINT                     = var.langsmith_endpoint
+    LANGSMITH_API_KEY                      = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    LANGFUSE_BASE_URL                      = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY                    = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY                    = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER                 = local.observability_provider_effective
+    BUCKET_NAME_FILE_MANAGER               = local.blob_file_manager
+    NODE_ENV                               = "production"
+    SKIP_ENV_VALIDATION                    = "true"
+    AZURE_STORAGE_ACCOUNT_NAME             = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY              = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    STORAGE_PROVIDER                       = var.storage_provider != "" ? var.storage_provider : "azure"
+    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN               = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION                     = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
     } : {}, var.enable_proactive_insights ? {
     # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
     # SingleStore connection, not just the MCP gateway.
@@ -712,40 +722,41 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     namespace = kubernetes_namespace.sligo.metadata[0].name
   }
   data = merge({
-    SECRET                                             = var.gateway_secret
-    PORT                                               = "3002"
-    FRONTEND_URL                                       = var.frontend_url
-    DATABASE_URL                                       = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
-    BUCKET_NAME_FILE_MANAGER                           = local.blob_file_manager
-    REDIS_URL                                          = local.redis_url
-    REDIS_URL_STRUCTURED_OUTPUTS                       = local.redis_url
-    PINECONE_API_KEY                                   = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
-    PINECONE_INDEX                                     = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
-    OPENAI_API_KEY                                     = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
-    PERPLEXITY_API_KEY                                 = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
-    TAVILY_API_KEY                                     = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
-    SPENDHQ_BASE_URL                                   = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
-    SPENDHQ_CLIENT_ID                                  = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
-    SPENDHQ_CLIENT_SECRET                              = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
-    SPENDHQ_TOKEN_URL                                  = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
-    SPENDHQ_SS_HOST                                    = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
-    SPENDHQ_SS_USERNAME                                = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
-    SPENDHQ_SS_PASSWORD                                = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
-    SPENDHQ_SS_PORT                                    = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-    ANTHROPIC_API_KEY                                  = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
-    LANGSMITH_TRACING                                  = var.langsmith_tracing
-    LANGSMITH_PROJECT                                  = var.langsmith_project
-    LANGSMITH_ENDPOINT                                 = var.langsmith_endpoint
-    LANGSMITH_API_KEY                                  = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
-    AZURE_STORAGE_ACCOUNT_NAME                         = local.storage_account_name
-    AZURE_STORAGE_ACCOUNT_KEY                          = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
-    GOOGLE_PROJECTID                                   = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.storage_provider != "" ? { STORAGE_PROVIDER = var.storage_provider } : {}, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
-    SINGLESTORE_HOST                                   = var.singlestore_host
-    SINGLESTORE_PORT                                   = var.singlestore_port
-    SINGLESTORE_USER                                   = var.singlestore_user
-    SINGLESTORE_PASSWORD                               = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
-    SINGLESTORE_DATABASE                               = var.singlestore_database
+    SECRET                                 = var.gateway_secret
+    PORT                                   = "3002"
+    FRONTEND_URL                           = var.frontend_url
+    DATABASE_URL                           = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
+    BUCKET_NAME_FILE_MANAGER               = local.blob_file_manager
+    REDIS_URL                              = local.redis_url
+    REDIS_URL_STRUCTURED_OUTPUTS           = local.redis_url
+    PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
+    PINECONE_INDEX                         = var.pinecone_index != "" ? var.pinecone_index : "placeholder"
+    OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    PERPLEXITY_API_KEY                     = var.perplexity_api_key != "" ? var.perplexity_api_key : "placeholder"
+    TAVILY_API_KEY                         = var.tavily_api_key != "" ? var.tavily_api_key : "placeholder"
+    SPENDHQ_BASE_URL                       = var.spendhq_base_url != "" ? var.spendhq_base_url : "placeholder"
+    SPENDHQ_CLIENT_ID                      = var.spendhq_client_id != "" ? var.spendhq_client_id : "placeholder"
+    SPENDHQ_CLIENT_SECRET                  = var.spendhq_client_secret != "" ? var.spendhq_client_secret : "placeholder"
+    SPENDHQ_TOKEN_URL                      = var.spendhq_token_url != "" ? var.spendhq_token_url : "placeholder"
+    SPENDHQ_SS_HOST                        = var.spendhq_ss_host != "" ? var.spendhq_ss_host : "placeholder"
+    SPENDHQ_SS_USERNAME                    = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
+    SPENDHQ_SS_PASSWORD                    = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
+    SPENDHQ_SS_PORT                        = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
+    ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
+    LANGSMITH_TRACING                      = var.langsmith_tracing
+    LANGSMITH_PROJECT                      = var.langsmith_project
+    LANGSMITH_ENDPOINT                     = var.langsmith_endpoint
+    LANGSMITH_API_KEY                      = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
+    AZURE_STORAGE_ACCOUNT_NAME             = local.storage_account_name
+    AZURE_STORAGE_ACCOUNT_KEY              = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+    STORAGE_PROVIDER                       = var.storage_provider != "" ? var.storage_provider : "azure"
+    GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    SINGLESTORE_HOST                       = var.singlestore_host
+    SINGLESTORE_PORT                       = var.singlestore_port
+    SINGLESTORE_USER                       = var.singlestore_user
+    SINGLESTORE_PASSWORD                   = var.singlestore_password != "" ? var.singlestore_password : "placeholder"
+    SINGLESTORE_DATABASE                   = var.singlestore_database
     } : {}, local.azure_aisearch_env, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"

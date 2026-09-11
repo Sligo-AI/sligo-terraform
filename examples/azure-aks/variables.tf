@@ -525,9 +525,9 @@ variable "bedrock_aws_bearer_token" {
 }
 
 variable "storage_provider" {
-  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  description = "Storage provider: azure, gcs, or s3. AKS defaults to azure so the app uses the provisioned Blob account. Override only for GCS or S3."
   type        = string
-  default     = ""
+  default     = "azure"
 }
 
 # Postmark email (optional)

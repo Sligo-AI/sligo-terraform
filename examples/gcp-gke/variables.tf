@@ -309,9 +309,9 @@ variable "google_project_id" {
 }
 
 variable "storage_provider" {
-  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  description = "Storage provider: gcs, s3, or azure. GKE defaults to gcs so the app uses the provisioned buckets. Override only for S3 or Azure Blob."
   type        = string
-  default     = ""
+  default     = "gcs"
 }
 
 variable "gcp_sa_key" {

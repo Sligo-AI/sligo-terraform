@@ -608,9 +608,9 @@ variable "tavily_api_key" {
   sensitive = true
 }
 variable "storage_provider" {
-  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  description = "Storage provider: azure, gcs, or s3. AKS defaults to azure so the app uses the provisioned Blob account (AZURE_STORAGE_ACCOUNT_* + container names as BUCKET_NAME_*). Override only if the app should use GCS or S3 instead."
   type        = string
-  default     = ""
+  default     = "azure"
 }
 variable "gcp_sa_key" {
   type      = string

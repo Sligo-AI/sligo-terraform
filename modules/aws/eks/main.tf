@@ -1208,18 +1208,19 @@ resource "kubernetes_secret" "nextjs_secrets" {
     SKIP_ENV_VALIDATION            = "true"
     SUPER_ADMIN_EMAILS             = local.eff_strings["super_admin_emails"] != "" ? local.eff_strings["super_admin_emails"] : ""
     # AWS S3 for EKS (we know these; optional keys omitted when using IRSA)
-    AWS_REGION   = var.aws_region
-    AWS_ENDPOINT = "https://s3.amazonaws.com"
+    AWS_REGION       = var.aws_region
+    AWS_ENDPOINT     = "https://s3.amazonaws.com"
+    STORAGE_PROVIDER = local.eff_strings["storage_provider"] != "" ? local.eff_strings["storage_provider"] : "s3"
     # Same JSON as GAR pull / ESO GSM credentials — GCS client for MDI default seed (mdi-defaults bucket).
-    MDI_GCP_KEY                                                         = file(var.sligo_service_account_key_path)
-    }, local.eff_strings["storage_provider"] != "" ? { STORAGE_PROVIDER = local.eff_strings["storage_provider"] } : {}, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, local.eff_strings["rag_sa_key"] != "" ? { RAG_SA_KEY = local.eff_strings["rag_sa_key"] } : {}, local.eff_strings["google_project_id"] != "" ? { GOOGLE_PROJECTID = local.eff_strings["google_project_id"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["auth_provider"] == "oidc" ? {
-    AUTH_SESSION_SECRET                                                 = local.eff_strings["auth_session_secret"] != "" ? local.eff_strings["auth_session_secret"] : "placeholder"
-    OIDC_ISSUER                                                         = local.eff_strings["oidc_issuer"]
-    OIDC_CLIENT_ID                                                      = local.eff_strings["oidc_client_id"]
-    OIDC_CLIENT_SECRET                                                  = local.eff_strings["oidc_client_secret"] != "" ? local.eff_strings["oidc_client_secret"] : "placeholder"
-    OIDC_SCOPES                                                         = local.eff_strings["oidc_scopes"]
-    OIDC_DEFAULT_ORG_ID                                                 = local.eff_strings["oidc_default_org_id"]
-    OIDC_DEFAULT_ORG_NAME                                               = local.eff_strings["oidc_default_org_name"]
+    MDI_GCP_KEY                                             = file(var.sligo_service_account_key_path)
+    }, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, local.eff_strings["rag_sa_key"] != "" ? { RAG_SA_KEY = local.eff_strings["rag_sa_key"] } : {}, local.eff_strings["google_project_id"] != "" ? { GOOGLE_PROJECTID = local.eff_strings["google_project_id"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["auth_provider"] == "oidc" ? {
+    AUTH_SESSION_SECRET                                     = local.eff_strings["auth_session_secret"] != "" ? local.eff_strings["auth_session_secret"] : "placeholder"
+    OIDC_ISSUER                                             = local.eff_strings["oidc_issuer"]
+    OIDC_CLIENT_ID                                          = local.eff_strings["oidc_client_id"]
+    OIDC_CLIENT_SECRET                                      = local.eff_strings["oidc_client_secret"] != "" ? local.eff_strings["oidc_client_secret"] : "placeholder"
+    OIDC_SCOPES                                             = local.eff_strings["oidc_scopes"]
+    OIDC_DEFAULT_ORG_ID                                     = local.eff_strings["oidc_default_org_id"]
+    OIDC_DEFAULT_ORG_NAME                                   = local.eff_strings["oidc_default_org_name"]
     } : {}, local.eff_strings["auth_provider"] == "saml" ? {
     AUTH_SESSION_SECRET                                                      = local.eff_strings["auth_session_secret"] != "" ? local.eff_strings["auth_session_secret"] : "placeholder"
     SAML_ENTRYPOINT                                                          = local.eff_strings["saml_entrypoint"]
@@ -1258,39 +1259,40 @@ resource "kubernetes_secret" "backend_secrets" {
     API_KEY         = local.eff_strings["api_key"]
     BACKEND_API_KEY = local.eff_strings["backend_api_key"]
     # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
-    BACKEND_URL                                                         = "http://sligo-backend:3001"
-    PORT                                                                = "3001"
-    DATABASE_URL                                                        = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
-    REDIS_URL                                                           = local.redis_url
-    MCP_GATEWAY_URL                                                     = "http://mcp-gateway:3002"
-    SQL_CONNECTION_STRING_DECRYPTION_IV                                 = local.eff_strings["sql_connection_string_decryption_iv"] != "" ? local.eff_strings["sql_connection_string_decryption_iv"] : "placeholder"
-    SQL_CONNECTION_STRING_DECRYPTION_KEY                                = local.eff_strings["sql_connection_string_decryption_key"] != "" ? local.eff_strings["sql_connection_string_decryption_key"] : "placeholder"
-    ENCRYPTION_KEY                                                      = local.eff_strings["encryption_key"] != "" ? local.eff_strings["encryption_key"] : "placeholder"
-    OPENAI_API_KEY                                                      = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
-    OPENAI_BASE_URL                                                     = local.eff_strings["openai_base_url"]
-    ANTHROPIC_API_KEY                                                   = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"
-    TOGETHER_AI_API_KEY                                                 = local.eff_strings["together_ai_api_key"] != "" ? local.eff_strings["together_ai_api_key"] : "placeholder"
-    VERBOSE_LOGGING                                                     = tostring(local.effective_verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS                                          = tostring(local.effective_backend_request_timeout_ms)
-    LANGSMITH_TRACING                                                   = local.eff_strings["langsmith_tracing"]
-    LANGSMITH_PROJECT                                                   = local.eff_strings["langsmith_project"]
-    LANGSMITH_ENDPOINT                                                  = local.eff_strings["langsmith_endpoint"]
-    LANGSMITH_API_KEY                                                   = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
-    LANGFUSE_BASE_URL                                                   = local.langfuse_base_url_effective
-    LANGFUSE_PUBLIC_KEY                                                 = local.langfuse_public_key_effective
-    LANGFUSE_SECRET_KEY                                                 = local.langfuse_secret_key_effective
-    OBSERVABILITY_PROVIDER                                              = local.observability_provider_effective
-    BUCKET_NAME_FILE_MANAGER                                            = local.s3_bucket_file_manager_id
-    NODE_ENV                                                            = local.eff_strings["node_env"]
-    SKIP_ENV_VALIDATION                                                 = "true"
-    AWS_REGION                                                          = var.aws_region
-    AWS_ENDPOINT                                                        = "https://s3.amazonaws.com"
-    GOOGLE_PROJECTID                                                    = local.eff_strings["google_project_id"] != "" ? local.eff_strings["google_project_id"] : ""
-    }, local.eff_strings["storage_provider"] != "" ? { STORAGE_PROVIDER = local.eff_strings["storage_provider"] } : {}, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, (local.eff_strings["gcp_sa_key"] != "" || local.eff_strings["google_vertex_ai_web_credentials"] != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = local.eff_strings["gcp_sa_key"] != "" ? local.eff_strings["gcp_sa_key"] : local.eff_strings["google_vertex_ai_web_credentials"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["azure_openai_api_key"] != "" ? {
-    AZURE_OPENAI_API_KEY                                                = local.eff_strings["azure_openai_api_key"]
-    AZURE_OPENAI_API_INSTANCE_NAME                                      = local.eff_strings["azure_openai_api_instance_name"]
-    AZURE_OPENAI_API_VERSION                                            = local.eff_strings["azure_openai_api_version"]
-    AZURE_OPENAI_BASE_PATH                                              = local.eff_strings["azure_openai_base_path"]
+    BACKEND_URL                                             = "http://sligo-backend:3001"
+    PORT                                                    = "3001"
+    DATABASE_URL                                            = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
+    REDIS_URL                                               = local.redis_url
+    MCP_GATEWAY_URL                                         = "http://mcp-gateway:3002"
+    SQL_CONNECTION_STRING_DECRYPTION_IV                     = local.eff_strings["sql_connection_string_decryption_iv"] != "" ? local.eff_strings["sql_connection_string_decryption_iv"] : "placeholder"
+    SQL_CONNECTION_STRING_DECRYPTION_KEY                    = local.eff_strings["sql_connection_string_decryption_key"] != "" ? local.eff_strings["sql_connection_string_decryption_key"] : "placeholder"
+    ENCRYPTION_KEY                                          = local.eff_strings["encryption_key"] != "" ? local.eff_strings["encryption_key"] : "placeholder"
+    OPENAI_API_KEY                                          = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
+    OPENAI_BASE_URL                                         = local.eff_strings["openai_base_url"]
+    ANTHROPIC_API_KEY                                       = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"
+    TOGETHER_AI_API_KEY                                     = local.eff_strings["together_ai_api_key"] != "" ? local.eff_strings["together_ai_api_key"] : "placeholder"
+    VERBOSE_LOGGING                                         = tostring(local.effective_verbose_logging)
+    BACKEND_REQUEST_TIMEOUT_MS                              = tostring(local.effective_backend_request_timeout_ms)
+    LANGSMITH_TRACING                                       = local.eff_strings["langsmith_tracing"]
+    LANGSMITH_PROJECT                                       = local.eff_strings["langsmith_project"]
+    LANGSMITH_ENDPOINT                                      = local.eff_strings["langsmith_endpoint"]
+    LANGSMITH_API_KEY                                       = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
+    LANGFUSE_BASE_URL                                       = local.langfuse_base_url_effective
+    LANGFUSE_PUBLIC_KEY                                     = local.langfuse_public_key_effective
+    LANGFUSE_SECRET_KEY                                     = local.langfuse_secret_key_effective
+    OBSERVABILITY_PROVIDER                                  = local.observability_provider_effective
+    BUCKET_NAME_FILE_MANAGER                                = local.s3_bucket_file_manager_id
+    NODE_ENV                                                = local.eff_strings["node_env"]
+    SKIP_ENV_VALIDATION                                     = "true"
+    AWS_REGION                                              = var.aws_region
+    AWS_ENDPOINT                                            = "https://s3.amazonaws.com"
+    STORAGE_PROVIDER                                        = local.eff_strings["storage_provider"] != "" ? local.eff_strings["storage_provider"] : "s3"
+    GOOGLE_PROJECTID                                        = local.eff_strings["google_project_id"] != "" ? local.eff_strings["google_project_id"] : ""
+    }, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, (local.eff_strings["gcp_sa_key"] != "" || local.eff_strings["google_vertex_ai_web_credentials"] != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = local.eff_strings["gcp_sa_key"] != "" ? local.eff_strings["gcp_sa_key"] : local.eff_strings["google_vertex_ai_web_credentials"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["azure_openai_api_key"] != "" ? {
+    AZURE_OPENAI_API_KEY                                    = local.eff_strings["azure_openai_api_key"]
+    AZURE_OPENAI_API_INSTANCE_NAME                          = local.eff_strings["azure_openai_api_instance_name"]
+    AZURE_OPENAI_API_VERSION                                = local.eff_strings["azure_openai_api_version"]
+    AZURE_OPENAI_BASE_PATH                                  = local.eff_strings["azure_openai_base_path"]
     } : {}, local.eff_strings["bedrock_aws_bearer_token"] != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = local.eff_strings["bedrock_aws_bearer_token"]
     BEDROCK_AWS_REGION       = local.eff_strings["bedrock_aws_region"] != "" ? local.eff_strings["bedrock_aws_region"] : "us-east-1"
@@ -1328,39 +1330,40 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
   }
 
   data = merge({
-    SECRET                                                              = local.eff_strings["gateway_secret"]
-    PORT                                                                = "3002"
-    FRONTEND_URL                                                        = local.eff_strings["frontend_url"]
-    DATABASE_URL                                                        = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
-    BUCKET_NAME_FILE_MANAGER                                            = local.s3_bucket_file_manager_id
-    REDIS_URL                                                           = local.redis_url
-    REDIS_URL_STRUCTURED_OUTPUTS                                        = local.redis_url
-    PINECONE_API_KEY                                                    = local.eff_strings["pinecone_api_key"] != "" ? local.eff_strings["pinecone_api_key"] : "placeholder"
-    PINECONE_INDEX                                                      = local.eff_strings["pinecone_index"] != "" ? local.eff_strings["pinecone_index"] : "placeholder"
-    OPENAI_API_KEY                                                      = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
-    PERPLEXITY_API_KEY                                                  = local.eff_strings["perplexity_api_key"] != "" ? local.eff_strings["perplexity_api_key"] : "placeholder"
-    TAVILY_API_KEY                                                      = local.eff_strings["tavily_api_key"] != "" ? local.eff_strings["tavily_api_key"] : "placeholder"
-    SPENDHQ_BASE_URL                                                    = local.eff_strings["spendhq_base_url"] != "" ? local.eff_strings["spendhq_base_url"] : "placeholder"
-    SPENDHQ_CLIENT_ID                                                   = local.eff_strings["spendhq_client_id"] != "" ? local.eff_strings["spendhq_client_id"] : "placeholder"
-    SPENDHQ_CLIENT_SECRET                                               = local.eff_strings["spendhq_client_secret"] != "" ? local.eff_strings["spendhq_client_secret"] : "placeholder"
-    SPENDHQ_TOKEN_URL                                                   = local.eff_strings["spendhq_token_url"] != "" ? local.eff_strings["spendhq_token_url"] : "placeholder"
-    SPENDHQ_SS_HOST                                                     = local.eff_strings["spendhq_ss_host"] != "" ? local.eff_strings["spendhq_ss_host"] : "placeholder"
-    SPENDHQ_SS_USERNAME                                                 = local.eff_strings["spendhq_ss_username"] != "" ? local.eff_strings["spendhq_ss_username"] : "placeholder"
-    SPENDHQ_SS_PASSWORD                                                 = local.eff_strings["spendhq_ss_password"] != "" ? local.eff_strings["spendhq_ss_password"] : "placeholder"
-    SPENDHQ_SS_PORT                                                     = local.eff_strings["spendhq_ss_port"] != "" ? local.eff_strings["spendhq_ss_port"] : "3306"
-    ANTHROPIC_API_KEY                                                   = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"
-    LANGSMITH_TRACING                                                   = local.eff_strings["langsmith_tracing"]
-    LANGSMITH_PROJECT                                                   = local.eff_strings["langsmith_project"]
-    LANGSMITH_ENDPOINT                                                  = local.eff_strings["langsmith_endpoint"]
-    LANGSMITH_API_KEY                                                   = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
-    AWS_REGION                                                          = var.aws_region
-    AWS_ENDPOINT                                                        = "https://s3.amazonaws.com"
-    }, local.eff_strings["storage_provider"] != "" ? { STORAGE_PROVIDER = local.eff_strings["storage_provider"] } : {}, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, (local.eff_strings["gcp_sa_key"] != "" || local.eff_strings["google_vertex_ai_web_credentials"] != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = local.eff_strings["gcp_sa_key"] != "" ? local.eff_strings["gcp_sa_key"] : local.eff_strings["google_vertex_ai_web_credentials"] } : {}, local.eff_strings["google_project_id"] != "" ? { GOOGLE_PROJECTID = local.eff_strings["google_project_id"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["rag_vector_store"] != "" ? { RAG_VECTOR_STORE = local.eff_strings["rag_vector_store"] } : {}, local.eff_strings["pinecone_environment"] != "" ? { PINECONE_ENVIRONMENT = local.eff_strings["pinecone_environment"] } : {}, local.eff_strings["singlestore_host"] != "" ? {
-    SINGLESTORE_HOST                                                    = local.eff_strings["singlestore_host"]
-    SINGLESTORE_PORT                                                    = local.eff_strings["singlestore_port"]
-    SINGLESTORE_USER                                                    = local.eff_strings["singlestore_user"]
-    SINGLESTORE_PASSWORD                                                = local.eff_strings["singlestore_password"] != "" ? local.eff_strings["singlestore_password"] : "placeholder"
-    SINGLESTORE_DATABASE                                                = local.eff_strings["singlestore_database"]
+    SECRET                                                  = local.eff_strings["gateway_secret"]
+    PORT                                                    = "3002"
+    FRONTEND_URL                                            = local.eff_strings["frontend_url"]
+    DATABASE_URL                                            = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
+    BUCKET_NAME_FILE_MANAGER                                = local.s3_bucket_file_manager_id
+    REDIS_URL                                               = local.redis_url
+    REDIS_URL_STRUCTURED_OUTPUTS                            = local.redis_url
+    PINECONE_API_KEY                                        = local.eff_strings["pinecone_api_key"] != "" ? local.eff_strings["pinecone_api_key"] : "placeholder"
+    PINECONE_INDEX                                          = local.eff_strings["pinecone_index"] != "" ? local.eff_strings["pinecone_index"] : "placeholder"
+    OPENAI_API_KEY                                          = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
+    PERPLEXITY_API_KEY                                      = local.eff_strings["perplexity_api_key"] != "" ? local.eff_strings["perplexity_api_key"] : "placeholder"
+    TAVILY_API_KEY                                          = local.eff_strings["tavily_api_key"] != "" ? local.eff_strings["tavily_api_key"] : "placeholder"
+    SPENDHQ_BASE_URL                                        = local.eff_strings["spendhq_base_url"] != "" ? local.eff_strings["spendhq_base_url"] : "placeholder"
+    SPENDHQ_CLIENT_ID                                       = local.eff_strings["spendhq_client_id"] != "" ? local.eff_strings["spendhq_client_id"] : "placeholder"
+    SPENDHQ_CLIENT_SECRET                                   = local.eff_strings["spendhq_client_secret"] != "" ? local.eff_strings["spendhq_client_secret"] : "placeholder"
+    SPENDHQ_TOKEN_URL                                       = local.eff_strings["spendhq_token_url"] != "" ? local.eff_strings["spendhq_token_url"] : "placeholder"
+    SPENDHQ_SS_HOST                                         = local.eff_strings["spendhq_ss_host"] != "" ? local.eff_strings["spendhq_ss_host"] : "placeholder"
+    SPENDHQ_SS_USERNAME                                     = local.eff_strings["spendhq_ss_username"] != "" ? local.eff_strings["spendhq_ss_username"] : "placeholder"
+    SPENDHQ_SS_PASSWORD                                     = local.eff_strings["spendhq_ss_password"] != "" ? local.eff_strings["spendhq_ss_password"] : "placeholder"
+    SPENDHQ_SS_PORT                                         = local.eff_strings["spendhq_ss_port"] != "" ? local.eff_strings["spendhq_ss_port"] : "3306"
+    ANTHROPIC_API_KEY                                       = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"
+    LANGSMITH_TRACING                                       = local.eff_strings["langsmith_tracing"]
+    LANGSMITH_PROJECT                                       = local.eff_strings["langsmith_project"]
+    LANGSMITH_ENDPOINT                                      = local.eff_strings["langsmith_endpoint"]
+    LANGSMITH_API_KEY                                       = local.eff_strings["langsmith_api_key"] != "" ? local.eff_strings["langsmith_api_key"] : ""
+    AWS_REGION                                              = var.aws_region
+    AWS_ENDPOINT                                            = "https://s3.amazonaws.com"
+    STORAGE_PROVIDER                                        = local.eff_strings["storage_provider"] != "" ? local.eff_strings["storage_provider"] : "s3"
+    }, local.eff_strings["gcp_sa_key"] != "" ? { GCP_SA_KEY = local.eff_strings["gcp_sa_key"] } : {}, (local.eff_strings["gcp_sa_key"] != "" || local.eff_strings["google_vertex_ai_web_credentials"] != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = local.eff_strings["gcp_sa_key"] != "" ? local.eff_strings["gcp_sa_key"] : local.eff_strings["google_vertex_ai_web_credentials"] } : {}, local.eff_strings["google_project_id"] != "" ? { GOOGLE_PROJECTID = local.eff_strings["google_project_id"] } : {}, local.eff_strings["aws_access_key_id"] != "" && local.eff_strings["aws_secret_access_key"] != "" ? { AWS_ACCESS_KEY_ID = local.eff_strings["aws_access_key_id"], AWS_SECRET_ACCESS_KEY = local.eff_strings["aws_secret_access_key"] } : {}, local.eff_strings["rag_vector_store"] != "" ? { RAG_VECTOR_STORE = local.eff_strings["rag_vector_store"] } : {}, local.eff_strings["pinecone_environment"] != "" ? { PINECONE_ENVIRONMENT = local.eff_strings["pinecone_environment"] } : {}, local.eff_strings["singlestore_host"] != "" ? {
+    SINGLESTORE_HOST                                        = local.eff_strings["singlestore_host"]
+    SINGLESTORE_PORT                                        = local.eff_strings["singlestore_port"]
+    SINGLESTORE_USER                                        = local.eff_strings["singlestore_user"]
+    SINGLESTORE_PASSWORD                                    = local.eff_strings["singlestore_password"] != "" ? local.eff_strings["singlestore_password"] : "placeholder"
+    SINGLESTORE_DATABASE                                    = local.eff_strings["singlestore_database"]
     } : {}, local.eff_strings["azure_aisearch_endpoint"] != "" ? {
     RAG_VECTOR_STORE          = "azureaisearch"
     AZURE_AISEARCH_ENDPOINT   = local.eff_strings["azure_aisearch_endpoint"]

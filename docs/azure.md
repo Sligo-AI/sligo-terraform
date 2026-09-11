@@ -117,7 +117,7 @@ Optional tfvars: `letsencrypt_email` (defaults to `letsencrypt@<domain_name>`), 
 - **AKS cluster** with system-assigned identity
 - **Azure Database for PostgreSQL** (Flexible Server)
 - **Azure Managed Redis** with RedisJSON (required for `JSON.GET`). Modules cannot be added after create; applying this on an existing cache recreates the Redis database and drops cache data. Use `redis_url` to point at Redis Cloud / Redis Stack instead.
-- **Azure Storage Account** with 4 blob containers (file-manager, agent-avatars, logos, rag)
+- **Azure Storage Account** with 4 private blob containers (`file-manager`, `agent-avatars`, `logos`, `rag`). AKS injects `STORAGE_PROVIDER=azure` so the app signs Blob SAS URLs (not GCS). Account firewall allows public HTTPS so browser SAS uploads work; CORS is limited to `frontend_url`. Containers stay private (SAS still required). Override `storage_provider` only if using GCS or S3 instead of this account.
 - **Nginx Ingress Controller** (LoadBalancer service)
 - **cert-manager** and Let's Encrypt `Certificate`s for `app-tls-cert` (disable with `enable_managed_tls = false`)
 - **Sligo Enterprise Helm chart** deployment

@@ -55,6 +55,10 @@ encryption_key      = "CHANGE_ME"
 # email_inbound_domain = "example.com"
 # email_inbound_webhook_secret = "CHANGE_ME"
 
+# Object storage: AKS defaults to STORAGE_PROVIDER=azure (provisioned Blob account).
+# Override only if the app should use GCS or S3 instead.
+# storage_provider = "azure"
+
 # Azure AI + AI Search (on by default). Creates the accounts only — they deploy chat/embedding models.
 # create_azure_ai           = true
 # create_azure_aisearch     = true

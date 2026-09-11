@@ -44,6 +44,9 @@ redis_node_type = "cache.t3.micro"
 # s3_bucket_versioning = true
 # s3_bucket_encryption = true
 # use_existing_s3_bucket = false  # Set to true if bucket already exists in AWS
+# Object storage: EKS defaults to STORAGE_PROVIDER=s3 (provisioned buckets).
+# Override only if the app should use GCS or Azure Blob instead.
+# storage_provider = "s3"
 
 # Optional: ACM Certificate
 # If not provided, a certificate will be automatically created

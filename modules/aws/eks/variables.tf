@@ -1078,11 +1078,11 @@ variable "subnet_ids" {
   default     = []
 }
 
-# Storage provider: gcs or s3 (optional; app defaults to gcs when unset)
+# Storage provider: EKS defaults to s3 for the provisioned buckets
 variable "storage_provider" {
-  description = "Storage provider: gcs or s3 (optional; app defaults to gcs when unset)"
+  description = "Storage provider: gcs, s3, or azure. EKS defaults to s3 so the app uses the provisioned buckets. Override only if the app should use GCS or Azure Blob instead."
   type        = string
-  default     = ""
+  default     = "s3"
 }
 
 # AWS S3 credentials (optional – omit when using IRSA / pod IAM roles)

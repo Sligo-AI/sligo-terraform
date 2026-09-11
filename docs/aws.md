@@ -106,7 +106,7 @@ Deployment typically takes 15–25 minutes (EKS + Aurora + ElastiCache + S3).
 - **EKS cluster** with managed node group
 - **Aurora Serverless v2** (PostgreSQL)
 - **ElastiCache Redis**
-- **4 S3 buckets** (file-manager, agent-avatars, logos, rag)
+- **4 S3 buckets** (file-manager, agent-avatars, logos, rag). EKS injects `STORAGE_PROVIDER=s3` so the app uses those buckets. Override `storage_provider` only if using GCS or Azure Blob instead.
 - **AWS Load Balancer Controller** + ALB ingress
 - **Sligo Enterprise Helm chart** deployment
 
