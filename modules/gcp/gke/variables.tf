@@ -857,7 +857,7 @@ variable "together_ai_api_key" {
 }
 
 variable "google_vertex_ai_web_credentials" {
-  description = "Google Vertex AI Web Credentials (JSON string)"
+  description = "Google Vertex AI service-account JSON. When set, GKE injects GOOGLE_VERTEX_AI_WEB_CREDENTIALS into nextjs-secrets, backend-secrets, and mcp-gateway-secrets so Super Admin can select Google Agent Platform."
   type        = string
   default     = ""
   sensitive   = true

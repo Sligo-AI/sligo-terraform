@@ -105,6 +105,7 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Redis + GCS bucket
 - **Cloud SQL** (PostgreSQL)
 - **Redis** — in-cluster Redis Stack by default, or Memorystore for Redis Cluster when `use_memorystore_redis_cluster = true` (JSON-compatible; app needs a cluster-aware client). `redis_url` skips both and points at Redis Cloud or similar.
 - **4 GCS buckets** (file-manager, agent-avatars, logos, rag). GKE injects `STORAGE_PROVIDER=gcs` so the app uses those buckets. Override `storage_provider` only if using S3 or Azure Blob instead.
+- **Google Agent Platform** (optional): set `google_vertex_ai_web_credentials` to inject `GOOGLE_VERTEX_AI_WEB_CREDENTIALS` into the app, backend, and MCP gateway secrets. Super Admin can then select Google as the platform LLM host.
 - **GCE Ingress** (HTTP(S) load balancer)
 - **Sligo Enterprise Helm chart** deployment
 

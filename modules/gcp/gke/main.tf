@@ -496,7 +496,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     STORAGE_PROVIDER               = var.storage_provider != "" ? var.storage_provider : "gcs"
     # Same JSON as GAR pull — GCS client for MDI default seed (mdi-defaults bucket).
     MDI_GCP_KEY                            = file(var.sligo_service_account_key_path)
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, local.rag_sa_key != "" ? { RAG_SA_KEY = local.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, local.rag_sa_key != "" ? { RAG_SA_KEY = local.rag_sa_key } : {}, var.auth_provider == "oidc" ? {
     AUTH_SESSION_SECRET                    = var.auth_session_secret != "" ? var.auth_session_secret : "placeholder"
     OIDC_ISSUER                            = var.oidc_issuer
     OIDC_CLIENT_ID                         = var.oidc_client_id

@@ -94,7 +94,7 @@ variable "db_password" {
 
 | Terraform creates | Used by Helm as | Main Terraform variables |
 |-------------------|-----------------|---------------------------|
-| `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `backend_api_key`, `encryption_key`, `auth_provider`, `auth_invitations`, `super_admin_emails`, WorkOS/OIDC/SAML vars, `openai_api_key`, bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. |
+| `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `backend_api_key`, `encryption_key`, `auth_provider`, `auth_invitations`, `super_admin_emails`, WorkOS/OIDC/SAML vars, `openai_api_key`, bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. On **GKE**, also `google_vertex_ai_web_credentials` (`GOOGLE_VERTEX_AI_WEB_CREDENTIALS`) so Super Admin can select Google Agent Platform. |
 | `backend-secrets` | backend API | `jwt_secret`, `api_key`, `backend_api_key`, `encryption_key`, `openai_api_key`, `anthropic_api_key`, `google_vertex_ai_web_credentials`, LangSmith (`langsmith_*`), storage, etc. |
 | `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, LangSmith, storage, Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
@@ -189,6 +189,7 @@ Terraform supports:
 - **Azure AI Search** (nextjs + mcp-gateway): AKS creates the service by default (`create_azure_aisearch`). To BYO, set `create_azure_aisearch = false` and pass `azure_aisearch_endpoint` / `azure_aisearch_key`. Index `vectorsearch` is created by the app on first embed. Optional `azure_aisearch_index`, `azure_aisearch_query_type` (default `similarity_hybrid`).
 - **Azure AI** (OpenAI-compatible account; nextjs + backend + mcp-gateway): AKS creates the account by default (`create_azure_ai`). To BYO, set `create_azure_ai = false` and pass `azure_openai_api_key` (+ instance/version/base path). Terraform does not deploy chat or embedding models — they do that in Azure. Default `azure_ai_public_network_access = false` (private endpoints). Empty `azure_ai_location` uses the AKS region.
 - **Amazon Bedrock** (nextjs + backend; Temporal worker reuses backend-secrets): set `bedrock_aws_bearer_token` (long-term Bedrock API key) and optionally `bedrock_aws_region` (defaults to `us-east-1` when injected) to inject `BEDROCK_AWS_BEARER_TOKEN` and `BEDROCK_AWS_REGION`. Do not reuse S3 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+- **Google Agent Platform** (GKE nextjs + backend + mcp-gateway; Temporal worker reuses backend-secrets): set `google_vertex_ai_web_credentials` to a Vertex-capable service-account JSON. Super Admin host readiness reads this from the app secret; Workload Identity / ADC is not enough.
 
 ### Gaps vs current Helm secrets doc
 
