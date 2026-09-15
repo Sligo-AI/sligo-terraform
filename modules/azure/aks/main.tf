@@ -894,7 +894,9 @@ resource "helm_release" "sligo_cloud" {
         enabled   = true
         className = "nginx"
         annotations = {
-          "kubernetes.io/ingress.class" = "nginx"
+          "kubernetes.io/ingress.class"                    = "nginx"
+          "nginx.ingress.kubernetes.io/proxy-body-size"    = "110m"
+          "nginx.ingress.kubernetes.io/proxy-read-timeout" = "300"
         }
         # One TLS secret per hostname (same isolation as GKE ManagedCertificate / ACM).
         # Provision app-tls-cert and langfuse-tls-cert (cert-manager Certificates or uploaded PEMs).
