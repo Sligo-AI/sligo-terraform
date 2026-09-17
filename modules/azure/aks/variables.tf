@@ -628,9 +628,10 @@ variable "rag_sa_key" {
   sensitive = true
 }
 variable "anthropic_api_key" {
-  type      = string
-  default   = ""
-  sensitive = true
+  description = "Anthropic API key. Injected as ANTHROPIC_API_KEY into nextjs-secrets, backend-secrets, and mcp-gateway-secrets (platform Claude agents run in Next.js)."
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 variable "together_ai_api_key" {
   type      = string

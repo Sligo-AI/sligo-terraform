@@ -476,6 +476,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     GOOGLE_CLIENT_SECRET           = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
     ONEDRIVE_CLIENT_SECRET         = var.onedrive_client_secret != "" ? var.onedrive_client_secret : "placeholder"
     OPENAI_API_KEY                 = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
+    ANTHROPIC_API_KEY              = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
     ENCRYPTION_KEY                 = var.encryption_key != "" ? var.encryption_key : "placeholder"
     LANGSMITH_TRACING              = var.langsmith_tracing
     LANGSMITH_PROJECT              = var.langsmith_project
@@ -997,6 +998,7 @@ resource "kubernetes_manifest" "external_secret_nextjs" {
         { secretKey = "BACKEND_API_KEY", remoteRef = { key = local.gsm_secret_ids["backend-api-key"] } },
         { secretKey = "WORKOS_API_KEY", remoteRef = { key = local.gsm_secret_ids["workos-api-key"] } },
         { secretKey = "OPENAI_API_KEY", remoteRef = { key = local.gsm_secret_ids["openai-api-key"] } },
+        { secretKey = "ANTHROPIC_API_KEY", remoteRef = { key = local.gsm_secret_ids["anthropic-api-key"] } },
         { secretKey = "ENCRYPTION_KEY", remoteRef = { key = local.gsm_secret_ids["encryption-key"] } },
         { secretKey = "MDI_GCP_KEY", remoteRef = { key = local.gsm_secret_ids["mdi-gcp-key"] } },
         { secretKey = "LANGSMITH_API_KEY", remoteRef = { key = local.gsm_secret_ids["langsmith-api-key"] } },
