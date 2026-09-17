@@ -882,7 +882,7 @@ variable "azure_aisearch_query_type" {
   type    = string
   default = "similarity_hybrid"
 }
-# Azure OpenAI (optional; for backend)
+# Azure OpenAI (optional BYO; nextjs + backend + mcp-gateway)
 variable "azure_openai_api_key" {
   type      = string
   default   = ""

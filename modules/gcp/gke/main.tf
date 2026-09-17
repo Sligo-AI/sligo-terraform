@@ -523,7 +523,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-    } : {}, var.bedrock_aws_bearer_token != "" ? {
+    } : {}, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
     BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
   } : {}, var.langsmith_api_base_url != "" ? { LANGSMITH_API_BASE_URL = var.langsmith_api_base_url } : {}, var.auth_base_url != "" ? { AUTH_BASE_URL = var.auth_base_url } : {}, var.auth_cookie_name != "" ? { AUTH_COOKIE_NAME = var.auth_cookie_name } : {}, var.auth_cookie_same_site != "" ? { AUTH_COOKIE_SAME_SITE = var.auth_cookie_same_site } : {}, var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}, local.temporal_client_env, local.langfuse_ui_env, local.redis_cluster_env)
@@ -570,14 +570,9 @@ resource "kubernetes_secret" "backend_secrets" {
     SKIP_ENV_VALIDATION                    = "true"
     GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
     STORAGE_PROVIDER                       = var.storage_provider != "" ? var.storage_provider : "gcs"
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.azure_openai_api_key != "" ? {
-    AZURE_OPENAI_API_KEY                   = var.azure_openai_api_key
-    AZURE_OPENAI_API_INSTANCE_NAME         = var.azure_openai_api_instance_name
-    AZURE_OPENAI_API_VERSION               = var.azure_openai_api_version
-    AZURE_OPENAI_BASE_PATH                 = var.azure_openai_base_path
-    } : {}, var.bedrock_aws_bearer_token != "" ? {
-    BEDROCK_AWS_BEARER_TOKEN = var.bedrock_aws_bearer_token
-    BEDROCK_AWS_REGION       = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, local.azure_openai_env, var.bedrock_aws_bearer_token != "" ? {
+    BEDROCK_AWS_BEARER_TOKEN               = var.bedrock_aws_bearer_token
+    BEDROCK_AWS_REGION                     = var.bedrock_aws_region != "" ? var.bedrock_aws_region : "us-east-1"
     } : {}, var.enable_proactive_insights ? {
     # Proactive Insights: the Temporal worker (backend-secrets) needs the SpendHQ
     # SingleStore connection, not just the MCP gateway.
@@ -637,7 +632,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_AISEARCH_KEY        = var.azure_aisearch_key != "" ? var.azure_aisearch_key : "placeholder"
     AZURE_AISEARCH_INDEX      = var.azure_aisearch_index
     AZURE_AISEARCH_QUERY_TYPE = var.azure_aisearch_query_type
-  } : {}, local.temporal_client_env, local.postmark_env, local.redis_cluster_env)
+  } : {}, local.azure_openai_env, local.temporal_client_env, local.postmark_env, local.redis_cluster_env)
 }
 
 # GCP credentials as a file for ADC (Application Default Credentials) - same flow as SHQ/AWS.
@@ -885,6 +880,13 @@ locals {
   default_secret_prefix   = "sligo-${replace(var.cluster_name, "_", "-")}-"
   gsm_secret_prefix       = var.secret_name_prefix != "" ? var.secret_name_prefix : local.default_secret_prefix
   gsm_secret_ids          = { for name in var.secret_names : name => "${local.gsm_secret_prefix}${name}" }
+
+  azure_openai_env = var.azure_openai_api_key != "" ? {
+    AZURE_OPENAI_API_KEY           = var.azure_openai_api_key
+    AZURE_OPENAI_API_INSTANCE_NAME = var.azure_openai_api_instance_name
+    AZURE_OPENAI_API_VERSION       = var.azure_openai_api_version
+    AZURE_OPENAI_BASE_PATH         = var.azure_openai_base_path
+  } : {}
 }
 
 data "google_project" "secret_manager" {
