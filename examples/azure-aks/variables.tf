@@ -353,9 +353,9 @@ variable "pinecone_environment" {
 }
 
 variable "rag_vector_store" {
-  description = "Default RAG vector store: pinecone, singlestore, or omit to default to Pinecone"
+  description = "Default RAG vector store (RAG_VECTOR_STORE). AKS defaults to Azure AI Search. Set pinecone or singlestore to override."
   type        = string
-  default     = ""
+  default     = "azureaisearch"
 }
 
 variable "singlestore_host" {

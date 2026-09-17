@@ -80,7 +80,7 @@ All three cluster modules support Postmark. Set `postmark_server_token` and `ema
 
 Module variables include **`storage_provider`** (`gcs`, `s3`, or `azure`). Each cloud defaults to its object store: GKE `gcs`, EKS `s3`, AKS `azure`. Override only to use a different backend. For all app env vars (e.g. `STORAGE_PROVIDER`), see the secrets doc and the Helm chart [SECRETS.md](https://github.com/Sligo-AI/sligo-helm-charts/blob/main/docs/SECRETS.md).
 
-`AZURE_OPENAI_*` is injected into **nextjs, backend, and mcp-gateway** secrets on all three clouds when set (AKS also creates the account by default). `AZURE_AISEARCH_*` is injected into **nextjs and mcp-gateway**.
+`AZURE_OPENAI_*` is injected into **nextjs, backend, and mcp-gateway** secrets on all three clouds when set (AKS also creates the account by default). `AZURE_AISEARCH_*` is injected into **nextjs and mcp-gateway**. AKS defaults `RAG_VECTOR_STORE` to **`azureaisearch`**.
 
 ---
 
