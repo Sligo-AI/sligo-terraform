@@ -432,9 +432,10 @@ locals {
 
 # ACM Certificate for HTTPS (optional - create if acm_certificate_arn is not provided)
 resource "aws_acm_certificate" "sligo" {
-  count             = local.create_managed_acm_certificate ? 1 : 0
-  domain_name       = local.eff_strings["domain_name"]
-  validation_method = "DNS"
+  count                     = local.create_managed_acm_certificate ? 1 : 0
+  domain_name               = local.eff_strings["domain_name"]
+  subject_alternative_names = ["api.${local.eff_strings["domain_name"]}"]
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -1812,6 +1813,17 @@ resource "helm_release" "sligo_cloud" {
                   pathType = "Prefix"
                   backend  = "app"
                 }
+              ]
+            },
+            {
+              host = "api.${local.eff_strings["domain_name"]}"
+              # Public API only.
+              paths = [
+                { path = "/health", pathType = "Prefix", backend = "backend" },
+                { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
+                { path = "/api/v1", pathType = "Prefix", backend = "backend" },
+                { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
+                { path = "/webhooks", pathType = "Prefix", backend = "backend" }
               ]
             }
           ],

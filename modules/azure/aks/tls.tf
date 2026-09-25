@@ -49,7 +49,7 @@ resource "helm_release" "letsencrypt_tls" {
       enabled    = true
       name       = "app-tls"
       secretName = "app-tls-cert"
-      dnsNames   = [var.domain_name]
+      dnsNames   = [var.domain_name, "api.${var.domain_name}"]
     }
     langfuse = {
       enabled    = local.langfuse_self_hosted && var.langfuse_web_enabled

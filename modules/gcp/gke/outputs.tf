@@ -66,6 +66,12 @@ output "dns_records" {
       type   = "A"
       target = local.ingress_address
       note   = "App (or use CNAME if target is a hostname)"
+    },
+    {
+      name   = "api.${var.domain_name}"
+      type   = "A"
+      target = local.ingress_address
+      note   = "Public API (https://api.<domain>)"
     }
     ] : [
     {

@@ -407,12 +407,20 @@ resource "helm_release" "gke_ingress_prereqs" {
       name    = "sligo-managed-cert-app"
       domains = [var.domain_name]
     }
-    extraManagedSslCertificates = local.langfuse_self_hosted && var.langfuse_web_enabled ? [
-      {
-        name    = "sligo-managed-cert-langfuse"
-        domains = [local.langfuse_domain]
-      }
-    ] : []
+    extraManagedSslCertificates = concat(
+      var.use_managed_ssl_certificate ? [
+        {
+          name    = "sligo-managed-cert-api"
+          domains = ["api.${var.domain_name}"]
+        }
+      ] : [],
+      local.langfuse_self_hosted && var.langfuse_web_enabled ? [
+        {
+          name    = "sligo-managed-cert-langfuse"
+          domains = [local.langfuse_domain]
+        }
+      ] : []
+    )
     backendConfig = {
       name       = "sligo-app-backendconfig"
       timeoutSec = 1800
@@ -1172,6 +1180,7 @@ resource "helm_release" "sligo_cloud" {
           var.use_managed_ssl_certificate ? {
             "networking.gke.io/managed-certificates" = join(",", compact([
               "sligo-managed-cert-app",
+              "sligo-managed-cert-api",
               local.langfuse_self_hosted && var.langfuse_web_enabled ? "sligo-managed-cert-langfuse" : "",
             ]))
           } : {}
@@ -1188,6 +1197,17 @@ resource "helm_release" "sligo_cloud" {
                   pathType = "Prefix"
                   backend  = "app"
                 }
+              ]
+            },
+            {
+              host = "api.${var.domain_name}"
+              # Public API only.
+              paths = [
+                { path = "/health", pathType = "Prefix", backend = "backend" },
+                { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
+                { path = "/api/v1", pathType = "Prefix", backend = "backend" },
+                { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
+                { path = "/webhooks", pathType = "Prefix", backend = "backend" }
               ]
             }
           ],

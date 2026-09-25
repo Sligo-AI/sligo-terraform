@@ -904,7 +904,7 @@ resource "helm_release" "sligo_cloud" {
           [
             {
               secretName = "app-tls-cert"
-              hosts      = [var.domain_name]
+              hosts      = [var.domain_name, "api.${var.domain_name}"]
             }
           ],
           local.langfuse_self_hosted && var.langfuse_web_enabled ? [
@@ -924,6 +924,17 @@ resource "helm_release" "sligo_cloud" {
                   pathType = "Prefix"
                   backend  = "app"
                 }
+              ]
+            },
+            {
+              host = "api.${var.domain_name}"
+              # Public API only.
+              paths = [
+                { path = "/health", pathType = "Prefix", backend = "backend" },
+                { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
+                { path = "/api/v1", pathType = "Prefix", backend = "backend" },
+                { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
+                { path = "/webhooks", pathType = "Prefix", backend = "backend" }
               ]
             }
           ],
