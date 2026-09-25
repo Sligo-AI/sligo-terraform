@@ -4,6 +4,8 @@ title: "Getting Started"
 description: "Obtain Sligo credentials and configure your environment for deployment."
 ---
 
+Copy `examples/<cloud>` from a published tag into your own infrastructure repository, then set the module `source` to `github.com/Sligo-AI/sligo-terraform//modules/<cloud>?ref=vX.Y.Z`. Secret values stay in that repository. [Upgrading](./upgrading.md) is the version and secret guide. `make create-environment` remains available inside a clone of this repository.
+
 ## Step 1: Contact Sligo
 
 Email **support@sligo.ai** to receive:

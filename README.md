@@ -14,6 +14,10 @@ Deploy Sligo Cloud Platform on AWS, Google Cloud, or Azure with production-ready
 
 ## Quick Start
 
+Copy `examples/aws-eks`, `examples/gcp-gke`, or `examples/azure-aks` at a published tag into your own infrastructure repository, then point `source` at `github.com/Sligo-AI/sligo-terraform//modules/<cloud>?ref=vX.Y.Z`. [Upgrading](https://sligo-ai.github.io/sligo-terraform/upgrading/) covers app, chart, and module versions, and how to add a secret without replacing your repository.
+
+`make create-environment` still works inside a clone of this repository:
+
 ```bash
 git clone https://github.com/Sligo-AI/sligo-terraform.git
 cd sligo-terraform

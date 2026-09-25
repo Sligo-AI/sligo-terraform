@@ -1183,7 +1183,6 @@ resource "kubernetes_secret" "nextjs_secrets" {
     REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = local.eff_strings["backend_api_key"]
-    BACKEND_REQUEST_TIMEOUT_MS     = tostring(local.effective_backend_request_timeout_ms)
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(aws_rds_cluster.postgres.master_username)}:${urlencode(aws_rds_cluster.postgres.master_password)}@${aws_rds_cluster.postgres.endpoint}:${aws_rds_cluster.postgres.port}/${aws_rds_cluster.postgres.database_name}"
     AUTH_PROVIDER                  = local.eff_strings["auth_provider"]
@@ -1281,7 +1280,6 @@ resource "kubernetes_secret" "backend_secrets" {
     ANTHROPIC_API_KEY                                       = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"
     TOGETHER_AI_API_KEY                                     = local.eff_strings["together_ai_api_key"] != "" ? local.eff_strings["together_ai_api_key"] : "placeholder"
     VERBOSE_LOGGING                                         = tostring(local.effective_verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS                              = tostring(local.effective_backend_request_timeout_ms)
     LANGSMITH_TRACING                                       = local.eff_strings["langsmith_tracing"]
     LANGSMITH_PROJECT                                       = local.eff_strings["langsmith_project"]
     LANGSMITH_ENDPOINT                                      = local.eff_strings["langsmith_endpoint"]

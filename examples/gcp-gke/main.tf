@@ -77,7 +77,6 @@ module "sligo_gcp" {
   anthropic_api_key                = var.anthropic_api_key
   together_ai_api_key              = var.together_ai_api_key
   verbose_logging                  = var.verbose_logging
-  backend_request_timeout_ms       = var.backend_request_timeout_ms
   openai_base_url                  = var.openai_base_url
   langsmith_api_key                = var.langsmith_api_key
   langsmith_tracing                = var.langsmith_tracing

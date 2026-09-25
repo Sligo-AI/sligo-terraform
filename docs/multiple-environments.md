@@ -4,6 +4,8 @@ title: "Multiple Environments"
 description: "Manage dev, staging, and production as separate deployments with create-environment."
 ---
 
+Clients who keep their own infrastructure repository copy `examples/<cloud>` from a published tag and pin that tag. This page is the in-repository `make create-environment` flow. A copied environment does not pick up later example edits; upgrade by diffing against the example at the new tag ([upgrading](./upgrading.md)).
+
 ## Recommended: Use create-environment
 
 ```bash

@@ -118,7 +118,7 @@ Optional tfvars: `letsencrypt_email` (defaults to `letsencrypt@<domain_name>`), 
 - **Azure Database for PostgreSQL** (Flexible Server)
 - **Azure Managed Redis** with RedisJSON (required for `JSON.GET`). Modules cannot be added after create; applying this on an existing cache recreates the Redis database and drops cache data. Use `redis_url` to point at Redis Cloud / Redis Stack instead.
 - **Azure Storage Account** with 4 private blob containers (`file-manager`, `agent-avatars`, `logos`, `rag`). AKS injects `STORAGE_PROVIDER=azure`. The app proxies uploads through the Next.js pod (VNet-only Blob firewall is supported). Override `storage_provider` only if using GCS or S3 instead of this account.
-- **Nginx Ingress Controller** (LoadBalancer). Helm sets `proxy-body-size: 110m` and a 300s read timeout so knowledge uploads (up to 100 MB) can pass through the app.
+- **Nginx Ingress Controller** (LoadBalancer). Helm sets `proxy-body-size: 110m` and a 1800s read timeout so knowledge uploads (up to 100 MB) and long agent replies can pass through the app.
 - **cert-manager** and Let's Encrypt `Certificate`s for `app-tls-cert` (disable with `enable_managed_tls = false`)
 - **Sligo Enterprise Helm chart** deployment
 

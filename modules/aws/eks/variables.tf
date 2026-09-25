@@ -121,7 +121,7 @@ variable "gsm_flat" {
     Optional flat map (e.g. the same JSON object loaded from Google Secret Manager in the client root module).
     Keys that match module scalar inputs listed in locals_gsm_flat.tf (eff_defaults) override those inputs when the value is non-empty after string conversion.
     List/object values are skipped. Use for new secrets without adding a new root-module argument per key.
-    verbose_logging and backend_request_timeout_ms are read from this map when present (with type coercion).
+    verbose_logging is read from this map when present (with type coercion).
   EOT
   type        = map(any)
   default     = {}
@@ -761,12 +761,6 @@ variable "verbose_logging" {
   description = "Enable verbose logging for backend"
   type        = bool
   default     = true
-}
-
-variable "backend_request_timeout_ms" {
-  description = "Backend request timeout in milliseconds"
-  type        = number
-  default     = 300000
 }
 
 variable "super_admin_emails" {

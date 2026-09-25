@@ -349,11 +349,6 @@ variable "verbose_logging" {
   default = true
 }
 
-variable "backend_request_timeout_ms" {
-  type    = number
-  default = 300000
-}
-
 variable "openai_base_url" {
   type    = string
   default = "https://api.openai.com/v1"

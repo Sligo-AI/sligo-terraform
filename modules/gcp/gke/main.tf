@@ -286,6 +286,12 @@ resource "google_container_node_pool" "primary_nodes" {
     auto_repair  = true
     auto_upgrade = true
   }
+
+  # Labels are often set outside this module (compliance, org policy). Applying a
+  # pool that omits them deletes the live labels and rolls the nodes.
+  lifecycle {
+    ignore_changes = [node_config[0].resource_labels]
+  }
 }
 
 # Service Account for GKE nodes
@@ -409,7 +415,7 @@ resource "helm_release" "gke_ingress_prereqs" {
     ] : []
     backendConfig = {
       name       = "sligo-app-backendconfig"
-      timeoutSec = 60
+      timeoutSec = 1800
     }
   })]
 
@@ -460,7 +466,6 @@ resource "kubernetes_secret" "nextjs_secrets" {
     REDIS_CLUSTER_MODE             = local.redis_cluster_mode
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = var.backend_api_key
-    BACKEND_REQUEST_TIMEOUT_MS     = tostring(var.backend_request_timeout_ms)
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     AUTH_PROVIDER                  = var.auth_provider
@@ -557,7 +562,6 @@ resource "kubernetes_secret" "backend_secrets" {
     ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
     TOGETHER_AI_API_KEY                    = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
     VERBOSE_LOGGING                        = tostring(var.verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS             = tostring(var.backend_request_timeout_ms)
     LANGSMITH_TRACING                      = var.langsmith_tracing
     LANGSMITH_PROJECT                      = var.langsmith_project
     LANGSMITH_ENDPOINT                     = var.langsmith_endpoint

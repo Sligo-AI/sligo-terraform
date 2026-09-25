@@ -9,4 +9,4 @@ extraManagedSslCertificates: []
 
 backendConfig:
   name: sligo-app-backendconfig
-  timeoutSec: 60
+  timeoutSec: 1800

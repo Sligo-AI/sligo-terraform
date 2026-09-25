@@ -113,11 +113,4 @@ locals {
     )
   )
 
-  gsm_backend_timeout_raw = try(var.gsm_flat["backend_request_timeout_ms"], null)
-  effective_backend_request_timeout_ms = (
-    local.gsm_backend_timeout_raw == null ? var.backend_request_timeout_ms : try(
-      tonumber(local.gsm_backend_timeout_raw),
-      var.backend_request_timeout_ms
-    )
-  )
 }

@@ -870,9 +870,9 @@ variable "verbose_logging" {
 }
 
 variable "backend_request_timeout_ms" {
-  description = "Backend request timeout in milliseconds"
+  description = "Backend request timeout in milliseconds. Retained for compatibility with existing environment configurations."
   type        = number
-  default     = 300000
+  default     = 1800000
 }
 
 variable "openai_base_url" {

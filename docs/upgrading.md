@@ -4,36 +4,32 @@ title: "Upgrading"
 description: "Upgrade Sligo Enterprise application and Terraform module versions."
 ---
 
-## Application Version
+## Application version
 
-To upgrade Sligo Enterprise to a new version:
+An app release records the Helm chart and Terraform module that were current at that moment. Those two keep their own version numbers.
 
-1. Check available versions (contact support@sligo.ai or check your GAR).
-2. Update `app_version` in `terraform.tfvars`:
-
-   ```hcl
-   app_version = "v1.2.3"  # New version
-   ```
-
-3. Apply:
-
-   ```bash
-   terraform plan
-   terraform apply
-   ```
-
-**Production:** Pin to specific versions (e.g., `v1.0.0`). Avoid `latest`.
-
-## Helm Chart Version
-
-Pin the Helm chart in `terraform.tfvars` the same way as the app image tag (independent pins):
-
-```hcl
-app_version   = "v1.2.3"  # container image tags
-chart_version = "1.2.1"   # sligo-cloud chart from sligo-helm-charts (default 1.2.1)
+```bash
+bun terraform/resolve-release.ts v1.32.0
+# helm=1.4.2
+# terraform=v2.8.6
 ```
 
-Set `chart_path` to use a local chart `.tgz` instead of the repository (ignores `chart_version`).
+The manifest is `terraform/release-manifest.json` in [sligo-cloud](https://github.com/Sligo-AI/sligo-cloud), also attached to that app's GitHub Release.
+
+In your own repository, set `app_version` to the image tag. Set `chart_version` and the module `ref` to the recorded companions. You can set either pin yourself when you need a different chart or module than the one recorded for that app version.
+
+```hcl
+app_version   = "v1.32.0"
+chart_version = "1.4.2"
+```
+
+```hcl
+source = "github.com/Sligo-AI/sligo-terraform//modules/gcp/gke?ref=v2.8.6"
+```
+
+Copy `examples/<cloud>` from that tag into your repository, then change `source` from the relative module path to the `ref` above. On a later upgrade, diff your root against the example at the new tag. A new secret is a module variable with a default, shown in that example. Set the value in your own `terraform.tfvars` or secret manager. Your `main.tf` needs a new argument only when the input has no default.
+
+`make create-environment` still copies the published example once into `environments/` for anyone working inside this repository. That copy does not track later example edits.
 
 ## Kubernetes / Cluster Upgrades
 

@@ -596,7 +596,6 @@ resource "kubernetes_secret" "nextjs_secrets" {
     REDIS_URL                      = local.redis_url
     BACKEND_URL                    = "http://sligo-backend:3001"
     BACKEND_API_KEY                = var.backend_api_key
-    BACKEND_REQUEST_TIMEOUT_MS     = tostring(var.backend_request_timeout_ms)
     MCP_GATEWAY_URL                = "http://mcp-gateway:3002"
     DATABASE_URL                   = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
     AUTH_PROVIDER                  = var.auth_provider
@@ -687,7 +686,6 @@ resource "kubernetes_secret" "backend_secrets" {
     ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
     TOGETHER_AI_API_KEY                    = var.together_ai_api_key != "" ? var.together_ai_api_key : "placeholder"
     VERBOSE_LOGGING                        = tostring(var.verbose_logging)
-    BACKEND_REQUEST_TIMEOUT_MS             = tostring(var.backend_request_timeout_ms)
     LANGSMITH_TRACING                      = var.langsmith_tracing
     LANGSMITH_PROJECT                      = var.langsmith_project
     LANGSMITH_ENDPOINT                     = var.langsmith_endpoint
@@ -898,7 +896,7 @@ resource "helm_release" "sligo_cloud" {
         annotations = {
           "kubernetes.io/ingress.class"                    = "nginx"
           "nginx.ingress.kubernetes.io/proxy-body-size"    = "110m"
-          "nginx.ingress.kubernetes.io/proxy-read-timeout" = "300"
+          "nginx.ingress.kubernetes.io/proxy-read-timeout" = "1800"
         }
         # One TLS secret per hostname (same isolation as GKE ManagedCertificate / ACM).
         # Provision app-tls-cert and langfuse-tls-cert (cert-manager Certificates or uploaded PEMs).
