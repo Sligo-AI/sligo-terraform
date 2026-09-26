@@ -352,6 +352,13 @@ variable "jwt_secret" {
   sensitive   = true
 }
 
+variable "oauth_access_token_secret" {
+  description = "HS256 secret for Sligo-issued OAuth access tokens. Minimum 32 characters. Leave empty to omit. Do not reuse backend_api_key."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "api_key" {
   description = "API key"
   type        = string

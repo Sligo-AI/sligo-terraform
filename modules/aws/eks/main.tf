@@ -1306,6 +1306,8 @@ resource "kubernetes_secret" "backend_secrets" {
     SPENDHQ_SS_USERNAME = local.eff_strings["spendhq_ss_username"] != "" ? local.eff_strings["spendhq_ss_username"] : "placeholder"
     SPENDHQ_SS_PASSWORD = local.eff_strings["spendhq_ss_password"] != "" ? local.eff_strings["spendhq_ss_password"] : "placeholder"
     SPENDHQ_SS_PORT     = local.eff_strings["spendhq_ss_port"] != "" ? local.eff_strings["spendhq_ss_port"] : "3306"
+  } : {}, local.eff_strings["oauth_access_token_secret"] != "" ? {
+    OAUTH_ACCESS_TOKEN_SECRET = local.eff_strings["oauth_access_token_secret"]
   } : {}, local.temporal_client_env, local.postmark_backend_env)
 }
 

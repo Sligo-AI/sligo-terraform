@@ -6,6 +6,7 @@ locals {
     db_password                          = var.db_password
     storage_provider                     = var.storage_provider
     jwt_secret                           = var.jwt_secret
+    oauth_access_token_secret            = var.oauth_access_token_secret
     api_key                              = var.api_key
     nextauth_secret                      = var.nextauth_secret
     gateway_secret                       = var.gateway_secret
