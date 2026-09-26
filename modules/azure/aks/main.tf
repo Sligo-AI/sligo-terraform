@@ -711,7 +711,7 @@ resource "kubernetes_secret" "backend_secrets" {
     SPENDHQ_SS_USERNAME = var.spendhq_ss_username != "" ? var.spendhq_ss_username : "placeholder"
     SPENDHQ_SS_PASSWORD = var.spendhq_ss_password != "" ? var.spendhq_ss_password : "placeholder"
     SPENDHQ_SS_PORT     = var.spendhq_ss_port != "" ? var.spendhq_ss_port : "3306"
-  } : {}, var.oauth_access_token_secret != "" ? {
+    } : {}, var.oauth_access_token_secret != "" ? {
     OAUTH_ACCESS_TOKEN_SECRET = var.oauth_access_token_secret
   } : {}, local.temporal_client_env, local.postmark_backend_env)
 }
