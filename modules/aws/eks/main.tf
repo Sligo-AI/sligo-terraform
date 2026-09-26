@@ -1789,7 +1789,6 @@ resource "helm_release" "sligo_cloud" {
           "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
           "alb.ingress.kubernetes.io/target-type"          = "ip"
           "alb.ingress.kubernetes.io/listen-ports"         = local.certificate_arn != "" || (local.langfuse_self_hosted && var.langfuse_web_enabled) ? "[{\"HTTP\": 80}, {\"HTTPS\": 443}]" : "[{\"HTTP\": 80}]"
-          "alb.ingress.kubernetes.io/healthcheck-path"     = "/api/health"
           "alb.ingress.kubernetes.io/healthcheck-protocol" = "HTTP"
           "alb.ingress.kubernetes.io/healthcheck-port"     = "traffic-port"
           "alb.ingress.kubernetes.io/success-codes"        = "200"
@@ -2066,8 +2065,24 @@ resource "aws_security_group_rule" "alb_to_mcp_gateway" {
   description              = "Allow ALB to reach mcp-gateway pods on port 3002"
 }
 
-# Add health check path annotations to services via Kubernetes resources
-# (Since Helm chart doesn't support service annotations, we add them directly)
+# Health check paths live on each Service. An Ingress-wide path would probe the
+# backend at /api/health, which only the frontend serves, and the API target stays unhealthy.
+resource "kubernetes_annotations" "app_service_healthcheck" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "sligo-app"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+  annotations = {
+    "alb.ingress.kubernetes.io/healthcheck-path" = "/api/health"
+  }
+
+  depends_on = [helm_release.sligo_cloud]
+
+  force = true
+}
+
 resource "kubernetes_annotations" "backend_service_healthcheck" {
   api_version = "v1"
   kind        = "Service"

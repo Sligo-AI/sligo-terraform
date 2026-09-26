@@ -1,6 +1,17 @@
+{{- range .Values.backendConfigs }}
+---
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
-  name: {{ .Values.backendConfig.name }}
+  name: {{ .name }}
 spec:
-  timeoutSec: {{ .Values.backendConfig.timeoutSec }}
+  timeoutSec: {{ .timeoutSec }}
+  {{- with .healthCheck }}
+  healthCheck:
+    type: {{ .type | default "HTTP" }}
+    requestPath: {{ .requestPath | quote }}
+    {{- with .port }}
+    port: {{ . }}
+    {{- end }}
+  {{- end }}
+{{- end }}

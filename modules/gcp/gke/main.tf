@@ -421,10 +421,22 @@ resource "helm_release" "gke_ingress_prereqs" {
         }
       ] : []
     )
-    backendConfig = {
-      name       = "sligo-app-backendconfig"
-      timeoutSec = 1800
-    }
+    backendConfigs = [
+      {
+        name       = "sligo-app-backendconfig"
+        timeoutSec = 1800
+        healthCheck = {
+          requestPath = "/api/health"
+        }
+      },
+      {
+        name       = "sligo-api-backendconfig"
+        timeoutSec = 1800
+        healthCheck = {
+          requestPath = "/health"
+        }
+      }
+    ]
   })]
 
   depends_on = [
@@ -1221,9 +1233,6 @@ resource "helm_release" "sligo_cloud" {
         serviceAccountName = kubernetes_service_account.app_gcs.metadata[0].name
         service = {
           type = "NodePort"
-          annotations = {
-            "cloud.google.com/backend-config" = jsonencode({ "ports" = { "3000" = "sligo-app-backendconfig" } })
-          }
         }
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-frontend"
@@ -1246,6 +1255,10 @@ resource "helm_release" "sligo_cloud" {
 
       backend = merge({
         replicaCount = 1
+        # GKE Ingress without NEGs cannot target a ClusterIP service.
+        service = {
+          type = "NodePort"
+        }
         image = {
           repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-backend"
           tag        = var.app_version
@@ -1360,6 +1373,42 @@ resource "helm_release" "sligo_cloud" {
     google_service_account_iam_member.app_gcs_workload_identity,
     google_redis_cluster.sligo,
   ]
+}
+
+# The published chart does not render Service annotations. GKE only uses a
+# BackendConfig when the Service points at it.
+resource "kubernetes_annotations" "app_backend_config" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "sligo-app"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+  annotations = {
+    "cloud.google.com/backend-config" = jsonencode({
+      ports = { "3000" = "sligo-app-backendconfig" }
+    })
+  }
+
+  depends_on = [helm_release.sligo_cloud, helm_release.gke_ingress_prereqs]
+  force      = true
+}
+
+resource "kubernetes_annotations" "api_backend_config" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "sligo-backend"
+    namespace = kubernetes_namespace.sligo.metadata[0].name
+  }
+  annotations = {
+    "cloud.google.com/backend-config" = jsonencode({
+      ports = { "3001" = "sligo-api-backendconfig" }
+    })
+  }
+
+  depends_on = [helm_release.sligo_cloud, helm_release.gke_ingress_prereqs]
+  force      = true
 }
 
 # Ingress address (IP or hostname) for DNS - may be pending until GCE LB is ready

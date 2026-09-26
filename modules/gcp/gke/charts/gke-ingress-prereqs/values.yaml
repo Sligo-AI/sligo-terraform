@@ -7,6 +7,14 @@ managedSslCertificate:
 # Extra certs are attached on the Ingress via a comma-separated annotation.
 extraManagedSslCertificates: []
 
-backendConfig:
-  name: sligo-app-backendconfig
-  timeoutSec: 1800
+# Frontend is probed at /api/health. The public API backend is probed at /health.
+# Port is omitted so GKE probes the NodePort. These clusters do not use NEGs.
+backendConfigs:
+  - name: sligo-app-backendconfig
+    timeoutSec: 1800
+    healthCheck:
+      requestPath: /api/health
+  - name: sligo-api-backendconfig
+    timeoutSec: 1800
+    healthCheck:
+      requestPath: /health
