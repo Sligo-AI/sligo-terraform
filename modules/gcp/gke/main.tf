@@ -392,7 +392,34 @@ resource "kubernetes_namespace" "sligo" {
   depends_on = [time_sleep.wait_for_cluster]
 }
 
-# GKE ingress prerequisites (ManagedCertificate, BackendConfig).
+# Global HTTPS proxy policy for the GKE Ingress. One policy per cluster so two
+# Terraform states in the same project do not fight over a single resource.
+# Set gke_ingress_ssl_policy_name to reuse an existing policy instead.
+resource "google_compute_ssl_policy" "gke_ingress" {
+  count           = var.gke_ingress_ssl_policy_enabled && var.gke_ingress_ssl_policy_name == "" ? 1 : 0
+  name            = "${var.cluster_name}-tls-12"
+  description     = "TLS 1.2+ for the GKE Ingress HTTPS frontend"
+  profile         = "MODERN"
+  min_tls_version = "TLS_1_2"
+
+  depends_on = [google_project_service.required_apis]
+}
+
+data "google_compute_ssl_policy" "gke_ingress" {
+  count = var.gke_ingress_ssl_policy_enabled && var.gke_ingress_ssl_policy_name != "" ? 1 : 0
+  name  = var.gke_ingress_ssl_policy_name
+}
+
+locals {
+  gke_frontend_config_name = "sligo-frontend-config"
+  gke_ingress_ssl_policy_name = (
+    !var.gke_ingress_ssl_policy_enabled ? "" :
+    var.gke_ingress_ssl_policy_name != "" ? data.google_compute_ssl_policy.gke_ingress[0].name :
+    google_compute_ssl_policy.gke_ingress[0].name
+  )
+}
+
+# GKE ingress prerequisites (ManagedCertificate, BackendConfig, FrontendConfig).
 # Use Helm instead of kubernetes_manifest so first-time bootstraps can plan without
 # a live Kubernetes API / CRD schema discovery (kubernetes_manifest fails at plan).
 resource "helm_release" "gke_ingress_prereqs" {
@@ -407,20 +434,12 @@ resource "helm_release" "gke_ingress_prereqs" {
       name    = "sligo-managed-cert-app"
       domains = [var.domain_name]
     }
-    extraManagedSslCertificates = concat(
-      var.use_managed_ssl_certificate ? [
-        {
-          name    = "sligo-managed-cert-api"
-          domains = ["api.${var.domain_name}"]
-        }
-      ] : [],
-      local.langfuse_self_hosted && var.langfuse_web_enabled ? [
-        {
-          name    = "sligo-managed-cert-langfuse"
-          domains = [local.langfuse_domain]
-        }
-      ] : []
-    )
+    extraManagedSslCertificates = var.use_managed_ssl_certificate ? [
+      {
+        name    = "sligo-managed-cert-api"
+        domains = ["api.${var.domain_name}"]
+      }
+    ] : []
     backendConfigs = [
       {
         name       = "sligo-app-backendconfig"
@@ -437,6 +456,11 @@ resource "helm_release" "gke_ingress_prereqs" {
         }
       }
     ]
+    frontendConfig = {
+      enabled   = var.gke_ingress_ssl_policy_enabled
+      name      = local.gke_frontend_config_name
+      sslPolicy = local.gke_ingress_ssl_policy_name
+    }
   })]
 
   depends_on = [
@@ -1191,42 +1215,41 @@ resource "helm_release" "sligo_cloud" {
         className = "gce"
         annotations = merge(
           { "kubernetes.io/ingress.class" = "gce" },
+          var.gke_ingress_ssl_policy_enabled ? {
+            "networking.gke.io/v1beta1.FrontendConfig" = local.gke_frontend_config_name
+          } : {},
           var.use_managed_ssl_certificate ? {
-            "networking.gke.io/managed-certificates" = join(",", compact([
+            "networking.gke.io/managed-certificates" = join(",", [
               "sligo-managed-cert-app",
               "sligo-managed-cert-api",
-              local.langfuse_self_hosted && var.langfuse_web_enabled ? "sligo-managed-cert-langfuse" : "",
-            ]))
+            ])
           } : {}
         )
         # No spec.tls secret; use GKE ManagedCertificate via annotation when use_managed_ssl_certificate is true
         tls = []
-        hosts = concat(
-          [
-            {
-              host = var.domain_name
-              paths = [
-                {
-                  path     = "/"
-                  pathType = "Prefix"
-                  backend  = "app"
-                }
-              ]
-            },
-            {
-              host = "api.${var.domain_name}"
-              # Public API only.
-              paths = [
-                { path = "/health", pathType = "Prefix", backend = "backend" },
-                { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
-                { path = "/api/v1", pathType = "Prefix", backend = "backend" },
-                { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
-                { path = "/webhooks", pathType = "Prefix", backend = "backend" }
-              ]
-            }
-          ],
-          local.langfuse_ingress_hosts
-        )
+        hosts = [
+          {
+            host = var.domain_name
+            paths = [
+              {
+                path     = "/"
+                pathType = "Prefix"
+                backend  = "app"
+              }
+            ]
+          },
+          {
+            host = "api.${var.domain_name}"
+            # Public API only.
+            paths = [
+              { path = "/health", pathType = "Prefix", backend = "backend" },
+              { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
+              { path = "/api/v1", pathType = "Prefix", backend = "backend" },
+              { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
+              { path = "/webhooks", pathType = "Prefix", backend = "backend" }
+            ]
+          }
+        ]
       }
 
       app = {

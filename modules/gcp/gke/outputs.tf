@@ -122,3 +122,8 @@ output "secret_name_prefix" {
   description = "Computed secret prefix used for deployment-isolated secret IDs."
   value       = local.gsm_secret_prefix
 }
+
+output "gke_ingress_ssl_policy_name" {
+  description = "Global Compute SSL policy attached to the GKE Ingress. Empty when gke_ingress_ssl_policy_enabled is false."
+  value       = local.gke_ingress_ssl_policy_name
+}

@@ -1,10 +1,12 @@
 locals {
-  langfuse_enabled     = var.enable_langfuse
-  langfuse_self_hosted = var.enable_langfuse && var.langfuse_self_hosted
-  langfuse_domain      = var.langfuse_domain_name != "" ? var.langfuse_domain_name : "langfuse.${local.eff_strings["domain_name"]}"
-  langfuse_db_user     = var.langfuse_db_username != "" ? var.langfuse_db_username : local.eff_strings["db_username"]
-  langfuse_db_password = var.langfuse_db_password != "" ? var.langfuse_db_password : local.eff_strings["db_password"]
-  langfuse_db_host     = aws_rds_cluster.postgres.endpoint
+  langfuse_enabled      = var.enable_langfuse
+  langfuse_self_hosted  = var.enable_langfuse && var.langfuse_self_hosted
+  langfuse_ui_upstream  = "http://langfuse-web:3000"
+  langfuse_sdk_base     = "${local.langfuse_ui_upstream}/super-admin/langfuse"
+  langfuse_nextauth_url = "${trimsuffix(local.eff_strings["frontend_url"], "/")}/super-admin/langfuse/api/auth"
+  langfuse_db_user      = var.langfuse_db_username != "" ? var.langfuse_db_username : local.eff_strings["db_username"]
+  langfuse_db_password  = var.langfuse_db_password != "" ? var.langfuse_db_password : local.eff_strings["db_password"]
+  langfuse_db_host      = aws_rds_cluster.postgres.endpoint
   langfuse_init_email = (
     var.langfuse_init_user_email != "" ? var.langfuse_init_user_email : "langfuse-admin@${local.eff_strings["domain_name"]}"
   )
@@ -13,7 +15,7 @@ locals {
   langfuse_s3_bucket               = try(aws_s3_bucket.langfuse[0].id, "")
   langfuse_public_key_effective    = local.langfuse_self_hosted ? "lf_pk_${random_id.langfuse_pk[0].hex}" : local.eff_strings["langfuse_public_key"]
   langfuse_secret_key_effective    = local.langfuse_self_hosted ? "lf_sk_${random_id.langfuse_sk[0].hex}" : (local.eff_strings["langfuse_secret_key"] != "" ? local.eff_strings["langfuse_secret_key"] : "")
-  langfuse_base_url_effective      = local.langfuse_self_hosted ? "http://langfuse-web:3000" : local.eff_strings["langfuse_base_url"]
+  langfuse_base_url_effective      = local.langfuse_self_hosted ? local.langfuse_sdk_base : local.eff_strings["langfuse_base_url"]
   observability_provider_effective = local.langfuse_self_hosted ? "langfuse" : local.eff_strings["observability_provider"]
   langfuse_database_url = format(
     "postgresql://%s:%s@%s:5432/%s",
@@ -24,30 +26,17 @@ locals {
   )
 
   langfuse_ui_env = local.langfuse_self_hosted && var.langfuse_web_enabled ? {
-    LANGFUSE_UI_URL             = "https://${local.langfuse_domain}"
+    LANGFUSE_UI_URL             = local.langfuse_ui_upstream
     LANGFUSE_INIT_USER_EMAIL    = local.langfuse_init_email
     LANGFUSE_INIT_USER_PASSWORD = local.langfuse_init_user_password
   } : {}
-
-  langfuse_ingress_hosts = local.langfuse_self_hosted && var.langfuse_web_enabled ? [
-    {
-      host = local.langfuse_domain
-      paths = [
-        {
-          path     = "/"
-          pathType = "Prefix"
-          backend  = "langfuse"
-        }
-      ]
-    }
-  ] : []
 
   langfuse_helm_values = {
     langfuse = {
       enabled    = local.langfuse_enabled
       selfHosted = local.langfuse_self_hosted
-      uiUrl      = local.langfuse_self_hosted && var.langfuse_web_enabled ? "https://${local.langfuse_domain}" : ""
-      baseUrl    = local.langfuse_self_hosted ? "http://langfuse-web:3000" : local.eff_strings["langfuse_base_url"]
+      uiUrl      = local.langfuse_self_hosted && var.langfuse_web_enabled ? local.langfuse_ui_upstream : ""
+      baseUrl    = local.langfuse_self_hosted ? local.langfuse_sdk_base : local.eff_strings["langfuse_base_url"]
       web = {
         enabled = local.langfuse_self_hosted && var.langfuse_web_enabled
       }
@@ -58,7 +47,7 @@ locals {
     "langfuse-server" = {
       langfuse = {
         nextauth = {
-          url = "https://${local.langfuse_domain}"
+          url = local.langfuse_nextauth_url
           secret = {
             secretKeyRef = {
               name = "langfuse-general"
@@ -92,9 +81,24 @@ locals {
           { name = "LANGFUSE_INIT_USER_NAME", value = "Langfuse Admin" },
           { name = "LANGFUSE_INIT_USER_PASSWORD", value = local.langfuse_init_user_password }
         ]
+        image = {
+          pullSecrets = [
+            { name = "gar-pull-secret" }
+          ]
+        }
         web = {
+          image = {
+            repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-langfuse-web"
+            tag        = "4.24.0"
+          }
           service = {
-            type = "NodePort"
+            type = "ClusterIP"
+          }
+          livenessProbe = {
+            path = "/super-admin/langfuse/api/public/health"
+          }
+          readinessProbe = {
+            path = "/super-admin/langfuse/api/public/ready"
           }
         }
       }

@@ -900,48 +900,35 @@ resource "helm_release" "sligo_cloud" {
           "nginx.ingress.kubernetes.io/proxy-body-size"    = "110m"
           "nginx.ingress.kubernetes.io/proxy-read-timeout" = "1800"
         }
-        # One TLS secret per hostname (same isolation as GKE ManagedCertificate / ACM).
-        # Provision app-tls-cert and langfuse-tls-cert (cert-manager Certificates or uploaded PEMs).
-        tls = concat(
-          [
-            {
-              secretName = "app-tls-cert"
-              hosts      = [var.domain_name, "api.${var.domain_name}"]
-            }
-          ],
-          local.langfuse_self_hosted && var.langfuse_web_enabled ? [
-            {
-              secretName = "langfuse-tls-cert"
-              hosts      = [local.langfuse_domain]
-            }
-          ] : []
-        )
-        hosts = concat(
-          [
-            {
-              host = var.domain_name
-              paths = [
-                {
-                  path     = "/"
-                  pathType = "Prefix"
-                  backend  = "app"
-                }
-              ]
-            },
-            {
-              host = "api.${var.domain_name}"
-              # Public API only.
-              paths = [
-                { path = "/health", pathType = "Prefix", backend = "backend" },
-                { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
-                { path = "/api/v1", pathType = "Prefix", backend = "backend" },
-                { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
-                { path = "/webhooks", pathType = "Prefix", backend = "backend" }
-              ]
-            }
-          ],
-          local.langfuse_ingress_hosts
-        )
+        tls = [
+          {
+            secretName = "app-tls-cert"
+            hosts      = [var.domain_name, "api.${var.domain_name}"]
+          }
+        ]
+        hosts = [
+          {
+            host = var.domain_name
+            paths = [
+              {
+                path     = "/"
+                pathType = "Prefix"
+                backend  = "app"
+              }
+            ]
+          },
+          {
+            host = "api.${var.domain_name}"
+            # Public API only.
+            paths = [
+              { path = "/health", pathType = "Prefix", backend = "backend" },
+              { path = "/oauth/token", pathType = "Prefix", backend = "backend" },
+              { path = "/api/v1", pathType = "Prefix", backend = "backend" },
+              { path = "/api/webhooks", pathType = "Prefix", backend = "backend" },
+              { path = "/webhooks", pathType = "Prefix", backend = "backend" }
+            ]
+          }
+        ]
       }
       app = {
         replicaCount = 1

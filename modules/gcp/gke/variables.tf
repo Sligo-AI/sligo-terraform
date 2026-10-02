@@ -151,6 +151,18 @@ variable "use_managed_ssl_certificate" {
   default     = true
 }
 
+variable "gke_ingress_ssl_policy_enabled" {
+  description = "When true, attach a TLS 1.2+ Compute SSL policy to the GKE Ingress via FrontendConfig. Default on. Does not recreate the Ingress or change its address."
+  type        = bool
+  default     = true
+}
+
+variable "gke_ingress_ssl_policy_name" {
+  description = "Name of an existing global Compute SSL policy (profile MODERN, minimum TLS 1.2) to attach. Empty creates <cluster_name>-tls-12 in this project. Set this when another environment in the same project already owns a policy, for example tls-12-strict-policy."
+  type        = string
+  default     = ""
+}
+
 variable "client_repository_name" {
   description = "Client-specific GAR repository name (provided by Sligo)"
   type        = string
@@ -957,13 +969,13 @@ variable "langfuse_self_hosted" {
 }
 
 variable "langfuse_web_enabled" {
-  description = "Expose Langfuse UI on langfuse_domain_name and set LANGFUSE_UI_URL for the Super Admin launch page. Only applies when langfuse_self_hosted is true."
+  description = "Embed the Langfuse UI in Super Admin and set LANGFUSE_UI_URL to the in-cluster web Service. Only applies when langfuse_self_hosted is true."
   type        = bool
   default     = true
 }
 
 variable "langfuse_domain_name" {
-  description = "Public hostname for the Langfuse UI. Empty defaults to langfuse.<domain_name>."
+  description = "Unused. Previously the public Langfuse hostname. The UI is embedded at /super-admin/langfuse on the app domain. Kept so existing tfvars still parse."
   type        = string
   default     = ""
 }

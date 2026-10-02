@@ -113,7 +113,7 @@ See [examples/gcp-gke/terraform.tfvars.temporal.example](../examples/gcp-gke/ter
 When **`enable_langfuse = true`**, Terraform also:
 
 - Injects `LANGFUSE_*` and `OBSERVABILITY_PROVIDER` into `nextjs-secrets` and `backend-secrets`
-- If **`langfuse_self_hosted = true`** (default when enabled): creates a `langfuse` Postgres database, blob bucket/container, Langfuse credential secrets, optional cert-manager + ClickHouse operator, a public `langfuse.<domain>` ingress host, and Helm values for the official Langfuse subchart. Super Admin launch credentials (`LANGFUSE_UI_URL`, init email/password) go on `nextjs-secrets` only.
+- If **`langfuse_self_hosted = true`** (default when enabled): creates a `langfuse` Postgres database, blob bucket/container, Langfuse credential secrets, optional cert-manager + ClickHouse operator, and Helm values for the official Langfuse subchart. The web Service stays ClusterIP. Super Admin proxies it. `LANGFUSE_UI_URL` and the init email/password go on `nextjs-secrets` only.
 - If **`langfuse_self_hosted = false`**: points Sligo at Langfuse Cloud or a BYO instance (`langfuse_base_url` + keys); does not install Langfuse or ClickHouse.
 
 See [examples/gcp-gke/terraform.tfvars.langfuse.example](../examples/gcp-gke/terraform.tfvars.langfuse.example).
@@ -124,8 +124,8 @@ See [examples/gcp-gke/terraform.tfvars.langfuse.example](../examples/gcp-gke/ter
 |----------|---------|-------------|
 | `enable_langfuse` | `false` | Enable Langfuse client wiring |
 | `langfuse_self_hosted` | `true` | Install in-cluster Langfuse + backing stores; set `false` for Cloud/BYO |
-| `langfuse_web_enabled` | `true` | Public UI host + Super Admin `LANGFUSE_UI_URL` |
-| `langfuse_domain_name` | `langfuse.<domain_name>` | Public Langfuse hostname |
+| `langfuse_web_enabled` | `true` | Embed the UI in Super Admin and set in-cluster `LANGFUSE_UI_URL` |
+| `langfuse_domain_name` | `""` | Unused. Kept so existing tfvars still parse. |
 | `langfuse_db_name` | `langfuse` | Postgres database name (self-hosted only) |
 | `install_cert_manager` | `true` | Install cert-manager (ClickHouse operator prereq) |
 | `install_clickhouse_operator` | `true` | Install ClickHouse operator |

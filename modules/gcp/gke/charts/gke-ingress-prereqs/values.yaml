@@ -18,3 +18,10 @@ backendConfigs:
     timeoutSec: 1800
     healthCheck:
       requestPath: /health
+
+# Points the GCE Ingress at an existing Compute SSL policy. The policy is created
+# by the Terraform module (or supplied by name). This chart does not create it.
+frontendConfig:
+  enabled: false
+  name: sligo-frontend-config
+  sslPolicy: ""

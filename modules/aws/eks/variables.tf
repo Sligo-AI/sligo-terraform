@@ -851,13 +851,13 @@ variable "langfuse_self_hosted" {
 }
 
 variable "langfuse_web_enabled" {
-  description = "Expose Langfuse UI on langfuse_domain_name and set LANGFUSE_UI_URL for the Super Admin launch page."
+  description = "Embed the Langfuse UI in Super Admin and set LANGFUSE_UI_URL to the in-cluster web Service. Only applies when langfuse_self_hosted is true."
   type        = bool
   default     = true
 }
 
 variable "langfuse_domain_name" {
-  description = "Public hostname for the Langfuse UI. Empty defaults to langfuse.<domain_name>."
+  description = "Unused. Previously the public Langfuse hostname. The UI is embedded at /super-admin/langfuse on the app domain. Kept so existing tfvars still parse."
   type        = string
   default     = ""
 }

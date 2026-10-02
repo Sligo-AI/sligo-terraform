@@ -106,12 +106,12 @@ Deployment typically takes 15–25 minutes (GKE + Cloud SQL + Redis + GCS bucket
 - **Redis** — in-cluster Redis Stack by default, or Memorystore for Redis Cluster when `use_memorystore_redis_cluster = true` (JSON-compatible; app needs a cluster-aware client). `redis_url` skips both and points at Redis Cloud or similar.
 - **4 GCS buckets** (file-manager, agent-avatars, logos, rag). GKE injects `STORAGE_PROVIDER=gcs` so the app uses those buckets. Override `storage_provider` only if using S3 or Azure Blob instead.
 - **Google Agent Platform** (optional): set `google_vertex_ai_web_credentials` to inject `GOOGLE_VERTEX_AI_WEB_CREDENTIALS` into the app, backend, and MCP gateway secrets. Super Admin can then select Google as the platform LLM host.
-- **GCE Ingress** (HTTP(S) load balancer)
+- **GCE Ingress** (HTTP(S) load balancer). A global Compute SSL policy (`<cluster_name>-tls-12`, profile `MODERN`, minimum TLS 1.2) is attached with a FrontendConfig. Set `gke_ingress_ssl_policy_name` to reuse a policy that already exists in the project (two environments in one project should share one policy). Set `gke_ingress_ssl_policy_enabled = false` to skip it.
 - **Sligo Enterprise Helm chart** deployment
 
 When **`enable_temporal = true`**, the module enables Temporal clients and the `sligo-temporal-worker`. With the default **`temporal_self_hosted = true`**, it also creates `temporal` / `temporal_visibility` databases on Cloud SQL and Helm values for the in-cluster Temporal server. Set **`temporal_self_hosted = false`** plus `temporal_frontend_address` and `temporal_api_key` for Temporal Cloud (worker only). See [secrets.md — Temporal](../secrets/#temporal-terraform-variables) and [terraform.tfvars.temporal.example](../examples/gcp-gke/terraform.tfvars.temporal.example).
 
-Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Cloud SQL database, a private GCS bucket, ClickHouse operator/cert-manager (unless skipped), and a `langfuse.<domain>` ingress host. Super Admin shows the UI URL and login. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/gcp-gke/terraform.tfvars.langfuse.example).
+Optional **`enable_langfuse = true`** with default **`langfuse_self_hosted = true`** adds a `langfuse` Cloud SQL database, a private GCS bucket, and ClickHouse operator/cert-manager (unless skipped). The web Service stays ClusterIP. Super Admin embeds the UI. See [secrets.md — Langfuse](../secrets/#langfuse-terraform-variables) and [terraform.tfvars.langfuse.example](../examples/gcp-gke/terraform.tfvars.langfuse.example).
 
 ---
 

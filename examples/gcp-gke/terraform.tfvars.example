@@ -18,6 +18,10 @@ cluster_version = "1.28"
 
 # Application Configuration
 domain_name              = "app.example.com"
+# GKE Ingress TLS 1.2+ is on by default (creates <cluster_name>-tls-12).
+# Reuse a policy another environment already created in this project:
+# gke_ingress_ssl_policy_name = "tls-12-strict-policy"
+# gke_ingress_ssl_policy_enabled = false
 client_repository_name   = "your-client-containers"
 app_version              = "v1.0.0"  # Pin to specific version tag (e.g., v1.0.0, v1.2.3). Use 'latest' for development only.
 chart_version            = "1.2.1"  # sligo-cloud Helm chart from sligo-helm-charts (independent of app_version)

@@ -142,7 +142,6 @@ locals {
     "3. Add CNAMEs in your DNS (point to the hostname from step 2):",
     "   ${var.domain_name} -> <ALB hostname>",
     "   api.${var.domain_name} -> <ALB hostname>",
-    local.langfuse_self_hosted && var.langfuse_web_enabled ? "   ${local.langfuse_domain} -> <ALB hostname> (Langfuse UI; separate ACM cert)" : "",
     "   Or set route53_zone_id and alb_hostname in Terraform and apply again to create these in Route 53."
   ])
   dns_next_steps_lines = concat(
