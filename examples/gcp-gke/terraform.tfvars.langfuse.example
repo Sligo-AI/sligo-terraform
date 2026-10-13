@@ -11,7 +11,7 @@ langfuse_db_name     = "langfuse"
 # langfuse_clickhouse_replicas = 1   # use 3 in production
 # langfuse_keeper_replicas     = 1   # odd; use 3 in production
 
-# Requires sligo-cloud Helm chart with sligo-langfuse-web:4.24.0 (base path compiled in).
+# Requires sligo-cloud Helm chart with sligo-langfuse-web:4.56.0 (base path compiled in).
 # The UI is served at /super-admin/langfuse on the app domain. No Langfuse DNS name.
 # chart_path = "../../path/to/sligo-cloud"  # local chart during development
 

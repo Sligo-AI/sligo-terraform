@@ -6,7 +6,7 @@ langfuse_self_hosted = true
 langfuse_web_enabled = true
 langfuse_db_name     = "langfuse"
 
-# Requires sligo-cloud Helm chart with sligo-langfuse-web:4.24.0 (base path compiled in).
+# Requires sligo-cloud Helm chart with sligo-langfuse-web:4.56.0 (base path compiled in).
 # The UI is served at /super-admin/langfuse on the app domain. No Langfuse DNS name or TLS cert.
 
 # --- Langfuse Cloud / existing instance ---

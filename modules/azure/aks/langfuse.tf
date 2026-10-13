@@ -89,7 +89,7 @@ locals {
         web = {
           image = {
             repository = "us-central1-docker.pkg.dev/sligo-ai-platform/${var.client_repository_name}/sligo-langfuse-web"
-            tag        = "4.24.0"
+            tag        = "4.56.0"
           }
           service = {
             type = "ClusterIP"
