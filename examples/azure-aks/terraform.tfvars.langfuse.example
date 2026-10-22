@@ -6,6 +6,10 @@ langfuse_self_hosted = true
 langfuse_web_enabled = true
 langfuse_db_name     = "langfuse"
 
+# Private Azure OpenAI from create_azure_ai is whitelisted automatically.
+# Extra private LLM hosts only (hostname, comma-separated):
+# langfuse_llm_connection_whitelisted_hosts = "other-resource.openai.azure.com"
+
 # Requires sligo-cloud Helm chart with sligo-langfuse-web:4.56.0 (base path compiled in).
 # The UI is served at /super-admin/langfuse on the app domain. No Langfuse DNS name or TLS cert.
 

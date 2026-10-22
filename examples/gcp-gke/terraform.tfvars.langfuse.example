@@ -6,6 +6,9 @@ enable_langfuse      = true
 langfuse_self_hosted = true
 langfuse_web_enabled = true
 langfuse_db_name     = "langfuse"
+
+# Private LLM endpoints (hostname only, comma-separated). Empty keeps the SSRF check unchanged.
+# langfuse_llm_connection_whitelisted_hosts = "contoso.openai.azure.com"
 # install_cert_manager         = true
 # install_clickhouse_operator  = true
 # langfuse_clickhouse_replicas = 1   # use 3 in production

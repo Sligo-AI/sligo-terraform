@@ -24,6 +24,12 @@ locals {
     var.langfuse_db_name
   )
   langfuse_storage_key = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
+  # Private Azure OpenAI (create_azure_ai, public access off) resolves to a VNet address.
+  # Langfuse rejects that unless the hostname is listed. The subdomain matches azure_ai.tf.
+  langfuse_llm_connection_whitelisted_host = join(",", compact(concat(
+    !var.azure_ai_public_network_access ? [try("${azurerm_cognitive_account.azure_ai[0].custom_subdomain_name}.openai.azure.com", "")] : [],
+    [for host in split(",", var.langfuse_llm_connection_whitelisted_hosts) : trimspace(host)]
+  )))
 
   langfuse_ui_env = local.langfuse_self_hosted && var.langfuse_web_enabled ? {
     LANGFUSE_UI_URL             = local.langfuse_ui_upstream
@@ -67,7 +73,7 @@ locals {
             key  = "encryption-key"
           }
         }
-        additionalEnv = [
+        additionalEnv = concat([
           { name = "DATABASE_URL", value = local.langfuse_database_url },
           { name = "DIRECT_URL", value = local.langfuse_database_url },
           { name = "REDIS_PORT", value = "6379" },
@@ -80,7 +86,7 @@ locals {
           { name = "LANGFUSE_INIT_USER_EMAIL", value = local.langfuse_init_email },
           { name = "LANGFUSE_INIT_USER_NAME", value = "Langfuse Admin" },
           { name = "LANGFUSE_INIT_USER_PASSWORD", value = local.langfuse_init_user_password }
-        ]
+        ], local.langfuse_llm_connection_whitelisted_host != "" ? [{ name = "LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST", value = local.langfuse_llm_connection_whitelisted_host }] : [])
         image = {
           pullSecrets = [
             { name = "gar-pull-secret" }

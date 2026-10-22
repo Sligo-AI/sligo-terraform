@@ -1018,6 +1018,12 @@ variable "langfuse_init_project_id" {
   default     = "sligo"
 }
 
+variable "langfuse_llm_connection_whitelisted_hosts" {
+  description = "Comma-separated hostnames for LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST on self-hosted Langfuse web and worker. Hostnames only (no scheme). Required when an LLM connection base URL resolves to a private address, such as an Azure OpenAI private endpoint. Empty leaves Langfuse SSRF checks unchanged."
+  type        = string
+  default     = ""
+}
+
 variable "install_cert_manager" {
   description = "Install cert-manager when Langfuse is self-hosted (required by the ClickHouse operator). Set false if cert-manager already exists."
   type        = bool

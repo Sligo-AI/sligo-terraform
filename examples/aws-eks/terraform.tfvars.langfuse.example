@@ -6,6 +6,9 @@ langfuse_self_hosted = true
 langfuse_web_enabled = true
 langfuse_db_name     = "langfuse"
 
+# Private LLM endpoints (hostname only, comma-separated). Empty keeps the SSRF check unchanged.
+# langfuse_llm_connection_whitelisted_hosts = "contoso.openai.azure.com"
+
 # Requires sligo-cloud Helm chart with sligo-langfuse-web:4.56.0 (base path compiled in).
 # The UI is served at /super-admin/langfuse on the app domain. No Langfuse DNS name or ACM cert.
 

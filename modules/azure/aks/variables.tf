@@ -775,6 +775,12 @@ variable "langfuse_init_project_id" {
   default     = "sligo"
 }
 
+variable "langfuse_llm_connection_whitelisted_hosts" {
+  description = "Extra comma-separated hostnames for LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST on self-hosted Langfuse web and worker. Hostnames only (no scheme). The Azure OpenAI account created by create_azure_ai is added automatically when it is private. Use this only for other private LLM hosts."
+  type        = string
+  default     = ""
+}
+
 variable "enable_managed_tls" {
   description = "When true, install a Let's Encrypt ClusterIssuer and Certificate resources that populate app-tls-cert (and langfuse-tls-cert when Langfuse UI is enabled). Requires DNS for domain_name to point at the nginx LoadBalancer. Set false to bring your own Kubernetes TLS secrets."
   type        = bool

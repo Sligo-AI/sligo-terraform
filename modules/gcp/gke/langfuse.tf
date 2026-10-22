@@ -74,7 +74,7 @@ locals {
             key  = "encryption-key"
           }
         }
-        additionalEnv = [
+        additionalEnv = concat([
           { name = "DATABASE_URL", value = local.langfuse_database_url },
           { name = "DIRECT_URL", value = local.langfuse_database_url },
           { name = "REDIS_PORT", value = "6379" },
@@ -87,7 +87,7 @@ locals {
           { name = "LANGFUSE_INIT_USER_EMAIL", value = local.langfuse_init_email },
           { name = "LANGFUSE_INIT_USER_NAME", value = "Langfuse Admin" },
           { name = "LANGFUSE_INIT_USER_PASSWORD", value = local.langfuse_init_user_password }
-        ]
+        ], var.langfuse_llm_connection_whitelisted_hosts != "" ? [{ name = "LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST", value = var.langfuse_llm_connection_whitelisted_hosts }] : [])
         image = {
           pullSecrets = [
             { name = "gar-pull-secret" }
