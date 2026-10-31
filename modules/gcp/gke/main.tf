@@ -648,6 +648,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     FRONTEND_URL                           = var.frontend_url
     DATABASE_URL                           = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     BUCKET_NAME_FILE_MANAGER               = local.gcs_bucket_file_manager_id
+    BUCKET_NAME_RAG                        = local.gcs_bucket_rag_id
     REDIS_URL                              = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS           = local.redis_url
     REDIS_CLUSTER_MODE                     = local.redis_cluster_mode
@@ -671,7 +672,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     LANGSMITH_API_KEY                      = var.langsmith_api_key != "" ? var.langsmith_api_key : ""
     GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
     STORAGE_PROVIDER                       = var.storage_provider != "" ? var.storage_provider : "gcs"
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, local.rag_sa_key != "" ? { RAG_SA_KEY = local.rag_sa_key } : {}, var.google_vertex_ai_web_credentials != "" ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
     SINGLESTORE_HOST                       = var.singlestore_host
     SINGLESTORE_PORT                       = var.singlestore_port
     SINGLESTORE_USER                       = var.singlestore_user

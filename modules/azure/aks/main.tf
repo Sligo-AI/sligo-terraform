@@ -729,6 +729,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     FRONTEND_URL                           = var.frontend_url
     DATABASE_URL                           = "postgresql://${urlencode(var.db_username)}:${urlencode(var.db_password)}@${azurerm_postgresql_flexible_server.postgres.fqdn}:5432/${azurerm_postgresql_flexible_server_database.sligo.name}?sslmode=require"
     BUCKET_NAME_FILE_MANAGER               = local.blob_file_manager
+    BUCKET_NAME_RAG                        = local.blob_rag
     REDIS_URL                              = local.redis_url
     REDIS_URL_STRUCTURED_OUTPUTS           = local.redis_url
     PINECONE_API_KEY                       = var.pinecone_api_key != "" ? var.pinecone_api_key : "placeholder"
@@ -753,7 +754,7 @@ resource "kubernetes_secret" "mcp_gateway_secrets" {
     AZURE_STORAGE_ACCOUNT_KEY              = var.use_existing_storage_account ? var.azure_storage_account_key : azurerm_storage_account.main[0].primary_access_key
     STORAGE_PROVIDER                       = var.storage_provider != "" ? var.storage_provider : "azure"
     GOOGLE_PROJECTID                       = var.google_project_id != "" ? var.google_project_id : ""
-    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
+    }, var.gcp_sa_key != "" ? { GCP_SA_KEY = var.gcp_sa_key } : {}, var.rag_sa_key != "" ? { RAG_SA_KEY = var.rag_sa_key } : {}, (var.gcp_sa_key != "" || var.google_vertex_ai_web_credentials != "") ? { GOOGLE_VERTEX_AI_WEB_CREDENTIALS = var.gcp_sa_key != "" ? var.gcp_sa_key : var.google_vertex_ai_web_credentials } : {}, var.rag_vector_store != "" ? { RAG_VECTOR_STORE = var.rag_vector_store } : {}, var.pinecone_environment != "" ? { PINECONE_ENVIRONMENT = var.pinecone_environment } : {}, var.singlestore_host != "" ? {
     SINGLESTORE_HOST                       = var.singlestore_host
     SINGLESTORE_PORT                       = var.singlestore_port
     SINGLESTORE_USER                       = var.singlestore_user

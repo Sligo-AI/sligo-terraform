@@ -96,7 +96,7 @@ variable "db_password" {
 |-------------------|-----------------|---------------------------|
 | `nextjs-secrets` | app frontend | `frontend_url`, `next_public_api_url`, `backend_api_key`, `encryption_key`, `auth_provider`, `auth_invitations`, `super_admin_emails`, WorkOS/OIDC/SAML vars, `openai_api_key`, `anthropic_api_key` (platform agents such as workflows.builder run in Next.js), bucket names, `storage_provider`, GCP/S3, Pinecone/SingleStore, etc. On **GKE**, also `google_vertex_ai_web_credentials` (`GOOGLE_VERTEX_AI_WEB_CREDENTIALS`) so Super Admin can select Google Agent Platform. |
 | `backend-secrets` | backend API | `jwt_secret`, `api_key`, `backend_api_key`, `encryption_key`, `openai_api_key`, `anthropic_api_key`, `google_vertex_ai_web_credentials`, LangSmith (`langsmith_*`), storage, etc. |
-| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, LangSmith, storage, Pinecone/SingleStore, etc. |
+| `mcp-gateway-secrets` | MCP gateway | `gateway_secret`, `DATABASE_URL` (PI serving tools), `openai_api_key`, SpendHQ/Perplexity/Tavily, LangSmith, storage, `BUCKET_NAME_RAG` (knowledge-base reads), Pinecone/SingleStore, etc. |
 | `database-secret` | database (external) | From RDS/Aurora (host, port, database, username, password) |
 | `redis-secret` | redis (external) | From ElastiCache (host, port) |
 | `temporal-db-credentials` | Temporal subchart (default store) | When `enable_temporal = true` **and** `temporal_self_hosted = true`; host/port/database/username/password from managed Postgres |
