@@ -361,6 +361,29 @@ variable "aurora_instance_class" {
   default     = "db.r6g.large"
 }
 
+variable "aurora_engine_version" {
+  description = "Aurora PostgreSQL engine version. The module default is the supported patch. Automatic minor version upgrades are disabled. Set this only when an environment is already running a newer patch, so Terraform does not plan a downgrade."
+  type        = string
+  default     = "15.17"
+}
+
+variable "cloudwatch_observability_most_recent" {
+  description = "When true, install the latest amazon-cloudwatch-observability add-on version AWS publishes. Set false and set cloudwatch_observability_addon_version to the installed version so an apply keeps that build."
+  type        = bool
+  default     = true
+}
+
+variable "cloudwatch_observability_addon_version" {
+  description = "amazon-cloudwatch-observability add-on version (for example v7.0.0-eksbuild.1). Used only when cloudwatch_observability_most_recent is false. Required in that case so Terraform keeps the installed build."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.cloudwatch_observability_most_recent || var.cloudwatch_observability_addon_version != null
+    error_message = "Set cloudwatch_observability_addon_version to the installed add-on version when cloudwatch_observability_most_recent is false."
+  }
+}
+
 # Redis Configuration
 # When redis_url is set (e.g. Redis Cloud), cloud-managed / in-cluster Redis is not provisioned.
 variable "redis_url" {

@@ -195,9 +195,12 @@ module "eks" {
 
   # Container stdout/stderr (Fluent Bit via the CloudWatch Observability add-on).
   # Control-plane types above are a separate CloudWatch log group.
+  # most_recent stays a bool so the version lookup succeeds. An empty
+  # addon_version follows the latest build; a set version is what the apply keeps.
   cluster_addons = {
     amazon-cloudwatch-observability = {
-      most_recent = true
+      most_recent   = true
+      addon_version = var.cloudwatch_observability_most_recent ? null : var.cloudwatch_observability_addon_version
     }
   }
 
@@ -295,7 +298,7 @@ resource "aws_security_group" "rds" {
 resource "aws_rds_cluster" "postgres" {
   cluster_identifier        = "${var.cluster_name}-postgres"
   engine                    = "aurora-postgresql"
-  engine_version            = "15.15"
+  engine_version            = var.aurora_engine_version
   database_name             = "sligo"
   master_username           = local.eff_strings["db_username"]
   master_password           = local.eff_strings["db_password"]
@@ -319,11 +322,12 @@ resource "aws_rds_cluster" "postgres" {
 
 # Aurora Serverless v2 Cluster Instance
 resource "aws_rds_cluster_instance" "postgres" {
-  identifier         = "${var.cluster_name}-postgres-instance-1"
-  cluster_identifier = aws_rds_cluster.postgres.id
-  instance_class     = var.aurora_instance_class
-  engine             = aws_rds_cluster.postgres.engine
-  engine_version     = aws_rds_cluster.postgres.engine_version
+  identifier                 = "${var.cluster_name}-postgres-instance-1"
+  cluster_identifier         = aws_rds_cluster.postgres.id
+  instance_class             = var.aurora_instance_class
+  engine                     = aws_rds_cluster.postgres.engine
+  engine_version             = aws_rds_cluster.postgres.engine_version
+  auto_minor_version_upgrade = false
 
   tags = {
     Name = "${var.cluster_name}-postgres-instance-1"
@@ -390,6 +394,8 @@ resource "aws_security_group" "redis" {
   }
 }
 
+# Major family only. The Redis patch is not pinned, so an ElastiCache minor
+# upgrade does not show up as a downgrade on the next apply.
 resource "aws_elasticache_replication_group" "redis" {
   count                      = local.use_external_redis ? 0 : 1
   replication_group_id       = "${var.cluster_name}-redis"

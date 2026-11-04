@@ -39,6 +39,12 @@ Copy `examples/<cloud>` from that tag into your repository, then change `source`
 
 Test upgrades in a non-production environment first.
 
+## AWS Aurora and the CloudWatch add-on
+
+The module default Aurora PostgreSQL patch is **15.17**, and the Aurora instance has automatic minor version upgrades turned off. An environment still on 15.15 plans an upgrade to 15.17 in the database maintenance window. An environment already on a newer patch must set `aurora_engine_version` to that patch so Terraform does not plan a downgrade. ElastiCache stays on the Redis 7 family and does not pin a patch.
+
+The CloudWatch Observability add-on still follows the latest build (`cloudwatch_observability_most_recent = true`). Set that to false and set `cloudwatch_observability_addon_version` to the installed version when an apply should leave the add-on on that build.
+
 ---
 
 [← Back to overview](../)

@@ -2,9 +2,11 @@ module "sligo_aws" {
   source = "../../modules/aws/eks"
 
   # Cluster configuration
-  cluster_name    = var.cluster_name
-  cluster_version = var.cluster_version
-  aws_region      = var.aws_region
+  cluster_name                           = var.cluster_name
+  cluster_version                        = var.cluster_version
+  aws_region                             = var.aws_region
+  cloudwatch_observability_most_recent   = var.cloudwatch_observability_most_recent
+  cloudwatch_observability_addon_version = var.cloudwatch_observability_addon_version
 
   # Application configuration
   domain_name                    = var.domain_name
@@ -23,6 +25,7 @@ module "sligo_aws" {
   aurora_min_capacity   = var.aurora_min_capacity
   aurora_max_capacity   = var.aurora_max_capacity
   aurora_instance_class = var.aurora_instance_class
+  aurora_engine_version = var.aurora_engine_version
 
   # Redis configuration
   redis_node_type = var.redis_node_type

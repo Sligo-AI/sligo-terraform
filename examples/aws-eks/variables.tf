@@ -10,6 +10,18 @@ variable "cluster_version" {
   default     = "1.34"
 }
 
+variable "cloudwatch_observability_most_recent" {
+  description = "When true, install the latest amazon-cloudwatch-observability add-on version AWS publishes. Set false and set cloudwatch_observability_addon_version to the installed version so an apply keeps that build."
+  type        = bool
+  default     = true
+}
+
+variable "cloudwatch_observability_addon_version" {
+  description = "amazon-cloudwatch-observability add-on version (for example v7.0.0-eksbuild.1). Required when cloudwatch_observability_most_recent is false."
+  type        = string
+  default     = null
+}
+
 variable "aws_region" {
   description = "AWS region"
   type        = string
@@ -93,6 +105,12 @@ variable "aurora_instance_class" {
   description = "Aurora Serverless v2 cluster instance class (e.g., db.r6g.large, db.r6g.xlarge). Scaling is controlled by aurora_min_capacity/aurora_max_capacity."
   type        = string
   default     = "db.r6g.large"
+}
+
+variable "aurora_engine_version" {
+  description = "Aurora PostgreSQL engine version. Set only when this environment is already on a newer patch than the module default."
+  type        = string
+  default     = "15.17"
 }
 
 variable "db_password" {
