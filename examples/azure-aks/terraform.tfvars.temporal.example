@@ -6,6 +6,12 @@ enable_temporal              = true
 temporal_self_hosted         = true
 temporal_namespace           = "sligo-prod"
 temporal_task_queue          = "sligo-workflows"
+
+# Optional. Overrides the worker size. The module default is a 256Mi request and a 1Gi limit.
+# temporal_worker_resources = {
+#   requests = { cpu = "250m", memory = "1Gi" }
+#   limits   = { cpu = "1", memory = "3Gi" }
+# }
 temporal_history_shard_count = 512
 temporal_db_name             = "temporal"
 temporal_visibility_db_name  = "temporal_visibility"

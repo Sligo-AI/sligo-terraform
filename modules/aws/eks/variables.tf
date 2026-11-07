@@ -258,6 +258,30 @@ variable "temporal_task_queue" {
   default     = "sligo-workflows"
 }
 
+variable "temporal_worker_resources" {
+  description = "CPU and memory for the sligo-temporal-worker pods. Defaults match the Helm chart. Override in tfvars."
+  type = object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  })
+  default = {
+    requests = {
+      cpu    = "100m"
+      memory = "256Mi"
+    }
+    limits = {
+      cpu    = "500m"
+      memory = "1Gi"
+    }
+  }
+}
+
 variable "temporal_history_shard_count" {
   description = "Temporal history shard count. Immutable after first deploy. Only used when temporal_self_hosted is true."
   type        = number

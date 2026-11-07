@@ -62,6 +62,7 @@ locals {
         tag        = var.app_version
         pullPolicy = "Always"
       }
+      resources  = var.temporal_worker_resources
       secretName = local.backend_secret_name
     }
     temporal-server = {
