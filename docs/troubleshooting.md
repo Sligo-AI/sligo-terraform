@@ -42,7 +42,7 @@ To tear down a protected database, set deletion protection to `false` (AWS `db_d
 
 Chart 1.2.1 defaults LiteParse to 2 replicas requesting 2 CPU each. Default node sizes are 2 vCPU, so those pods cannot schedule (`Preemption is not helpful`, `Insufficient cpu`).
 
-The module overrides this to 1 replica requesting 1 CPU / 2Gi with a 2 CPU / 4Gi limit (Cloud Run LiteParse size, but a request that still fits 2-vCPU nodes). If you are still on module `v2.4.0`, set `helm_extra_values` until you upgrade:
+The module overrides this to 1 replica requesting 1 CPU / 2Gi with a 2 CPU / 4Gi limit, and the chart sets 2 workers to match that limit. The request still fits 2-vCPU nodes. If you are still on module `v2.4.0`, set `helm_extra_values` until you upgrade:
 
 ```hcl
 helm_extra_values = <<-YAML

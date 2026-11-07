@@ -1233,6 +1233,8 @@ resource "kubernetes_secret" "backend_secrets" {
     SQL_CONNECTION_STRING_DECRYPTION_IV                     = local.eff_strings["sql_connection_string_decryption_iv"] != "" ? local.eff_strings["sql_connection_string_decryption_iv"] : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY                    = local.eff_strings["sql_connection_string_decryption_key"] != "" ? local.eff_strings["sql_connection_string_decryption_key"] : "placeholder"
     ENCRYPTION_KEY                                          = local.eff_strings["encryption_key"] != "" ? local.eff_strings["encryption_key"] : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID                            = local.eff_strings["next_public_google_client_id"] != "" ? local.eff_strings["next_public_google_client_id"] : "placeholder"
+    GOOGLE_CLIENT_SECRET                                    = local.eff_strings["google_client_secret"] != "" ? local.eff_strings["google_client_secret"] : "placeholder"
     OPENAI_API_KEY                                          = local.eff_strings["openai_api_key"] != "" ? local.eff_strings["openai_api_key"] : "placeholder"
     OPENAI_BASE_URL                                         = local.eff_strings["openai_base_url"]
     ANTHROPIC_API_KEY                                       = local.eff_strings["anthropic_api_key"] != "" ? local.eff_strings["anthropic_api_key"] : "placeholder"

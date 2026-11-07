@@ -681,6 +681,8 @@ resource "kubernetes_secret" "backend_secrets" {
     SQL_CONNECTION_STRING_DECRYPTION_IV    = var.sql_connection_string_decryption_iv != "" ? var.sql_connection_string_decryption_iv : "placeholder"
     SQL_CONNECTION_STRING_DECRYPTION_KEY   = var.sql_connection_string_decryption_key != "" ? var.sql_connection_string_decryption_key : "placeholder"
     ENCRYPTION_KEY                         = var.encryption_key != "" ? var.encryption_key : "placeholder"
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID           = var.next_public_google_client_id != "" ? var.next_public_google_client_id : "placeholder"
+    GOOGLE_CLIENT_SECRET                   = var.google_client_secret != "" ? var.google_client_secret : "placeholder"
     OPENAI_API_KEY                         = var.openai_api_key != "" ? var.openai_api_key : "placeholder"
     OPENAI_BASE_URL                        = var.openai_base_url
     ANTHROPIC_API_KEY                      = var.anthropic_api_key != "" ? var.anthropic_api_key : "placeholder"
