@@ -1209,7 +1209,7 @@ resource "kubernetes_secret" "nextjs_secrets" {
     } : {}, local.azure_openai_env, local.eff_strings["bedrock_aws_bearer_token"] != "" ? {
     BEDROCK_AWS_BEARER_TOKEN = local.eff_strings["bedrock_aws_bearer_token"]
     BEDROCK_AWS_REGION       = local.eff_strings["bedrock_aws_region"] != "" ? local.eff_strings["bedrock_aws_region"] : "us-east-1"
-  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}, local.temporal_client_env, local.langfuse_ui_env)
+  } : {}, local.eff_strings["langsmith_api_base_url"] != "" ? { LANGSMITH_API_BASE_URL = local.eff_strings["langsmith_api_base_url"] } : {}, local.eff_strings["auth_base_url"] != "" ? { AUTH_BASE_URL = local.eff_strings["auth_base_url"] } : {}, local.eff_strings["auth_cookie_name"] != "" ? { AUTH_COOKIE_NAME = local.eff_strings["auth_cookie_name"] } : {}, local.eff_strings["auth_cookie_same_site"] != "" ? { AUTH_COOKIE_SAME_SITE = local.eff_strings["auth_cookie_same_site"] } : {}, var.shq_module_enabled ? { SHQ_MODULE_ENABLED = "true" } : {}, local.temporal_client_env, local.langfuse_ui_env, local.postmark_app_env)
 }
 
 resource "kubernetes_secret" "backend_secrets" {

@@ -59,7 +59,7 @@ Sligo's enterprise model uses centralized secret governance in `sligo-ai-platfor
 
 ### Postmark email
 
-All three cluster modules support Postmark. Set `postmark_server_token` and `email_from` to enable it. For inbound replies, also set `email_inbound_domain` and `email_inbound_webhook_secret`. The modules inject these into the backend and MCP gateway secrets.
+All three cluster modules support Postmark. Set `postmark_server_token` and `email_from` to enable it. For inbound replies, also set `email_inbound_domain` and `email_inbound_webhook_secret`. The modules inject the token and addresses into the backend and MCP gateway secrets. The app secret gets the provider, From address, inbound domain, and whether the inbound webhook secret is set, so Super Admin can show the setup. It does not get the token or the webhook secret.
 
 ---
 
