@@ -593,6 +593,7 @@ resource "kubernetes_secret" "backend_secrets" {
     BACKEND_API_KEY = var.backend_api_key
     # temporal-worker reuses this secret; skill-agent nodes call the in-cluster backend.
     BACKEND_URL                            = "http://sligo-backend:3001"
+    NEXT_PUBLIC_URL                        = var.frontend_url
     PORT                                   = "3001"
     DATABASE_URL                           = "postgresql://${urlencode(google_sql_user.user.name)}:${urlencode(google_sql_user.user.password)}@${google_sql_database_instance.postgres.private_ip_address}:5432/${google_sql_database.database.name}"
     REDIS_URL                              = local.redis_url
