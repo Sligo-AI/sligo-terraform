@@ -1230,3 +1230,9 @@ variable "email_inbound_webhook_secret" {
   default     = ""
   sensitive   = true
 }
+
+variable "gcs_workload_identity" {
+  description = "Give the backend and MCP gateway the Workload Identity service account for object storage instead of the shared key (GCP_SA_KEY / GOOGLE_APPLICATION_CREDENTIALS). Ignored when use_existing_gcs_bucket is true or when gcp_sa_key is the only Vertex AI credential."
+  type        = bool
+  default     = true
+}
